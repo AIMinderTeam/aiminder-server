@@ -1,0 +1,8 @@
+# 목표 평가
+POST localhost:8080/goal
+Content-Type: application/json
+Accept: application/json
+
+{
+  "text": "부자되기"
+}
