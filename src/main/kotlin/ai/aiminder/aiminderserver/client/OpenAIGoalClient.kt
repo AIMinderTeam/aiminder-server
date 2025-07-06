@@ -13,11 +13,9 @@ import org.springframework.ai.openai.OpenAiChatModel
 import org.springframework.ai.openai.OpenAiChatOptions
 import org.springframework.ai.openai.api.ResponseFormat
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.annotation.Profile
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Component
 
-@Profile("openai")
 @Component
 class OpenAIGoalClient(
     @Value("classpath:/prompts/goal_prompt.txt")
@@ -37,9 +35,26 @@ class OpenAIGoalClient(
         withContext(Dispatchers.Default) {
             val userMessage = UserMessage("사용자 목표: ${evaluateGoalRequest.text}")
             val prompt = Prompt(listOf(systemMessage, userMessage), chatOptions)
-            val response: ChatResponse? = chatModel.call(prompt)
-            val text: String = response?.result?.output?.text ?: throw IllegalStateException("결과가 존재하지 않습니다.")
-            val evaluateGoalResult: EvaluateGoalResult? = outputConverter.convert(text)
+            var retryCount = 0
+            var response: ChatResponse?
+            var text: String?
+            var evaluateGoalResult: EvaluateGoalResult? = null
+
+            while (retryCount < 5) {
+                try {
+                    response = chatModel.call(prompt)
+                    text = response?.result?.output?.text ?: throw IllegalStateException("결과가 존재하지 않습니다.")
+                    evaluateGoalResult = outputConverter.convert(text)
+                    if (evaluateGoalResult != null) {
+                        break
+                    }
+                } catch (_: Exception) {
+                    retryCount++
+                    if (retryCount == 5) {
+                        throw IllegalStateException("결과가 존재하지 않습니다.")
+                    }
+                }
+            }
             return@withContext evaluateGoalResult ?: throw IllegalStateException("결과가 존재하지 않습니다.")
         }
 }
