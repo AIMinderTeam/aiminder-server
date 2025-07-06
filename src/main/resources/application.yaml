@@ -1,3 +1,8 @@
 spring:
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+    openai:
+      api-key: ${OPEN_API_KEY}
   profiles:
-    default: ollama
+    default: openai

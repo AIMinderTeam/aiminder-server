@@ -23,12 +23,14 @@ extra["springAiVersion"] = "1.0.0"
 
 dependencies {
 //    implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
+    implementation("io.github.cdimascio:dotenv-java:3.0.0")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springframework.ai:spring-ai-starter-model-ollama")
+    implementation("org.springframework.ai:spring-ai-starter-model-openai")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
