@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component
 @Profile("openai")
 @Component
 class OpenAIGoalClient(
-    @Value("classpath:/prompts/goal_prompt_v1.txt")
+    @Value("classpath:/prompts/goal_prompt.txt")
     private val systemPrompt: Resource,
     private val chatModel: OpenAiChatModel,
 ) : GoalAIClient {
