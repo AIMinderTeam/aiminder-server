@@ -19,13 +19,13 @@
 
 ```json
 {
-  "review": "<한줄 평>",
-  "specific": <true|false>,
-  "measurable": <true|false>,
-  "achievable": <true|false>,
-  "relevant": <true|false>,
-  "timeBound": <true|false>,
-  "improvedGoal": "<개선된 목표 문장>"
+  "review": "<한줄 평>", // 사용자 목표에 대한 한줄 평
+  "specific": <true|false>, // 수행 내용·대상·범위가 명확한가?
+  "measurable": <true|false>, // 숫자·빈도·퍼센트 등으로 달성 여부를 측정할 수 있는가?
+  "achievable": <true|false>, // 사용자의 자원(시간·예산·능력)으로 현실적으로 가능한가?
+  "relevant": <true|false>, // 상위 목적·가치·역할과 의미 있게 연계되는가?
+  "timeBound": <true|false>, // 달성 시점이나 기간이 구체적으로 명시돼 있는가?
+  "improvedGoal": "<개선된 목표 문장>" // 사용자 목표를 개선한 목표
 }
 ```
 
