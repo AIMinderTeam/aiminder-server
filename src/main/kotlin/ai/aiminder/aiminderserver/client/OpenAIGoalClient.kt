@@ -4,12 +4,12 @@ import ai.aiminder.aiminderserver.domain.EvaluateGoalResult
 import ai.aiminder.aiminderserver.dto.EvaluateGoalRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
 import org.springframework.ai.chat.model.ChatResponse
 import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.ai.converter.BeanOutputConverter
-import org.springframework.ai.openai.OpenAiChatModel
 import org.springframework.ai.openai.OpenAiChatOptions
 import org.springframework.ai.openai.api.ResponseFormat
 import org.springframework.beans.factory.annotation.Value
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component
 class OpenAIGoalClient(
     @Value("classpath:/prompts/goal_prompt.txt")
     private val systemPrompt: Resource,
-    private val chatModel: OpenAiChatModel,
+    private val chatClient: ChatClient,
 ) : GoalAIClient {
     private val outputConverter = BeanOutputConverter(EvaluateGoalResult::class.java)
     private val chatOptions: OpenAiChatOptions? =
@@ -42,7 +42,7 @@ class OpenAIGoalClient(
 
             while (retryCount < 5) {
                 try {
-                    response = chatModel.call(prompt)
+                    response = chatClient.prompt(prompt).call().chatResponse()
                     text = response?.result?.output?.text ?: throw IllegalStateException("결과가 존재하지 않습니다.")
                     evaluateGoalResult = outputConverter.convert(text)
                     if (evaluateGoalResult != null) {
