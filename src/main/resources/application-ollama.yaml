@@ -1,7 +1,8 @@
 spring:
   ai:
-    ollama:
+    openai:
       chat:
-        model: llama3.1
         options:
+          model: llama3.1
           temperature: 0.7
+      base-url: http://localhost:11434
