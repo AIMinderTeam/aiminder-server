@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class GoalAiConfig {
+class OpenAIConfig {
     @Bean
-    fun goalChatClient(builder: ChatClient.Builder): ChatClient = builder.build()
+    fun chatClient(builder: ChatClient.Builder): ChatClient = builder.build()
 }
