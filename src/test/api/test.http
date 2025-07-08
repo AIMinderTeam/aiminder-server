@@ -13,5 +13,5 @@ Content-Type: application/json
 Accept: application/json
 
 {
-"text": "2026년 6월 30일까지 체지방률을 25%에서 18%로 줄인다"
+  "text": "2026년 6월 30일까지 체지방률을 25%에서 18%로 줄인다"
 }
