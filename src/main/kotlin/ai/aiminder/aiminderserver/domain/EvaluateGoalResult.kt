@@ -17,4 +17,6 @@ data class EvaluateGoalResult(
     val timeBound: Boolean,
     @get:JsonProperty(value = "improvedGoal", required = true)
     val improvedGoal: String,
+    @get:JsonProperty(value = "improvementReason", required = true)
+    val improvementReason: String,
 )
