@@ -1,9 +1,13 @@
 package ai.aiminder.aiminderserver.client
 
+import ai.aiminder.aiminderserver.tool.GoalTools
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
+import org.springframework.ai.chat.memory.ChatMemory
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
 import org.springframework.ai.chat.prompt.Prompt
@@ -17,8 +21,22 @@ import kotlin.jvm.java
 @Component
 class OpenAIClient(
     val chatClient: ChatClient,
+    private val goalTools: GoalTools,
 ) {
-    final suspend inline fun <reified T> call(
+    suspend fun request(
+        systemMessage: Resource,
+        userMessage: String,
+        conversationId: String,
+    ): Flow<String> =
+        chatClient
+            .prompt(Prompt(SystemMessage(systemMessage), UserMessage(userMessage)))
+            .advisors { it.param(ChatMemory.CONVERSATION_ID, conversationId) }
+            .tools(goalTools)
+            .stream()
+            .content()
+            .asFlow()
+
+    final suspend inline fun <reified T> requestStructuredResponse(
         systemMessage: Resource,
         userMessage: String,
     ): T =

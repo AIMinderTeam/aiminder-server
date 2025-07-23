@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Minder 챗봇 테스트</title>
+  <style>
+      * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+      }
+
+      body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          height: 100vh;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+      }
+
+      .chat-container {
+          width: 90%;
+          max-width: 800px;
+          height: 600px;
+          background: white;
+          border-radius: 20px;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+      }
+
+      .chat-header {
+          background: linear-gradient(135deg, #4A90E2, #5C6BC0);
+          color: white;
+          padding: 20px;
+          text-align: center;
+          font-size: 20px;
+          font-weight: 600;
+      }
+
+      .conversation-settings {
+          background: #f8f9fa;
+          padding: 15px;
+          border-bottom: 1px solid #e9ecef;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+      }
+
+      .conversation-settings label {
+          font-weight: 500;
+          color: #495057;
+      }
+
+      .conversation-settings input {
+          padding: 8px 12px;
+          border: 1px solid #ced4da;
+          border-radius: 8px;
+          font-size: 14px;
+          flex: 1;
+      }
+
+      .chat-messages {
+          flex: 1;
+          padding: 20px;
+          overflow-y: auto;
+          background: #f8f9fa;
+      }
+
+      .message {
+          margin-bottom: 15px;
+          animation: fadeIn 0.3s ease-in;
+      }
+
+      @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+      }
+
+      .message.user {
+          text-align: right;
+      }
+
+      .message.assistant {
+          text-align: left;
+      }
+
+      .message-bubble {
+          display: inline-block;
+          max-width: 70%;
+          padding: 12px 18px;
+          border-radius: 18px;
+          font-size: 14px;
+          line-height: 1.4;
+          word-wrap: break-word;
+          white-space: pre-wrap; /* 줄바꿈과 공백을 유지 */
+      }
+
+      .message.user .message-bubble {
+          background: linear-gradient(135deg, #4A90E2, #5C6BC0);
+          color: white;
+      }
+
+      .message.assistant .message-bubble {
+          background: white;
+          color: #333;
+          border: 1px solid #e9ecef;
+      }
+
+      .message-input-container {
+          padding: 20px;
+          background: white;
+          border-top: 1px solid #e9ecef;
+          display: flex;
+          gap: 10px;
+      }
+
+      .message-input {
+          flex: 1;
+          padding: 12px 18px;
+          border: 1px solid #ced4da;
+          border-radius: 25px;
+          font-size: 14px;
+          outline: none;
+          transition: border-color 0.2s;
+      }
+
+      .message-input:focus {
+          border-color: #4A90E2;
+      }
+
+      .send-button {
+          padding: 12px 24px;
+          background: linear-gradient(135deg, #4A90E2, #5C6BC0);
+          color: white;
+          border: none;
+          border-radius: 25px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: transform 0.2s;
+      }
+
+      .send-button:hover {
+          transform: translateY(-2px);
+      }
+
+      .send-button:disabled {
+          background: #6c757d;
+          cursor: not-allowed;
+          transform: none;
+      }
+
+      .loading {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 12px 18px;
+          background: white;
+          border: 1px solid #e9ecef;
+          border-radius: 18px;
+          max-width: 70%;
+      }
+
+      .loading-dots {
+          display: flex;
+          gap: 3px;
+      }
+
+      .loading-dot {
+          width: 6px;
+          height: 6px;
+          background: #6c757d;
+          border-radius: 50%;
+          animation: loadingPulse 1.4s infinite ease-in-out;
+      }
+
+      .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+      .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+      @keyframes loadingPulse {
+          0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+          40% { transform: scale(1); opacity: 1; }
+      }
+
+      .error-message {
+          color: #dc3545;
+          font-size: 12px;
+          margin-top: 5px;
+          text-align: center;
+      }
+  </style>
+</head>
+<body>
+<div class="chat-container">
+  <div class="chat-header">
+    🤖 AI Minder 챗봇 테스트
+  </div>
+
+  <div class="conversation-settings">
+    <label for="conversationId">대화 ID:</label>
+    <input type="text" id="conversationId" value="test-conversation-1" placeholder="대화 ID를 입력하세요">
+  </div>
+
+  <div class="chat-messages" id="chatMessages">
+    <div class="message assistant">
+      <div class="message-bubble">
+        안녕하세요! AI Minder 챗봇입니다. 무엇을 도와드릴까요?
+      </div>
+    </div>
+  </div>
+
+  <div class="message-input-container">
+    <input type="text" class="message-input" id="messageInput" placeholder="메시지를 입력하세요...">
+    <button class="send-button" id="sendButton">전송</button>
+  </div>
+
+  <div class="error-message" id="errorMessage"></div>
+</div>
+
+<script>
+    class ChatBot {
+        constructor() {
+            this.apiBaseUrl = 'http://localhost:8080'; // Spring Boot 서버 URL
+            this.chatMessages = document.getElementById('chatMessages');
+            this.messageInput = document.getElementById('messageInput');
+            this.sendButton = document.getElementById('sendButton');
+            this.conversationIdInput = document.getElementById('conversationId');
+            this.errorMessage = document.getElementById('errorMessage');
+
+            this.initEventListeners();
+        }
+
+        initEventListeners() {
+            this.sendButton.addEventListener('click', () => this.sendMessage());
+            this.messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.sendMessage();
+                }
+            });
+        }
+
+        async sendMessage() {
+            const message = this.messageInput.value.trim();
+            const conversationId = this.conversationIdInput.value.trim();
+
+            if (!message) return;
+            if (!conversationId) {
+                this.showError('대화 ID를 입력해주세요.');
+                return;
+            }
+
+            // 사용자 메시지 표시
+            this.addMessage(message, 'user');
+            this.messageInput.value = '';
+            this.setLoading(true);
+            this.clearError();
+
+            // 로딩 표시
+            const loadingElement = this.showLoading();
+
+            try {
+                await this.streamChatResponse(conversationId, message, loadingElement);
+            } catch (error) {
+                console.error('Chat error:', error);
+                this.removeLoading(loadingElement);
+                this.showError('메시지 전송 중 오류가 발생했습니다: ' + error.message);
+            } finally {
+                this.setLoading(false);
+            }
+        }
+
+        async streamChatResponse(conversationId, message, loadingElement) {
+            const url = `${this.apiBaseUrl}/chat/${encodeURIComponent(conversationId)}`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream',
+                },
+                body: JSON.stringify(message)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            // 로딩 제거하고 응답 메시지 버블 생성
+            this.removeLoading(loadingElement);
+            const responseElement = this.addMessage('', 'assistant');
+            const messageBubble = responseElement.querySelector('.message-bubble');
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let responseText = '';
+            let buffer = '';
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    buffer += chunk;
+
+                    // 줄바꿈으로 분리하여 완전한 라인들만 처리
+                    let lines = buffer.split('\n');
+
+                    // 마지막 라인은 불완전할 수 있으므로 버퍼에 보관
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            const data = line.slice(5); // 'data:' 제거
+
+                            if (data === '[DONE]') {
+                                return;
+                            }
+
+                            // 빈 data: 라인은 줄바꿈으로 처리
+                            if (data.trim() === '') {
+                                responseText += '\n';
+                            } else {
+                                responseText += data;
+                            }
+
+                            // 텍스트 업데이트 및 스크롤
+                            messageBubble.textContent = responseText;
+                            this.scrollToBottom();
+                        }
+                    }
+                }
+
+                // 버퍼에 남은 데이터 처리
+                if (buffer.startsWith('data:')) {
+                    const data = buffer.slice(5);
+                    if (data !== '[DONE]' && data.trim() !== '') {
+                        responseText += data;
+                        messageBubble.textContent = responseText;
+                        this.scrollToBottom();
+                    }
+                }
+
+            } finally {
+                reader.releaseLock();
+            }
+        }
+
+        addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.textContent = text;
+
+            messageDiv.appendChild(bubbleDiv);
+            this.chatMessages.appendChild(messageDiv);
+            this.scrollToBottom();
+
+            return messageDiv;
+        }
+
+        showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant';
+
+            const loadingBubble = document.createElement('div');
+            loadingBubble.className = 'loading';
+            loadingBubble.innerHTML = `
+                    <span>AI가 생각 중입니다</span>
+                    <div class="loading-dots">
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                    </div>
+                `;
+
+            loadingDiv.appendChild(loadingBubble);
+            this.chatMessages.appendChild(loadingDiv);
+            this.scrollToBottom();
+
+            return loadingDiv;
+        }
+
+        removeLoading(loadingElement) {
+            if (loadingElement && loadingElement.parentNode) {
+                loadingElement.parentNode.removeChild(loadingElement);
+            }
+        }
+
+        setLoading(isLoading) {
+            this.sendButton.disabled = isLoading;
+            this.messageInput.disabled = isLoading;
+            this.conversationIdInput.disabled = isLoading;
+        }
+
+        scrollToBottom() {
+            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        }
+
+        showError(message) {
+            this.errorMessage.textContent = message;
+            setTimeout(() => this.clearError(), 5000);
+        }
+
+        clearError() {
+            this.errorMessage.textContent = '';
+        }
+    }
+
+    // 챗봇 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+        new ChatBot();
+    });
+</script>
+</body>
+</html>
