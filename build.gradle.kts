@@ -22,22 +22,29 @@ repositories {
 extra["springAiVersion"] = "1.0.0"
 
 dependencies {
-//    implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
+    // env
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
+
+    // spring
+    implementation("org.springframework.ai:spring-ai-starter-model-openai")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    if (osdetector.arch.equals("aarch_64")) {
+        implementation("io.netty:netty-resolver-dns-native-macos:4.2.2.Final:osx-aarch_64")
+    }
+//    implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
+
+    // kotlin
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-    implementation("org.springframework.ai:spring-ai-starter-model-openai")
+
+    // test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    if (osdetector.arch.equals("aarch_64")) {
-        implementation("io.netty:netty-resolver-dns-native-macos:4.2.2.Final:osx-aarch_64")
-    }
 }
 
 dependencyManagement {
