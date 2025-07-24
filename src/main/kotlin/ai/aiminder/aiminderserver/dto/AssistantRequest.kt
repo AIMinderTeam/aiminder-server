@@ -1,5 +1,5 @@
 package ai.aiminder.aiminderserver.dto
 
-data class EvaluateGoalRequest(
+data class AssistantRequest(
     val text: String,
 )

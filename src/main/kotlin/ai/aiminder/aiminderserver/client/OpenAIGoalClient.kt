@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.client
 
-import ai.aiminder.aiminderserver.domain.EvaluateGoalResult
-import ai.aiminder.aiminderserver.dto.EvaluateGoalRequest
+import ai.aiminder.aiminderserver.domain.AssistantResponse
+import ai.aiminder.aiminderserver.dto.AssistantRequest
 import kotlinx.coroutines.flow.Flow
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.Resource
@@ -12,12 +12,12 @@ class OpenAIGoalClient(
     @Value("classpath:/prompts/goal_prompt.txt")
     private val systemPrompt: Resource,
     private val openAIClient: OpenAIClient,
-) : GoalAIClient {
-    override suspend fun evaluateGoal(evaluateGoalRequest: EvaluateGoalRequest): EvaluateGoalResult =
+) : AssistantClient {
+    override suspend fun chat(assistantRequest: AssistantRequest): AssistantResponse =
         openAIClient
-            .requestStructuredResponse<EvaluateGoalResult>(
+            .requestStructuredResponse<AssistantResponse>(
                 systemMessage = systemPrompt,
-                userMessage = evaluateGoalRequest.text,
+                userMessage = assistantRequest.text,
             )
 
     override suspend fun chat(

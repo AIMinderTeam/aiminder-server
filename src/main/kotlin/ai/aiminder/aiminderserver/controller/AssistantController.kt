@@ -1,8 +1,8 @@
 package ai.aiminder.aiminderserver.controller
 
-import ai.aiminder.aiminderserver.domain.EvaluateGoalResult
-import ai.aiminder.aiminderserver.dto.EvaluateGoalRequest
-import ai.aiminder.aiminderserver.service.GoalService
+import ai.aiminder.aiminderserver.domain.AssistantResponse
+import ai.aiminder.aiminderserver.dto.AssistantRequest
+import ai.aiminder.aiminderserver.service.AssistantService
 import kotlinx.coroutines.flow.Flow
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.PathVariable
@@ -11,14 +11,14 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-class GoalController(
-    private val goalService: GoalService,
+class AssistantController(
+    private val assistantService: AssistantService,
 ) {
-    @PostMapping("/goal")
-    suspend fun evaluateGoal(
+    @PostMapping("/chat")
+    suspend fun chat(
         @RequestBody
-        request: EvaluateGoalRequest,
-    ): EvaluateGoalResult = goalService.evaluateGoal(request)
+        request: AssistantRequest,
+    ): AssistantResponse = assistantService.chat(request)
 
     @PostMapping("/chat/{conversationId}", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     suspend fun chat(
@@ -26,5 +26,5 @@ class GoalController(
         conversationId: String,
         @RequestBody
         message: String,
-    ): Flow<String> = goalService.chat(conversationId, message)
+    ): Flow<String> = assistantService.chat(conversationId, message)
 }
