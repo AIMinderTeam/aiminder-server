@@ -2,8 +2,10 @@ package ai.aiminder.aiminderserver.tool
 
 import ai.aiminder.aiminderserver.domain.Goal
 import ai.aiminder.aiminderserver.domain.GoalDraft
+import ai.aiminder.aiminderserver.domain.Schedule
 import ai.aiminder.aiminderserver.dto.GoalMilestone
 import ai.aiminder.aiminderserver.repository.GoalRepository
+import ai.aiminder.aiminderserver.repository.ScheduleRepository
 import org.springframework.ai.tool.annotation.Tool
 import org.springframework.ai.tool.annotation.ToolParam
 import org.springframework.stereotype.Component
@@ -12,6 +14,7 @@ import java.time.LocalDate
 @Component
 class GoalTool(
     private val goalRepository: GoalRepository,
+    private val scheduleRepository: ScheduleRepository,
 ) : AssistantTool {
     @Tool(
         description = """
@@ -36,4 +39,9 @@ class GoalTool(
     fun saveGoal(
         @ToolParam(required = true) draft: GoalDraft,
     ): Goal = goalRepository.save(Goal.create(draft))
+
+    @Tool(description = "제안된 일정을 데이터베이스에 저장한다")
+    fun saveSchedules(
+        @ToolParam(required = true) schedules: List<Schedule>,
+    ): List<Schedule> = scheduleRepository.save(schedules)
 }
