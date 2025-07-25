@@ -1,8 +1,8 @@
 package ai.aiminder.aiminderserver.dto
 
-import java.time.Instant
+import java.time.LocalDate
 
 data class GoalMilestone(
-    val targetDate: Instant,
+    val targetDate: LocalDate,
     val goal: String,
 )

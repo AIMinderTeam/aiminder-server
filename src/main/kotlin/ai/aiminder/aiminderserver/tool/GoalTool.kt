@@ -7,7 +7,7 @@ import ai.aiminder.aiminderserver.repository.GoalRepository
 import org.springframework.ai.tool.annotation.Tool
 import org.springframework.ai.tool.annotation.ToolParam
 import org.springframework.stereotype.Component
-import java.time.Instant
+import java.time.LocalDate
 
 @Component
 class GoalTool(
@@ -21,7 +21,7 @@ class GoalTool(
     )
     fun refineGoal(
         @ToolParam(required = true) goalTitle: String,
-        @ToolParam(required = true) goalTargetDate: Instant,
+        @ToolParam(required = true) goalTargetDate: LocalDate,
         @ToolParam(required = true) goalDescription: String,
         @ToolParam(required = true) milestones: List<GoalMilestone>,
     ): GoalDraft =

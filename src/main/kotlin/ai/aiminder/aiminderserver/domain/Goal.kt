@@ -1,13 +1,13 @@
 package ai.aiminder.aiminderserver.domain
 
 import ai.aiminder.aiminderserver.dto.GoalMilestone
-import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 data class Goal(
     val id: UUID,
     val goalTitle: String,
-    val goalTargetDate: Instant,
+    val goalTargetDate: LocalDate,
     val goalDescription: String,
     val milestones: List<GoalMilestone>,
 ) {

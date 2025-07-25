@@ -12,7 +12,7 @@ Specific | Measurable | Achievable | Relevant | Time-bound
 - 필수 인자 ⬇️(미확보 시 먼저 질문)
   • originalText (String): 사용자의 원본 문장
   • metric      (String): 정량 지표(kg, %, 회 등)
-  • targetDate  (LocalDateTime, ISO-8601): 목표 기한
+  • targetDate  (LocalDate, ISO-8601): 목표 기한
 - 호출 형식(문법·대괄호·따옴표까지 그대로!):
 ```json
 {
