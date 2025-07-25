@@ -14,6 +14,7 @@ import org.springframework.ai.openai.OpenAiChatOptions
 import org.springframework.ai.openai.api.ResponseFormat
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime.now
 import java.util.UUID
 import kotlin.jvm.java
 
@@ -36,7 +37,7 @@ class OpenAIClient(
                     .responseFormat(ResponseFormat(ResponseFormat.Type.JSON_SCHEMA, outputConverter.jsonSchema))
                     .build()
             val systemMessage = SystemMessage(systemMessage)
-            val userMessage = UserMessage(userMessage)
+            val userMessage = UserMessage("Current Time: ${now()}\n$userMessage")
             val prompt = Prompt(listOf(systemMessage, userMessage), chatOptions)
             var retryCount = 0
             var response: T? = null
