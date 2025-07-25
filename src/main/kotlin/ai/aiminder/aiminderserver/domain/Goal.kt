@@ -1,23 +1,24 @@
 package ai.aiminder.aiminderserver.domain
 
-import java.time.LocalDateTime
+import ai.aiminder.aiminderserver.dto.GoalMilestone
+import java.time.Instant
 import java.util.UUID
 
 data class Goal(
     val id: UUID,
-    val originalText: String,
-    val smartText: String,
-    val metric: String,
-    val targetDate: LocalDateTime,
+    val goalTitle: String,
+    val goalTargetDate: Instant,
+    val goalDescription: String,
+    val milestones: List<GoalMilestone>,
 ) {
     companion object {
         fun create(draft: GoalDraft): Goal =
             Goal(
                 id = UUID.randomUUID(),
-                originalText = draft.originalText,
-                smartText = draft.smartText,
-                metric = draft.metric,
-                targetDate = draft.targetDate,
+                goalTitle = draft.goalTitle,
+                goalTargetDate = draft.goalTargetDate,
+                goalDescription = draft.goalDescription,
+                milestones = draft.milestones,
             )
     }
 }

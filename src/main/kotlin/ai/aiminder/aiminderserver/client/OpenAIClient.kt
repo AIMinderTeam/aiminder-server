@@ -1,9 +1,7 @@
 package ai.aiminder.aiminderserver.client
 
-import ai.aiminder.aiminderserver.tool.GoalTools
+import ai.aiminder.aiminderserver.tool.GoalTool
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
@@ -16,29 +14,18 @@ import org.springframework.ai.openai.OpenAiChatOptions
 import org.springframework.ai.openai.api.ResponseFormat
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Component
+import java.util.UUID
 import kotlin.jvm.java
 
 @Component
 class OpenAIClient(
     val chatClient: ChatClient,
-    private val goalTools: GoalTools,
+    val goalTool: GoalTool,
 ) {
-    suspend fun request(
-        systemMessage: Resource,
-        userMessage: String,
-        conversationId: String,
-    ): Flow<String> =
-        chatClient
-            .prompt(Prompt(SystemMessage(systemMessage), UserMessage(userMessage)))
-            .advisors { it.param(ChatMemory.CONVERSATION_ID, conversationId) }
-            .tools(goalTools)
-            .stream()
-            .content()
-            .asFlow()
-
     final suspend inline fun <reified T> requestStructuredResponse(
         systemMessage: Resource,
         userMessage: String,
+        conversationId: UUID,
     ): T =
         withContext(Dispatchers.Default) {
             val logger = LoggerFactory.getLogger(this::class.java)
@@ -56,7 +43,14 @@ class OpenAIClient(
 
             while (retryCount < 5) {
                 try {
-                    val chatResponse = chatClient.prompt(prompt).call().chatResponse()
+                    val chatResponse =
+                        chatClient
+                            .prompt(
+                                prompt,
+                            ).advisors { it.param(ChatMemory.CONVERSATION_ID, conversationId) }
+                            .tools(goalTool)
+                            .call()
+                            .chatResponse()
                     val text =
                         chatResponse?.result?.output?.text
                             ?: throw IllegalAccessException("결과가 존재하지 않습니다.")

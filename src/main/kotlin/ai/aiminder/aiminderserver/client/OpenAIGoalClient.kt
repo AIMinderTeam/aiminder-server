@@ -2,10 +2,10 @@ package ai.aiminder.aiminderserver.client
 
 import ai.aiminder.aiminderserver.domain.AssistantResponse
 import ai.aiminder.aiminderserver.dto.AssistantRequest
-import kotlinx.coroutines.flow.Flow
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Component
+import java.util.UUID
 
 @Component
 class OpenAIGoalClient(
@@ -13,15 +13,14 @@ class OpenAIGoalClient(
     private val systemPrompt: Resource,
     private val openAIClient: OpenAIClient,
 ) : AssistantClient {
-    override suspend fun chat(assistantRequest: AssistantRequest): AssistantResponse =
+    override suspend fun chat(
+        conversationId: UUID,
+        assistantRequest: AssistantRequest,
+    ): AssistantResponse =
         openAIClient
             .requestStructuredResponse<AssistantResponse>(
                 systemMessage = systemPrompt,
                 userMessage = assistantRequest.text,
+                conversationId = conversationId,
             )
-
-    override suspend fun chat(
-        conversationId: String,
-        userMessage: String,
-    ): Flow<String> = openAIClient.request(systemPrompt, userMessage, conversationId)
 }

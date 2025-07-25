@@ -1,10 +1,11 @@
 package ai.aiminder.aiminderserver.domain
 
-import java.time.LocalDateTime
+import ai.aiminder.aiminderserver.dto.GoalMilestone
+import java.time.Instant
 
 data class GoalDraft(
-    val originalText: String,
-    val smartText: String,
-    val metric: String,
-    val targetDate: LocalDateTime,
+    val goalTitle: String,
+    val goalTargetDate: Instant,
+    val goalDescription: String,
+    val milestones: List<GoalMilestone>,
 )
