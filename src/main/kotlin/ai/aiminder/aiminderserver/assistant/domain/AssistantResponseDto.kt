@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.domain
+package ai.aiminder.aiminderserver.assistant.domain
 
 import com.fasterxml.jackson.annotation.JsonProperty
 

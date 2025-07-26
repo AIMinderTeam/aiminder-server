@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.tool
+package ai.aiminder.aiminderserver.assistant.tool
 
 import ai.aiminder.aiminderserver.domain.Goal
 import ai.aiminder.aiminderserver.domain.GoalDraft

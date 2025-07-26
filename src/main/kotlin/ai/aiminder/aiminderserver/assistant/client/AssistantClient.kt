@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.client
+package ai.aiminder.aiminderserver.assistant.client
 
 import ai.aiminder.aiminderserver.domain.AssistantResponse
 import ai.aiminder.aiminderserver.dto.AssistantRequest

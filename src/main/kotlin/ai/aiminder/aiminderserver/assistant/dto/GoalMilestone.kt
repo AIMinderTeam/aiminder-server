@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.dto
+package ai.aiminder.aiminderserver.assistant.dto
 
 import java.time.LocalDate
 

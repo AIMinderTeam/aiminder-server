@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.repository
+package ai.aiminder.aiminderserver.assistant.repository
 
 import ai.aiminder.aiminderserver.domain.Goal
 import org.slf4j.LoggerFactory

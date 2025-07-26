@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.config
+package ai.aiminder.aiminderserver.assistant.config
 
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor
