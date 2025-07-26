@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.assistant.client
 
-import ai.aiminder.aiminderserver.tool.GoalTool
+import ai.aiminder.aiminderserver.assistant.tool.GoalTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory

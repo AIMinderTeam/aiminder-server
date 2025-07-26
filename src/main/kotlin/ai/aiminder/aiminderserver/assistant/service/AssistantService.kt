@@ -1,8 +1,8 @@
 package ai.aiminder.aiminderserver.assistant.service
 
-import ai.aiminder.aiminderserver.client.AssistantClient
-import ai.aiminder.aiminderserver.domain.AssistantResponse
-import ai.aiminder.aiminderserver.dto.AssistantRequest
+import ai.aiminder.aiminderserver.assistant.client.AssistantClient
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import org.springframework.stereotype.Service
 import java.util.UUID
 

@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.assistant.client
 
-import ai.aiminder.aiminderserver.domain.AssistantResponse
-import ai.aiminder.aiminderserver.dto.AssistantRequest
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import java.util.UUID
 
 interface AssistantClient {

@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.assistant.repository
 
-import ai.aiminder.aiminderserver.domain.Goal
+import ai.aiminder.aiminderserver.assistant.domain.Goal
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 

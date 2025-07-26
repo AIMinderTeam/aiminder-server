@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.assistant.domain
 
-import ai.aiminder.aiminderserver.dto.GoalMilestone
+import ai.aiminder.aiminderserver.assistant.dto.GoalMilestone
 import java.time.LocalDate
 import java.util.UUID
 

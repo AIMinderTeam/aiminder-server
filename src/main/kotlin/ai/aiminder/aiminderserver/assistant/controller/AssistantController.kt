@@ -1,8 +1,8 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
-import ai.aiminder.aiminderserver.domain.AssistantResponse
-import ai.aiminder.aiminderserver.dto.AssistantRequest
-import ai.aiminder.aiminderserver.service.AssistantService
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
+import ai.aiminder.aiminderserver.assistant.service.AssistantService
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody

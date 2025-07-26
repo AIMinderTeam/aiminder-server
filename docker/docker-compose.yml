@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  aiminder-database:
+    image: postgres:14
+    container_name: aiminder-database
+    environment:
+      POSTGRES_DB: "aiminderdb"
+      POSTGRES_USER: "aiminder"
+      POSTGRES_PASSWORD: "aiminder"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"

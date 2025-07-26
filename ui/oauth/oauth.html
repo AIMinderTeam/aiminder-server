@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="OAuth 테스트 UI - 소셜 로그인 테스트">
+    <title>OAuth 테스트 UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        .auth-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: '•';
+            color: #667eea;
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        .oauth-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .oauth-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-width: 180px;
+        }
+
+        .google-btn {
+            background: #db4437;
+            color: white;
+        }
+
+        .google-btn:hover {
+            background: #c23321;
+            transform: translateY(-2px);
+        }
+
+        .kakao-btn {
+            background: #fee500;
+            color: #3c1e1e;
+        }
+
+        .kakao-btn:hover {
+            background: #fdd835;
+            transform: translateY(-2px);
+        }
+
+        .user-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .user-info.active {
+            display: block;
+        }
+
+        .user-detail {
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .user-detail:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #495057;
+            margin-right: 10px;
+        }
+
+        .value {
+            color: #6c757d;
+        }
+
+        .token-display {
+            background: #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .api-test-section {
+            margin-top: 20px;
+        }
+
+        .api-endpoint {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .endpoint-url {
+            font-family: monospace;
+            font-weight: 600;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .endpoint-desc {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .response-container {
+            background: #212529;
+            color: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .response-container.show {
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .oauth-buttons {
+                flex-direction: column;
+            }
+
+            .oauth-btn {
+                min-width: unset;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" style="display: none;">
+    <h1 class="title">🔐 OAuth 테스트 UI</h1>
+
+    <!-- OAuth 로그인 섹션 -->
+    <div class="auth-section">
+        <div class="section-title">소셜 로그인</div>
+        <div class="oauth-buttons">
+            <a href="http://localhost:8080/oauth2/authorization/google?redirect_uri=http://localhost:3000/login/success" class="oauth-btn google-btn">
+                📧 Google 로그인
+            </a>
+            <a href="http://localhost:8080/oauth2/authorization/kakao?redirect_uri=http://localhost:3000/login/success" class="oauth-btn kakao-btn">
+                💬 Kakao 로그인
+            </a>
+        </div>
+    </div>
+
+    <!-- 사용자 정보 표시 섹션 -->
+    <div class="auth-section">
+        <div class="section-title">사용자 정보</div>
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="getUserInfo()">사용자 정보 조회</button>
+            <button class="btn btn-primary" onclick="validateToken()">토큰 검증</button>
+            <button class="btn btn-danger" onclick="logout()">로그아웃</button>
+        </div>
+
+        <div id="userInfo" class="user-info">
+            <!-- 사용자 정보가 여기에 표시됩니다 -->
+        </div>
+
+        <div id="statusMessage" class="status" style="display: none;"></div>
+    </div>
+
+    <!-- API 테스트 섹션 -->
+    <div class="auth-section">
+        <div class="section-title">API 테스트</div>
+        <div class="api-test-section">
+            <div class="api-endpoint">
+                <div class="endpoint-url">GET /api/auth/user</div>
+                <div class="endpoint-desc">현재 인증된 사용자 정보를 조회합니다.</div>
+                <button class="btn btn-primary" onclick="testGetUser()" style="margin-top: 10px;">테스트</button>
+                <div id="getUserResponse" class="response-container"></div>
+            </div>
+
+            <div class="api-endpoint">
+                <div class="endpoint-url">POST /api/auth/validate</div>
+                <div class="endpoint-desc">JWT 토큰의 유효성을 검증합니다.</div>
+                <button class="btn btn-primary" onclick="testValidateToken()" style="margin-top: 10px;">테스트</button>
+                <div id="validateResponse" class="response-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+  // 라우팅 처리 함수
+  function handleRouting() {
+    const path = window.location.pathname;
+    const hash = window.location.hash;
+
+    // 메인 화면 표시
+    document.querySelector('.container').style.display = 'block';
+
+    // /login/success 경로 처리
+    if (path === '/login/success' || hash === '#/login/success') {
+      showStatus('로그인 성공! 리다이렉트되었습니다.', 'success');
+      // 기록에서 해당 경로 제거하고 루트로 변경
+      window.history.replaceState({}, document.title, '/');
+    }
+  }
+
+  // URL 파라미터에서 토큰 추출 (OAuth 성공 후 리다이렉트에서)
+  function getTokenFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+      localStorage.setItem('jwtToken', token);
+      // URL에서 토큰 파라미터 제거
+      window.history.replaceState({}, document.title, window.location.pathname);
+      showStatus('OAuth 로그인 성공! 토큰이 저장되었습니다.', 'success');
+    }
+    return token;
+  }
+
+  // 페이지 로드 시 토큰 확인 및 라우팅 처리
+  window.onload = function() {
+    // 라우팅 처리
+    handleRouting();
+
+    // 토큰 처리
+    getTokenFromUrl();
+    const token = localStorage.getItem('jwtToken');
+    if (token) {
+      getUserInfo();
+    }
+  };
+
+  // 상태 메시지 표시
+  function showStatus(message, type) {
+    const statusEl = document.getElementById('statusMessage');
+    statusEl.textContent = message;
+    statusEl.className = `status ${type}`;
+    statusEl.style.display = 'block';
+
+    setTimeout(() => {
+      statusEl.style.display = 'none';
+    }, 5000);
+  }
+
+  // 사용자 정보 조회
+  async function getUserInfo() {
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+      showStatus('로그인이 필요합니다.', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/user', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        displayUserInfo(userData);
+        showStatus('사용자 정보를 성공적으로 조회했습니다.', 'success');
+      } else {
+        showStatus('사용자 정보 조회에 실패했습니다.', 'error');
+        if (response.status === 401) {
+          localStorage.removeItem('jwtToken');
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showStatus('네트워크 오류가 발생했습니다.', 'error');
+    }
+  }
+
+  // 토큰 검증
+  async function validateToken() {
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+      showStatus('저장된 토큰이 없습니다.', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/validate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const validationResult = await response.json();
+        showStatus('토큰이 유효합니다.', 'success');
+        console.log('Validation result:', validationResult);
+      } else {
+        showStatus('토큰이 유효하지 않습니다.', 'error');
+        localStorage.removeItem('jwtToken');
+        document.getElementById('userInfo').classList.remove('active');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showStatus('토큰 검증 중 오류가 발생했습니다.', 'error');
+    }
+  }
+
+  // 사용자 정보 표시
+  function displayUserInfo(userData) {
+    const userInfoEl = document.getElementById('userInfo');
+    const token = localStorage.getItem('jwtToken');
+
+    userInfoEl.innerHTML = `
+                <div class="user-detail">
+                    <span class="label">이름:</span>
+                    <span class="value">${userData.name || 'N/A'}</span>
+                </div>
+                <div class="user-detail">
+                    <span class="label">이메일:</span>
+                    <span class="value">${userData.email || 'N/A'}</span>
+                </div>
+                <div class="user-detail">
+                    <span class="label">프로필 이미지:</span>
+                    <span class="value">${userData.picture ? `<img src="${userData.picture}" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%;">` : 'N/A'}</span>
+                </div>
+                <div class="user-detail">
+                    <span class="label">OAuth 제공자:</span>
+                    <span class="value">${userData.provider || 'N/A'}</span>
+                </div>
+                <div class="user-detail">
+                    <span class="label">JWT 토큰:</span>
+                    <div class="token-display">${token}</div>
+                </div>
+            `;
+    userInfoEl.classList.add('active');
+  }
+
+  // API 테스트 함수들
+  async function testGetUser() {
+    const token = localStorage.getItem('jwtToken');
+    const responseEl = document.getElementById('getUserResponse');
+
+    if (!token) {
+      responseEl.textContent = 'Error: 토큰이 없습니다. 먼저 로그인해주세요.';
+      responseEl.classList.add('show');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/user', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const responseData = response.ok ? await response.json() : await response.text();
+      responseEl.textContent = JSON.stringify({
+        status: response.status,
+        statusText: response.statusText,
+        data: responseData
+      }, null, 2);
+      responseEl.classList.add('show');
+    } catch (error) {
+      responseEl.textContent = `Error: ${error.message}`;
+      responseEl.classList.add('show');
+    }
+  }
+
+  async function testValidateToken() {
+    const token = localStorage.getItem('jwtToken');
+    const responseEl = document.getElementById('validateResponse');
+
+    if (!token) {
+      responseEl.textContent = 'Error: 토큰이 없습니다. 먼저 로그인해주세요.';
+      responseEl.classList.add('show');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/validate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const responseData = response.ok ? await response.json() : await response.text();
+      responseEl.textContent = JSON.stringify({
+        status: response.status,
+        statusText: response.statusText,
+        data: responseData
+      }, null, 2);
+      responseEl.classList.add('show');
+    } catch (error) {
+      responseEl.textContent = `Error: ${error.message}`;
+      responseEl.classList.add('show');
+    }
+  }
+
+  // 로그아웃
+  function logout() {
+    localStorage.removeItem('jwtToken');
+    document.getElementById('userInfo').classList.remove('active');
+    document.getElementById('getUserResponse').classList.remove('show');
+    document.getElementById('validateResponse').classList.remove('show');
+    showStatus('로그아웃되었습니다.', 'success');
+  }
+</script>
+</body>
+</html>

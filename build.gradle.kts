@@ -22,6 +22,9 @@ repositories {
 extra["springAiVersion"] = "1.0.0"
 
 dependencies {
+    val jwtVersion = "0.12.3"
+    val flywayVersion = "11.10.4"
+
     // env
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
 
@@ -31,7 +34,13 @@ dependencies {
     if (osdetector.arch.equals("aarch_64")) {
         implementation("io.netty:netty-resolver-dns-native-macos:4.2.2.Final:osx-aarch_64")
     }
-//    implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
+    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+
+    // postgres
+    implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
+    implementation("org.postgresql:postgresql:42.7.7")
 
     // kotlin
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
@@ -39,12 +48,23 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
+    // jwt
+    implementation("io.jsonwebtoken:jjwt-api:$jwtVersion")
+    implementation("io.jsonwebtoken:jjwt-impl:$jwtVersion")
+    implementation("io.jsonwebtoken:jjwt-jackson:$jwtVersion")
+
+    // flyway
+    implementation("org.flywaydb:flyway-core:$flywayVersion")
+    implementation("org.flywaydb:flyway-database-postgresql:$flywayVersion")
+
     // test
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("io.projectreactor:reactor-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    run {
+        testImplementation("org.springframework.boot:spring-boot-starter-test")
+        testImplementation("io.projectreactor:reactor-test")
+        testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+        testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    }
 }
 
 dependencyManagement {

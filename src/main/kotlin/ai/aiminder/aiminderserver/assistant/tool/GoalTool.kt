@@ -1,11 +1,11 @@
 package ai.aiminder.aiminderserver.assistant.tool
 
-import ai.aiminder.aiminderserver.domain.Goal
-import ai.aiminder.aiminderserver.domain.GoalDraft
-import ai.aiminder.aiminderserver.domain.Schedule
-import ai.aiminder.aiminderserver.dto.GoalMilestone
-import ai.aiminder.aiminderserver.repository.GoalRepository
-import ai.aiminder.aiminderserver.repository.ScheduleRepository
+import ai.aiminder.aiminderserver.assistant.domain.Goal
+import ai.aiminder.aiminderserver.assistant.domain.GoalDraft
+import ai.aiminder.aiminderserver.assistant.domain.Schedule
+import ai.aiminder.aiminderserver.assistant.dto.GoalMilestone
+import ai.aiminder.aiminderserver.assistant.repository.GoalRepository
+import ai.aiminder.aiminderserver.assistant.repository.ScheduleRepository
 import org.springframework.ai.tool.annotation.Tool
 import org.springframework.ai.tool.annotation.ToolParam
 import org.springframework.stereotype.Component

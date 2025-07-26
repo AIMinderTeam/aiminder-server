@@ -1,0 +1,29 @@
+aiminder:
+  server:
+    url: http://localhost:8080
+  client:
+    url: http://localhost:3000
+  jwt:
+    secret: f60c2ec255d1244a90ba9c522f7ba7d8abd474cef7bacd38f90b553b09ec11ae502357a2471ecb5733661d8b8e3e98dd4a3fbd080acf6f2b06373fd884d0040d
+    expiration: 86400
+
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/aiminderdb
+    username: aiminder
+    password: aiminder
+
+  flyway:
+    url: jdbc:postgresql://localhost:5432/aiminderdb
+    locations: classpath:/db/migration
+    user: aiminder
+    password: aiminder
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            redirect-uri: ${aiminder.server.url}/login/oauth2/code/google
+          kakao:
+            redirect-uri: ${aiminder.server.url}/login/oauth2/code/kakao
