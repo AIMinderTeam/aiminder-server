@@ -24,7 +24,8 @@ spring:
             client-id: ${KAKAO_CLIENT_ID}
             client-secret: ${KAKAO_CLIENT_SECRET}
             authorization-grant-type: authorization_code
-            client-name: Kakao
+            client-authentication-method: client_secret_post
+            client-name: kakao
 
         provider:
           kakao:

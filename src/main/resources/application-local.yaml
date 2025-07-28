@@ -27,3 +27,12 @@ spring:
             redirect-uri: ${aiminder.server.url}/login/oauth2/code/google
           kakao:
             redirect-uri: ${aiminder.server.url}/login/oauth2/code/kakao
+
+logging:
+  level:
+    root: info
+    ai.aiminder: debug
+    org.springframework.security: debug
+    io.r2dbc.postgresql:
+      QUERY: debug
+      PARAM: debug

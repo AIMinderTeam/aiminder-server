@@ -55,6 +55,6 @@ class OAuth2UserService(
 
     private fun extractKakaoUserInfo(oauth2User: OAuth2User): OAuth2UserInfo =
         OAuth2UserInfo(
-            id = oauth2User.getAttribute("id") ?: "",
+            id = oauth2User.getAttribute<Long>("id")?.toString() ?: "",
         )
 }
