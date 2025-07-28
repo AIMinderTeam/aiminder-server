@@ -33,6 +33,7 @@ class SecurityConfig(
                     .permitAll()
                     .anyExchange()
                     .authenticated()
+                // TODO 인증 실패시 실패에 대한 응답을 커스텀해서 응답하도록 수정 필요
             }.oauth2Login { oauth2 ->
                 oauth2.authenticationSuccessHandler(authenticationSuccessHandler())
             }.build()
