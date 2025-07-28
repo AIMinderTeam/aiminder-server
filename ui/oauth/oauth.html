@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -242,6 +243,42 @@
             display: block;
         }
 
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .loading::after {
+            content: "...";
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% {
+                color: rgba(0,0,0,0);
+                text-shadow:
+                        .25em 0 0 rgba(0,0,0,0),
+                        .5em 0 0 rgba(0,0,0,0);
+            }
+            40% {
+                color: #666;
+                text-shadow:
+                        .25em 0 0 rgba(0,0,0,0),
+                        .5em 0 0 rgba(0,0,0,0);
+            }
+            60% {
+                text-shadow:
+                        .25em 0 0 #666,
+                        .5em 0 0 rgba(0,0,0,0);
+            }
+            80%, 100% {
+                text-shadow:
+                        .25em 0 0 #666,
+                        .5em 0 0 #666;
+            }
+        }
+
         @media (max-width: 600px) {
             .oauth-buttons {
                 flex-direction: column;
@@ -258,7 +295,7 @@
     </style>
 </head>
 <body>
-    <div class="container" style="display: none;">
+<div class="container">
     <h1 class="title">🔐 OAuth 테스트 UI</h1>
 
     <!-- OAuth 로그인 섹션 -->
@@ -312,69 +349,93 @@
 </div>
 
 <script>
-  // 라우팅 처리 함수
-  function handleRouting() {
+  // OAuth 결과 처리 함수
+  function handleOAuthResult() {
     const path = window.location.pathname;
-    const hash = window.location.hash;
-
-    // 메인 화면 표시
-    document.querySelector('.container').style.display = 'block';
-
-    // /login/success 경로 처리
-    if (path === '/login/success' || hash === '#/login/success') {
-      showStatus('로그인 성공! 리다이렉트되었습니다.', 'success');
-      // 기록에서 해당 경로 제거하고 루트로 변경
-      window.history.replaceState({}, document.title, '/');
-    }
-  }
-
-  // URL 파라미터에서 토큰 추출 (OAuth 성공 후 리다이렉트에서)
-  function getTokenFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    if (token) {
-      localStorage.setItem('jwtToken', token);
-      // URL에서 토큰 파라미터 제거
-      window.history.replaceState({}, document.title, window.location.pathname);
-      showStatus('OAuth 로그인 성공! 토큰이 저장되었습니다.', 'success');
+
+    // OAuth 성공 처리
+    if (path === '/login/success' || path.includes('/login/success')) {
+      const token = urlParams.get('token');
+      if (token) {
+        localStorage.setItem('jwtToken', token);
+        showStatus('🎉 OAuth 로그인 성공! 토큰이 저장되었습니다.', 'success');
+        // URL 정리
+        window.history.replaceState({}, document.title, '/');
+        // 자동으로 사용자 정보 조회
+        setTimeout(() => {
+          getUserInfo();
+        }, 1000);
+      } else {
+        showStatus('⚠️ 토큰을 받지 못했습니다. 다시 로그인해주세요.', 'error');
+        window.history.replaceState({}, document.title, '/');
+      }
+      return true;
     }
-    return token;
+
+    // OAuth 실패 처리
+    if (path === '/login/error' || path.includes('/login/error')) {
+      const error = urlParams.get('error') || '알 수 없는 오류';
+      const errorDescription = urlParams.get('error_description') || '로그인 중 문제가 발생했습니다.';
+      showStatus(`❌ OAuth 로그인 실패: ${errorDescription}`, 'error');
+      // 저장된 토큰 제거
+      localStorage.removeItem('jwtToken');
+      // URL 정리
+      window.history.replaceState({}, document.title, '/');
+      return true;
+    }
+
+    return false;
   }
 
-  // 페이지 로드 시 토큰 확인 및 라우팅 처리
+  // 페이지 로드 시 초기화
   window.onload = function() {
-    // 라우팅 처리
-    handleRouting();
+    // OAuth 결과 처리
+    const wasOAuthResult = handleOAuthResult();
 
-    // 토큰 처리
-    getTokenFromUrl();
-    const token = localStorage.getItem('jwtToken');
-    if (token) {
-      getUserInfo();
+    // OAuth 결과가 아닌 경우 기존 토큰 확인
+    if (!wasOAuthResult) {
+      const token = localStorage.getItem('jwtToken');
+      if (token) {
+        showStatus('💡 저장된 토큰이 있습니다. 사용자 정보를 조회합니다.', 'success');
+        getUserInfo();
+      } else {
+        showStatus('👋 소셜 로그인을 통해 인증해주세요.', 'success');
+      }
     }
   };
 
-  // 상태 메시지 표시
-  function showStatus(message, type) {
+  // URL 변경 감지 (뒤로가기/앞으로가기 버튼 대응)
+  window.addEventListener('popstate', function(event) {
+    handleOAuthResult();
+  });
+
+  // 상태 메시지 표시 (개선된 버전)
+  function showStatus(message, type, duration = 5000) {
     const statusEl = document.getElementById('statusMessage');
-    statusEl.textContent = message;
+    statusEl.innerHTML = message;
     statusEl.className = `status ${type}`;
     statusEl.style.display = 'block';
 
-    setTimeout(() => {
-      statusEl.style.display = 'none';
-    }, 5000);
+    // 자동 숨김
+    if (duration > 0) {
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+      }, duration);
+    }
   }
 
   // 사용자 정보 조회
   async function getUserInfo() {
     const token = localStorage.getItem('jwtToken');
     if (!token) {
-      showStatus('로그인이 필요합니다.', 'error');
+      showStatus('🔑 로그인이 필요합니다.', 'error');
       return;
     }
 
     try {
+      showStatus('📡 사용자 정보를 조회 중입니다', 'success', 0);
+
       const response = await fetch('http://localhost:8080/api/auth/user', {
         method: 'GET',
         headers: {
@@ -386,16 +447,18 @@
       if (response.ok) {
         const userData = await response.json();
         displayUserInfo(userData);
-        showStatus('사용자 정보를 성공적으로 조회했습니다.', 'success');
+        showStatus('✅ 사용자 정보를 성공적으로 조회했습니다.', 'success');
       } else {
-        showStatus('사용자 정보 조회에 실패했습니다.', 'error');
+        const errorText = await response.text();
+        showStatus(`❌ 사용자 정보 조회 실패: ${response.status} ${response.statusText}`, 'error');
         if (response.status === 401) {
           localStorage.removeItem('jwtToken');
+          document.getElementById('userInfo').classList.remove('active');
         }
       }
     } catch (error) {
       console.error('Error:', error);
-      showStatus('네트워크 오류가 발생했습니다.', 'error');
+      showStatus('🌐 네트워크 오류가 발생했습니다.', 'error');
     }
   }
 
@@ -403,11 +466,13 @@
   async function validateToken() {
     const token = localStorage.getItem('jwtToken');
     if (!token) {
-      showStatus('저장된 토큰이 없습니다.', 'error');
+      showStatus('🔑 저장된 토큰이 없습니다.', 'error');
       return;
     }
 
     try {
+      showStatus('🔍 토큰을 검증 중입니다', 'success', 0);
+
       const response = await fetch('http://localhost:8080/api/auth/validate', {
         method: 'POST',
         headers: {
@@ -418,16 +483,16 @@
 
       if (response.ok) {
         const validationResult = await response.json();
-        showStatus('토큰이 유효합니다.', 'success');
+        showStatus('✅ 토큰이 유효합니다.', 'success');
         console.log('Validation result:', validationResult);
       } else {
-        showStatus('토큰이 유효하지 않습니다.', 'error');
+        showStatus('❌ 토큰이 유효하지 않습니다.', 'error');
         localStorage.removeItem('jwtToken');
         document.getElementById('userInfo').classList.remove('active');
       }
     } catch (error) {
       console.error('Error:', error);
-      showStatus('토큰 검증 중 오류가 발생했습니다.', 'error');
+      showStatus('🌐 토큰 검증 중 오류가 발생했습니다.', 'error');
     }
   }
 
@@ -437,27 +502,27 @@
     const token = localStorage.getItem('jwtToken');
 
     userInfoEl.innerHTML = `
-                <div class="user-detail">
-                    <span class="label">이름:</span>
-                    <span class="value">${userData.name || 'N/A'}</span>
-                </div>
-                <div class="user-detail">
-                    <span class="label">이메일:</span>
-                    <span class="value">${userData.email || 'N/A'}</span>
-                </div>
-                <div class="user-detail">
-                    <span class="label">프로필 이미지:</span>
-                    <span class="value">${userData.picture ? `<img src="${userData.picture}" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%;">` : 'N/A'}</span>
-                </div>
-                <div class="user-detail">
-                    <span class="label">OAuth 제공자:</span>
-                    <span class="value">${userData.provider || 'N/A'}</span>
-                </div>
-                <div class="user-detail">
-                    <span class="label">JWT 토큰:</span>
-                    <div class="token-display">${token}</div>
-                </div>
-            `;
+      <div class="user-detail">
+        <span class="label">👤 이름:</span>
+        <span class="value">${userData.name || 'N/A'}</span>
+      </div>
+      <div class="user-detail">
+        <span class="label">📧 이메일:</span>
+        <span class="value">${userData.email || 'N/A'}</span>
+      </div>
+      <div class="user-detail">
+        <span class="label">🖼️ 프로필 이미지:</span>
+        <span class="value">${userData.picture ? `<img src="${userData.picture}" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%; margin-left: 10px;">` : 'N/A'}</span>
+      </div>
+      <div class="user-detail">
+        <span class="label">🔗 OAuth 제공자:</span>
+        <span class="value">${userData.provider || 'N/A'}</span>
+      </div>
+      <div class="user-detail">
+        <span class="label">🔐 JWT 토큰:</span>
+        <div class="token-display">${token}</div>
+      </div>
+    `;
     userInfoEl.classList.add('active');
   }
 
@@ -467,12 +532,15 @@
     const responseEl = document.getElementById('getUserResponse');
 
     if (!token) {
-      responseEl.textContent = 'Error: 토큰이 없습니다. 먼저 로그인해주세요.';
+      responseEl.innerHTML = '<span style="color: #ff6b6b;">❌ Error: 토큰이 없습니다. 먼저 로그인해주세요.</span>';
       responseEl.classList.add('show');
       return;
     }
 
     try {
+      responseEl.innerHTML = '<div class="loading">요청 중</div>';
+      responseEl.classList.add('show');
+
       const response = await fetch('http://localhost:8080/api/auth/user', {
         method: 'GET',
         headers: {
@@ -482,15 +550,13 @@
       });
 
       const responseData = response.ok ? await response.json() : await response.text();
-      responseEl.textContent = JSON.stringify({
+      responseEl.innerHTML = `<pre>${JSON.stringify({
         status: response.status,
         statusText: response.statusText,
         data: responseData
-      }, null, 2);
-      responseEl.classList.add('show');
+      }, null, 2)}</pre>`;
     } catch (error) {
-      responseEl.textContent = `Error: ${error.message}`;
-      responseEl.classList.add('show');
+      responseEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error: ${error.message}</span>`;
     }
   }
 
@@ -499,12 +565,15 @@
     const responseEl = document.getElementById('validateResponse');
 
     if (!token) {
-      responseEl.textContent = 'Error: 토큰이 없습니다. 먼저 로그인해주세요.';
+      responseEl.innerHTML = '<span style="color: #ff6b6b;">❌ Error: 토큰이 없습니다. 먼저 로그인해주세요.</span>';
       responseEl.classList.add('show');
       return;
     }
 
     try {
+      responseEl.innerHTML = '<div class="loading">요청 중</div>';
+      responseEl.classList.add('show');
+
       const response = await fetch('http://localhost:8080/api/auth/validate', {
         method: 'POST',
         headers: {
@@ -514,15 +583,13 @@
       });
 
       const responseData = response.ok ? await response.json() : await response.text();
-      responseEl.textContent = JSON.stringify({
+      responseEl.innerHTML = `<pre>${JSON.stringify({
         status: response.status,
         statusText: response.statusText,
         data: responseData
-      }, null, 2);
-      responseEl.classList.add('show');
+      }, null, 2)}</pre>`;
     } catch (error) {
-      responseEl.textContent = `Error: ${error.message}`;
-      responseEl.classList.add('show');
+      responseEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error: ${error.message}</span>`;
     }
   }
 
@@ -532,7 +599,7 @@
     document.getElementById('userInfo').classList.remove('active');
     document.getElementById('getUserResponse').classList.remove('show');
     document.getElementById('validateResponse').classList.remove('show');
-    showStatus('로그아웃되었습니다.', 'success');
+    showStatus('👋 로그아웃되었습니다.', 'success');
   }
 </script>
 </body>

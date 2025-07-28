@@ -4,25 +4,43 @@ import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.dto.OAuth2UserInfo
 import ai.aiminder.aiminderserver.auth.repository.UserRepository
+import org.springframework.http.server.RequestPath
+import org.springframework.security.core.Authentication
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.stereotype.Service
 
 @Service
-class OAuth2UserService(
+class AuthService(
+    private val jwtTokenService: JwtTokenService,
     private val userRepository: UserRepository,
 ) {
     suspend fun processOAuth2User(
-        oauth2User: OAuth2User,
-        providerId: String,
-    ): User {
-        val oauthInfo: OAuth2UserInfo = extractUserInfo(oauth2User, providerId)
-        val provider = OAuth2Provider.from(providerId)
-
-        return userRepository
-            .findByProviderAndProviderId(
-                provider = provider,
-                providerId = oauthInfo.id,
-            ) ?: createNewUser(userInfo = oauthInfo, provider = providerId)
+        authentication: Authentication,
+        requestPath: RequestPath,
+    ): String {
+        val oauth2User = authentication.principal as OAuth2User
+        val registrationId: String =
+            if (authentication is OAuth2AuthenticationToken) {
+                authentication.authorizedClientRegistrationId
+            } else {
+                val path = requestPath.value()
+                when {
+                    path.contains("google") -> "google"
+                    path.contains("kakao") -> "kakao"
+                    else -> "unknown"
+                }
+            }
+        val oauthInfo: OAuth2UserInfo = extractUserInfo(oauth2User, registrationId)
+        val provider: OAuth2Provider = OAuth2Provider.from(registrationId)
+        val user =
+            userRepository
+                .findByProviderAndProviderId(
+                    provider = provider,
+                    providerId = oauthInfo.id,
+                ) ?: createNewUser(userInfo = oauthInfo, provider = registrationId)
+        val token = jwtTokenService.generateToken(user)
+        return token
     }
 
     private suspend fun createNewUser(

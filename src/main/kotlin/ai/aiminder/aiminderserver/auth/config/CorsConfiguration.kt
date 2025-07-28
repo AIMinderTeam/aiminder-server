@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.assistant.config
+package ai.aiminder.aiminderserver.auth.config
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.config.CorsRegistry
