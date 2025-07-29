@@ -6,12 +6,7 @@ import ai.aiminder.aiminderserver.auth.dto.ValidateTokenResponse
 import ai.aiminder.aiminderserver.auth.service.UserService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.security.oauth2.core.user.OAuth2User
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestHeader
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/auth")
@@ -20,10 +15,10 @@ class AuthController(
 ) {
     @GetMapping("/user")
     suspend fun getUser(
-        @AuthenticationPrincipal oauth2User: OAuth2User?,
+        @AuthenticationPrincipal user: User?,
     ): ResponseEntity<GetUserResponse> =
-        oauth2User
-            ?.let { ResponseEntity.ok(GetUserResponse.from(oauth2User)) }
+        user
+            ?.let { ResponseEntity.ok(GetUserResponse.from(user)) }
             ?: ResponseEntity.status(401).build()
 
     @PostMapping("/validate")

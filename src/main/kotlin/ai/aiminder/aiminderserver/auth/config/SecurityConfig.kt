@@ -1,18 +1,23 @@
 package ai.aiminder.aiminderserver.auth.config
 
+import ai.aiminder.aiminderserver.auth.filter.JwtAuthenticationWebFilter
 import ai.aiminder.aiminderserver.auth.property.OAuthProperties
 import ai.aiminder.aiminderserver.auth.property.SecurityProperties
 import ai.aiminder.aiminderserver.auth.service.AuthService
+import ai.aiminder.aiminderserver.auth.service.JwtTokenService
+import ai.aiminder.aiminderserver.auth.service.UserService
 import ai.aiminder.aiminderserver.common.util.logger
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactor.mono
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.buffer.DataBuffer
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.server.reactive.ServerHttpResponse
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.AuthenticationException
@@ -20,6 +25,9 @@ import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.ServerAuthenticationEntryPoint
 import org.springframework.security.web.server.WebFilterExchange
 import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.reactive.CorsConfigurationSource
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
 import org.springframework.web.server.ServerWebExchange
 
 @Configuration
@@ -33,12 +41,24 @@ class SecurityConfig(
     private val logger = logger()
 
     @Bean
-    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
+    fun securityWebFilterChain(
+        http: ServerHttpSecurity,
+        jwtTokenService: JwtTokenService,
+        userService: UserService,
+    ): SecurityWebFilterChain =
         http
-            .cors { it.disable() }
+            .cors { cors -> cors.configurationSource(corsConfigurationSource()) }
             .csrf { it.disable() }
-            .authorizeExchange { exchanges ->
+            .addFilterBefore(
+                jwtAuthenticationWebFilter(
+                    jwtTokenService,
+                    userService,
+                ),
+                SecurityWebFiltersOrder.AUTHENTICATION,
+            ).authorizeExchange { exchanges ->
                 exchanges
+                    .pathMatchers(HttpMethod.OPTIONS, "/**")
+                    .permitAll()
                     .pathMatchers(*securityProperties.permitPaths.toTypedArray())
                     .permitAll()
                     .anyExchange()
@@ -48,6 +68,28 @@ class SecurityConfig(
             }.exceptionHandling { exceptions ->
                 exceptions.authenticationEntryPoint(customAuthenticationEntryPoint())
             }.build()
+
+    @Bean
+    fun corsConfigurationSource(): CorsConfigurationSource {
+        val configuration =
+            CorsConfiguration().apply {
+                allowedOriginPatterns = securityProperties.allowOriginPatterns
+                allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                allowedHeaders = listOf("*")
+                allowCredentials = true
+                maxAge = 3600L
+            }
+
+        return UrlBasedCorsConfigurationSource().apply {
+            registerCorsConfiguration("/**", configuration)
+        }
+    }
+
+    @Bean
+    fun jwtAuthenticationWebFilter(
+        jwtTokenService: JwtTokenService,
+        userService: UserService,
+    ): JwtAuthenticationWebFilter = JwtAuthenticationWebFilter(jwtTokenService, userService)
 
     @Bean
     fun customAuthenticationEntryPoint(): ServerAuthenticationEntryPoint =

@@ -1,14 +1,15 @@
 package ai.aiminder.aiminderserver.auth.dto
 
-import org.springframework.security.oauth2.core.user.OAuth2User
+import ai.aiminder.aiminderserver.auth.domain.User
+import java.util.UUID
 
 data class GetUserResponse(
-    val name: String,
+    val id: UUID,
 ) {
     companion object {
-        fun from(oauth2User: OAuth2User): GetUserResponse =
+        fun from(user: User): GetUserResponse =
             GetUserResponse(
-                name = oauth2User.name,
+                id = user.id!!,
             )
     }
 }

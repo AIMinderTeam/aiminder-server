@@ -11,6 +11,8 @@ aiminder:
       - /login/**
       - /oauth2/**
       - /error
+    allow-origin-patterns:
+      - http://localhost:*
 
 spring:
   r2dbc:
