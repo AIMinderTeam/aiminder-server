@@ -37,6 +37,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
 
     // postgres
     implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
@@ -56,6 +57,9 @@ dependencies {
     // flyway
     implementation("org.flywaydb:flyway-core:$flywayVersion")
     implementation("org.flywaydb:flyway-database-postgresql:$flywayVersion")
+
+    // swagger
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
 
     // test
     run {

@@ -1,6 +1,7 @@
 package ai.aiminder.aiminderserver.auth.config
 
-import ai.aiminder.aiminderserver.auth.property.OAuthProperty
+import ai.aiminder.aiminderserver.auth.property.OAuthProperties
+import ai.aiminder.aiminderserver.auth.property.SecurityProperties
 import ai.aiminder.aiminderserver.auth.service.AuthService
 import ai.aiminder.aiminderserver.common.util.logger
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -25,7 +26,8 @@ import org.springframework.web.server.ServerWebExchange
 @EnableWebFluxSecurity
 class SecurityConfig(
     private val oauthService: AuthService,
-    private val oauthProperties: OAuthProperty,
+    private val oauthProperties: OAuthProperties,
+    private val securityProperties: SecurityProperties,
     private val objectMapper: ObjectMapper,
 ) {
     private val logger = logger()
@@ -37,7 +39,7 @@ class SecurityConfig(
             .csrf { it.disable() }
             .authorizeExchange { exchanges ->
                 exchanges
-                    .pathMatchers("/login/**", "/oauth2/**", "/", "/error")
+                    .pathMatchers(*securityProperties.permitPaths.toTypedArray())
                     .permitAll()
                     .anyExchange()
                     .authenticated()

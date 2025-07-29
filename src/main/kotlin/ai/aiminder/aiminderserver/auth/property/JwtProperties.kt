@@ -7,7 +7,7 @@ import java.time.temporal.ChronoUnit
 import javax.crypto.SecretKey
 
 @ConfigurationProperties(prefix = "aiminder.jwt")
-data class JwtProperty(
+data class JwtProperties(
     private val secret: String,
     private val expiration: Long,
 ) {

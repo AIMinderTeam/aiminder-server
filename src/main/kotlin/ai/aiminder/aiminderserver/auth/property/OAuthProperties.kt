@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import java.net.URI
 
 @ConfigurationProperties(prefix = "aiminder.oauth")
-data class OAuthProperty(
+data class OAuthProperties(
     private val successUrl: String,
     private val errorUrl: String,
 ) {

@@ -1,0 +1,139 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background-color: #f5f7fa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  color: #333;
+}
+
+.container {
+  width: 100%;
+  max-width: 480px;
+  padding: 20px;
+}
+
+.login-box {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: 40px 30px;
+  text-align: center;
+}
+
+h1 {
+  font-size: 28px;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+p {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.btn img {
+  width: 20px;
+  height: 20px;
+}
+
+.btn-google {
+  background-color: white;
+  color: #444;
+  border: 1px solid #ddd;
+}
+
+.btn-google:hover {
+  background-color: #f8f8f8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-kakao {
+  background-color: #FEE500;
+  color: #3A1D1D;
+}
+
+.btn-kakao:hover {
+  background-color: #FDD835;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-logout {
+  background-color: #f44336;
+  color: white;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.btn-logout:hover {
+  background-color: #e53935;
+}
+
+.result-container {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.result-container h2 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+#token-info {
+  background-color: #eef2f7;
+  padding: 12px;
+  border-radius: 6px;
+  font-family: monospace;
+  word-break: break-all;
+  max-height: 150px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.hidden {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .login-box {
+    padding: 30px 20px;
+  }
+
+  .btn {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+}

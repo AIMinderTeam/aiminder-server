@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.auth.service
 
 import ai.aiminder.aiminderserver.auth.domain.User
-import ai.aiminder.aiminderserver.auth.property.JwtProperty
+import ai.aiminder.aiminderserver.auth.property.JwtProperties
 import ai.aiminder.aiminderserver.common.util.logger
 import ai.aiminder.aiminderserver.common.util.toUUID
 import io.jsonwebtoken.Jwts
@@ -12,14 +12,14 @@ import java.util.UUID
 
 @Service
 class JwtTokenService(
-    private val jwtProperty: JwtProperty,
+    private val jwtProperties: JwtProperties,
 ) {
-    private val key = jwtProperty.secretKey
+    private val key = jwtProperties.secretKey
     private val logger = logger()
 
     fun generateToken(user: User): String {
         val now = Instant.now()
-        val expireDate = jwtProperty.addExpirationTime(now)
+        val expireDate = jwtProperties.addExpirationTime(now)
 
         return Jwts
             .builder()

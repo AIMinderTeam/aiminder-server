@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 성공</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .success-container {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .success-icon {
+      font-size: 72px;
+      color: #4CAF50;
+      margin-bottom: 20px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 30px;
+      color: #2196F3;
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="login-box success-container">
+      <div class="success-icon">✓</div>
+      <h1>로그인 성공!</h1>
+      <p>성공적으로 로그인되었습니다.</p>
+
+      <div id="user-info" class="result-container">
+        <h2>사용자 정보</h2>
+        <div id="user-data">로드 중...</div>
+      </div>
+
+      <a href="/" class="back-link">메인 페이지로 돌아가기</a>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // URL에서 토큰 파라미터 확인
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      if (token) {
+        // 토큰을 로컬 스토리지에 저장
+        localStorage.setItem('auth_token', token);
+
+        // URL에서 토큰 파라미터 제거 (보안 목적)
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        // 사용자 정보 가져오기
+        fetchUserInfo(token);
+      } else {
+        document.getElementById('user-data').textContent = '토큰 정보가 없습니다.';
+      }
+    });
+
+    async function fetchUserInfo(token) {
+      try {
+        const response = await fetch('http://localhost:8080/api/auth/user', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const userDataDiv = document.getElementById('user-data');
+
+        if (response.ok) {
+          const userData = await response.json();
+
+          // 사용자 정보 표시
+          userDataDiv.innerHTML = `
+            <p><strong>사용자 ID:</strong> ${userData.id || '정보 없음'}</p>
+            <p><strong>로그인 제공자:</strong> ${userData.provider || '정보 없음'}</p>
+            <p><strong>토큰:</strong> ${token.substring(0, 10)}...</p>
+          `;
+        } else {
+          userDataDiv.textContent = '사용자 정보를 가져오는데 실패했습니다.';
+        }
+      } catch (error) {
+        console.error('사용자 정보를 가져오는데 실패했습니다:', error);
+        document.getElementById('user-data').textContent = '오류가 발생했습니다: ' + error.message;
+      }
+    }
+  </script>
+</body>
+</html>
