@@ -8,9 +8,15 @@ aiminder:
     expiration: 86400
   security:
     permit-paths:
+      - /error
       - /login/**
       - /oauth2/**
-      - /error
+      - /swagger-ui.html
+      - /swagger-ui/**
+      - /v3/api-docs
+      - /v3/api-docs.yaml
+      - /v3/api-docs/**
+      - /actuator/**
     allow-origin-patterns:
       - http://localhost:*
 
@@ -25,15 +31,6 @@ spring:
     locations: classpath:/db/migration
     user: aiminder
     password: aiminder
-
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            redirect-uri: ${aiminder.server.url}/login/oauth2/code/google
-          kakao:
-            redirect-uri: ${aiminder.server.url}/login/oauth2/code/kakao
 
 logging:
   level:

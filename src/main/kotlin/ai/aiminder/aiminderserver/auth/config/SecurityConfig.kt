@@ -12,7 +12,6 @@ import kotlinx.coroutines.reactor.mono
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.buffer.DataBuffer
-import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.server.reactive.ServerHttpResponse
@@ -57,8 +56,6 @@ class SecurityConfig(
                 SecurityWebFiltersOrder.AUTHENTICATION,
             ).authorizeExchange { exchanges ->
                 exchanges
-                    .pathMatchers(HttpMethod.OPTIONS, "/**")
-                    .permitAll()
                     .pathMatchers(*securityProperties.permitPaths.toTypedArray())
                     .permitAll()
                     .anyExchange()
