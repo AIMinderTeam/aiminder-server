@@ -1,0 +1,80 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+categories:
+  - title: '🔥 HotFixes'
+    label: 'hot'
+  - title: '🚀 New Features'
+    label: 'enhancement'
+  - title: '🛠️ Feature Changes'
+    label: 'fix'
+  - title: '🐛 Bug Fixes'
+    label: 'bug'
+  - title: '🧰 Maintenance'
+    labels:
+      - 'chore'
+      - 'documentation'
+      - 'refactor'
+      - 'test'
+      - 'style'
+  - title: '🤖 Dependencies'
+    label: 'dependencies'
+autolabeler:
+  - label: 'enhancement'
+    title:
+      - '/feat\:.+/'
+  - label: 'fix'
+    title:
+      - '/fix\:.+/'
+  - label: 'bug'
+    title:
+      - '/bug\:.+/'
+  - label: 'hot'
+    title:
+      - '/hot\:.+/'
+  - label: 'refactor'
+    title:
+      - '/refactor\:.+/'
+  - label: 'chore'
+    title:
+      - '/chore\:.+/'
+  - label: 'documentation'
+    title:
+      - '/docs{0,1}\:.+/'
+  - label: 'style'
+    title:
+      - '/style\:.+/'
+  - label: 'test'
+    title:
+      - '/test\:.+/'
+  - label: 'dependencies'
+    title:
+      - '/dep\:.+/'
+  - label: 'work in progress'
+    title:
+      - '/\:wip.+/'
+  - label: 'follow up'
+    title:
+      - '/\:fu.+/'
+change-template: '- $TITLE @$AUTHOR'
+change-title-escapes: '\<*_&'
+exclude-labels:
+  - 'release'
+  - 'wip'
+  - 'work in progress'
+  - 'follow up'
+version-resolver:
+  major:
+    labels:
+      - 'major'
+  minor:
+    labels:
+      - 'minor'
+  patch:
+    labels:
+      - 'patch'
+  default: patch
+template: |
+  # All Changes
+  
+  $CHANGES
+version-template: $MAJOR.$MINOR.$PATCH

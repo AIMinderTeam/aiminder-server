@@ -1,0 +1,20 @@
+name: AutoLabeler For develop
+on:
+  pull_request:
+    types: [ opened, edited ]
+    branches: [ develop ]
+
+jobs:
+  autolabeler-develop:
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 5
+
+    steps:
+      - name: Auto Labeler
+        uses: release-drafter/release-drafter@v5
+        with:
+          disable-autolabeler: false
+          config-name: release-drafter-configs/autolabeler-develop.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}

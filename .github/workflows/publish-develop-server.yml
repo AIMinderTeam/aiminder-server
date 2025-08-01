@@ -1,0 +1,88 @@
+name: Publish Develop Server
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+env:
+  CONTAINER_CONTEXT_PATH: 'docker'
+  DOCKERFILE_PATH: 'docker/Dockerfile'
+  IMAGE_NAME: 'aiminder-server'
+  IMAGE_TAG: 'develop'
+  EC2_SSH_KEY: ${{ secrets.DEVELOP_EC2_SSH_PRIVATE_KEY }}
+  EC2_USER: ${{ secrets.DEVELOP_EC2_SSH_USER }}
+  EC2_HOST: ${{ secrets.DEVELOP_EC2_HOST }}
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+  DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+  APPLICATION_YAML: ${{ secrets.APPLICATION_YAML }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Create application.yaml
+        run: |
+          touch ./src/main/resources/application.yml
+          echo "${{ env.APPLICATION_YAML }}" > ./src/main/resources/application.yml
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build with Gradle
+        run: ./gradlew build --parallel
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: build/reports/tests/test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_HUB_USERNAME }}
+          password: ${{ env.DOCKER_HUB_PASSWORD }}
+
+      - name: Get current date and time in custom format
+        run: |
+          CURRENT_DATE_TIME=$(date "+%Y%m%d%H%M%S")
+          echo "Current date and time is $CURRENT_DATE_TIME"
+          echo "CURRENT_DATE_TIME=$CURRENT_DATE_TIME" >> $GITHUB_ENV
+
+      - name: Use current date and time
+        run: echo "The date and time in custom format is ${{ env.CURRENT_DATE_TIME }}"
+
+      - name: Build and Push the Docker image and
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.CONTAINER_CONTEXT_PATH }}
+          file: ${{ env.DOCKERFILE_PATH }}
+          tags: ${{ env.DOCKER_HUB_USERNAME}}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}
+          push: true
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            sudo docker login -u "${{ env.DOCKER_HUB_USERNAME }}" -p "${{ env.DOCKER_HUB_PASSWORD }}"
+            echo "DEVELOP_DEVOOKS_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}" > .env
+            sudo docker-compose down && sudo docker-compose up -d
