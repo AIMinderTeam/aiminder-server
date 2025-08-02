@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   aiminder-database:
     image: postgres:14
