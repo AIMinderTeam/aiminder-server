@@ -1,0 +1,42 @@
+aiminder:
+  server:
+    url: ${SERVER_HOST}:8080
+  client:
+    url: http://localhost:3000
+  jwt:
+    secret: f60c2ec255d1244a90ba9c522f7ba7d8abd474cef7bacd38f90b553b09ec11ae502357a2471ecb5733661d8b8e3e98dd4a3fbd080acf6f2b06373fd884d0040d
+    expiration: 86400
+  security:
+    permit-paths:
+      - /error
+      - /login/**
+      - /oauth2/**
+      - /swagger-ui.html
+      - /swagger-ui/**
+      - /v3/api-docs
+      - /v3/api-docs.yaml
+      - /v3/api-docs/**
+      - /actuator/**
+    allow-origin-patterns:
+      - http://localhost:*
+
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://aiminder-database/aiminderdb
+    username: aiminder
+    password: aiminder
+
+  flyway:
+    url: jdbc:postgresql://aiminder-database/aiminderdb
+    locations: classpath:/db/migration
+    user: aiminder
+    password: aiminder
+
+logging:
+  level:
+    root: info
+    ai.aiminder: debug
+    org.springframework.security: debug
+    io.r2dbc.postgresql:
+      QUERY: debug
+      PARAM: debug

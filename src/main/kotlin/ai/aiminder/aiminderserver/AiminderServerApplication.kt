@@ -13,7 +13,6 @@ fun main(args: Array<String>) {
     val dotenv =
         Dotenv
             .configure()
-            .directory("src/main/resources")
             .load()
     dotenv.entries().forEach { entry ->
         System.setProperty(entry.key, entry.value)

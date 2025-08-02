@@ -12,3 +12,17 @@ services:
       - ./data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    restart: always
+  aiminder-application:
+    image: aiminder-backend-app:latest
+    build:
+      context: .
+    container_name: aiminder-application
+    depends_on:
+      - aiminder-database
+    environment:
+      - DATABASE_URL=r2dbc:postgresql://aiminder-database:5432/aiminderdb
+      - SPRING_PROFILES_ACTIVE=dev,openai
+    ports:
+      - "8080:8080"
+    restart: always

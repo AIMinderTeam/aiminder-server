@@ -4,10 +4,18 @@ plugins {
     id("org.springframework.boot") version "3.5.3"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.google.osdetector") version "1.7.3"
+    id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
+    id("pl.allegro.tech.build.axion-release") version "1.18.17"
+}
+
+scmVersion {
+    tag { prefix.set("") }
+    versionCreator { tag, _ -> tag }
+    snapshotCreator { _, _ -> "" }
 }
 
 group = "ai.aiminder"
-version = "0.0.1-SNAPSHOT"
+version = scmVersion.version
 
 java {
     toolchain {
@@ -85,4 +93,28 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.register("copyJar", Copy::class) {
+    dependsOn("bootJar")
+    val jarFile = "aiminder-$version.jar"
+    from("build/libs")
+    into(file("docker"))
+    include(jarFile)
+}
+
+tasks.named("build") {
+    dependsOn("copyJar")
+}
+
+openApi {
+    apiDocsUrl.set("http://localhost:8080/v3/api-docs")
+}
+
+tasks.register<Exec>("publishTypeNpm") {
+    dependsOn("test")
+    val npmrcPassword =
+        project.findProperty("password")?.toString()
+            ?: throw GradleException("Please provide a password using -Ppassword=<value>")
+    commandLine("./openapi-generate.sh", "-version", scmVersion.version, "-password", npmrcPassword)
 }
