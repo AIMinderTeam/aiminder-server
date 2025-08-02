@@ -22,7 +22,7 @@ aiminder:
       - /actuator/**
     allow-origin-patterns:
       - http://localhost:*
-      - ${SERVER_HOST}/**
+      - ${SERVER_HOST}
 
 spring:
   r2dbc:
