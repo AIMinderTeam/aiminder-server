@@ -19,7 +19,7 @@ services:
       - aiminder-database
     environment:
       - DATABASE_URL=r2dbc:postgresql://aiminder-database:5432/aiminderdb
-      - SPRING_PROFILES_ACTIVE=local,openai
+      - SPRING_PROFILES_ACTIVE=dev,openai
     ports:
       - "8080:8080"
     restart: always

@@ -1,3 +1,6 @@
+server:
+  port: 80
+
 aiminder:
   oauth:
     success-url: ${aiminder.client.url}/login/success
