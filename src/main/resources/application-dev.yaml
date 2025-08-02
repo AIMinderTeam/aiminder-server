@@ -1,6 +1,9 @@
+server:
+  port: 80
+
 aiminder:
   server:
-    url: ${SERVER_HOST}:8080
+    url: ${SERVER_HOST}
   client:
     url: http://localhost:3000
   jwt:

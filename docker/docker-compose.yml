@@ -12,7 +12,6 @@ services:
       - "5432:5432"
     restart: always
   aiminder-server:
-    image: aiminder-backend-app:latest
     build:
       context: .
     container_name: aiminder-server
