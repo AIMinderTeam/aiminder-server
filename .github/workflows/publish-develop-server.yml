@@ -84,5 +84,5 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             sudo docker login -u "${{ env.DOCKER_HUB_USERNAME }}" -p "${{ env.DOCKER_HUB_PASSWORD }}"
-            echo "DEVELOP_DEVOOKS_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}" > .env
+            echo "DEVELOP_AIMINDER_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}" > .env
             sudo docker-compose down && sudo docker-compose up -d
