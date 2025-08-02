@@ -11,9 +11,9 @@ services:
     ports:
       - "5432:5432"
     restart: always
-  aiminder-application:
-    image: nalsm0518/aiminder-backend-app:${DEVELOP_AIMINDER_TAG}
-    container_name: aiminder-application
+  aiminder-server:
+    image: nalsm0518/aiminder-server:${DEVELOP_AIMINDER_TAG}
+    container_name: aiminder-server
     depends_on:
       - aiminder-database
     environment:

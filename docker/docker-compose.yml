@@ -11,11 +11,11 @@ services:
     ports:
       - "5432:5432"
     restart: always
-  aiminder-application:
+  aiminder-server:
     image: aiminder-backend-app:latest
     build:
       context: .
-    container_name: aiminder-application
+    container_name: aiminder-server
     depends_on:
       - aiminder-database
     environment:
