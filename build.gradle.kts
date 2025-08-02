@@ -97,7 +97,7 @@ tasks.withType<Test> {
 
 tasks.register("copyJar", Copy::class) {
     dependsOn("bootJar")
-    val jarFile = "aiminder-$version.jar"
+    val jarFile = "aiminder-server-$version.jar"
     from("build/libs")
     into(file("docker"))
     include(jarFile)
