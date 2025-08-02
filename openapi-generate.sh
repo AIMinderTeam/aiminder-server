@@ -6,7 +6,7 @@ VERSION="0.0.0"
 
 echo "VERSION=$VERSION"
 
-# 인자 파싱: -password 와 -version 옵션 사용
+# 인자 파싱: -password 와 -version 옵션 사용`
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -password)
@@ -23,15 +23,6 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
-
-# 1. sample.application.yml -> application.yml 복사
-echo "Copying sample.application.yml -> application.yml ..."
-cp src/main/resources/sample.application.yml src/main/resources/application.yml
-if [ $? -ne 0 ]; then
-  echo "[ERROR] Failed to copy sample.application.yml"
-  exit 1
-fi
-echo "Successfully copied file."
 
 # 2. 데이터베이스 컨테이너가 실행 중인지 확인하고, 실행 중이 아니면 실행
 echo "Checking if database container 'aiminder-database' is already running..."
