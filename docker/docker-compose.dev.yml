@@ -12,13 +12,19 @@ services:
       - "5432:5432"
     restart: always
   aiminder-server:
-    image: nalsm0518/aiminder-server:${DEVELOP_AIMINDER_TAG}
+    image: nalsm0518/aiminder-server:${DEVELOP_AIMINDER_SERVER_TAG}
     container_name: aiminder-server
     depends_on:
       - aiminder-database
     environment:
       - DATABASE_URL=r2dbc:postgresql://aiminder-database:5432/aiminderdb
       - SPRING_PROFILES_ACTIVE=dev,openai
+    restart: always
+    ports:
+      - "8080:8080"
+  aiminder-client:
+    image: nalsm0518/aiminder-client:${DEVELOP_AIMINDER_CLIENT_TAG}
+    container_name: aiminder-client
+    restart: always
     ports:
       - "80:80"
-    restart: always
