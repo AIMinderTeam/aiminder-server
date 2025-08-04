@@ -108,7 +108,7 @@ tasks.named("build") {
 }
 
 openApi {
-    apiDocsUrl.set("http://localhost:8080/v3/api-docs")
+    apiDocsUrl.set("http://localhost:8080/api/v3/api-docs")
 }
 
 tasks.register<Exec>("publishTypeNpm") {

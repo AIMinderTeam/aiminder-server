@@ -42,3 +42,11 @@ logging:
     io.r2dbc.postgresql:
       QUERY: debug
       PARAM: debug
+
+springdoc:
+  swagger-ui:
+    path: /api/swagger-ui.html
+    enabled: true
+  api-docs:
+    path: /api/v3/api-docs
+    enabled: true
