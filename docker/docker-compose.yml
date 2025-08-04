@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   aiminder-database:
     image: postgres:14
@@ -13,16 +11,15 @@ services:
     ports:
       - "5432:5432"
     restart: always
-  aiminder-application:
-    image: aiminder-backend-app:latest
+  aiminder-server:
     build:
       context: .
-    container_name: aiminder-application
+    container_name: aiminder-server
     depends_on:
       - aiminder-database
     environment:
       - DATABASE_URL=r2dbc:postgresql://aiminder-database:5432/aiminderdb
-      - SPRING_PROFILES_ACTIVE=local,openai
+      - SPRING_PROFILES_ACTIVE=dev,openai
     ports:
       - "8080:8080"
     restart: always

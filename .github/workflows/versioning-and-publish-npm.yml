@@ -84,6 +84,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Create .env file
+        run: |
+          touch ./src/main/resources/.env
+          echo "${{ env.APPLICATION_ENV }}" > ./src/main/resources/.env
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
       - name: Publish NPM
         run: |
           ./gradlew publishTypeNpm \

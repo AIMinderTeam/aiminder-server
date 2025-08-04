@@ -9,7 +9,7 @@ env:
   CONTAINER_CONTEXT_PATH: 'docker'
   DOCKERFILE_PATH: 'docker/Dockerfile'
   IMAGE_NAME: 'aiminder-server'
-  IMAGE_TAG: 'develop'
+  IMAGE_TAG: 'develop-server'
   EC2_SSH_KEY: ${{ secrets.DEVELOP_EC2_SSH_PRIVATE_KEY }}
   EC2_USER: ${{ secrets.DEVELOP_EC2_SSH_USER }}
   EC2_HOST: ${{ secrets.DEVELOP_EC2_HOST }}
@@ -26,7 +26,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Create application.yaml
+      - name: Create .env file
         run: |
           touch ./src/main/resources/.env
           echo "${{ env.APPLICATION_ENV }}" > ./src/main/resources/.env
@@ -83,6 +83,13 @@ jobs:
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            sudo docker login -u "${{ env.DOCKER_HUB_USERNAME }}" -p "${{ env.DOCKER_HUB_PASSWORD }}"
-            echo "DEVELOP_AIMINDER_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}" > .env
+            if [ ! -f .env ]; then
+              echo "DEVELOP_AIMINDER_SERVER_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}" > .env
+            else
+              if grep -q "^DEVELOP_AIMINDER_SERVER_TAG=" .env; then
+                sed -i "s/^DEVELOP_AIMINDER_SERVER_TAG=.*/DEVELOP_AIMINDER_SERVER_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}/" .env
+              else
+                echo "DEVELOP_AIMINDER_SERVER_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}" >> .env
+              fi
+            fi
             sudo docker-compose down && sudo docker-compose up -d

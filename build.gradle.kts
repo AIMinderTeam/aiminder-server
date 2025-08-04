@@ -97,7 +97,7 @@ tasks.withType<Test> {
 
 tasks.register("copyJar", Copy::class) {
     dependsOn("bootJar")
-    val jarFile = "aiminder-$version.jar"
+    val jarFile = "aiminder-server-$version.jar"
     from("build/libs")
     into(file("docker"))
     include(jarFile)
@@ -108,7 +108,7 @@ tasks.named("build") {
 }
 
 openApi {
-    apiDocsUrl.set("http://localhost:8080/v3/api-docs")
+    apiDocsUrl.set("http://localhost:8080/api/v3/api-docs")
 }
 
 tasks.register<Exec>("publishTypeNpm") {
