@@ -6,6 +6,6 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class ChatMemoryConfig {
-    @Bean
-    fun chatMemory() = MessageWindowChatMemory.builder().maxMessages(20).build()
+  @Bean
+  fun chatMemory() = MessageWindowChatMemory.builder().maxMessages(20).build()
 }

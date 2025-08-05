@@ -14,60 +14,60 @@ import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
 class JwtAuthenticationWebFilter(
-    private val jwtTokenService: JwtTokenService,
-    private val userService: UserService,
+  private val jwtTokenService: JwtTokenService,
+  private val userService: UserService,
 ) : WebFilter {
-    private val logger = logger()
+  private val logger = logger()
 
-    override fun filter(
-        exchange: ServerWebExchange,
-        chain: WebFilterChain,
-    ): Mono<Void> {
-        val token: String? =
-            extractTokenFromRequest(exchange)
-                ?.takeIf { jwtTokenService.validateToken(it) }
+  override fun filter(
+    exchange: ServerWebExchange,
+    chain: WebFilterChain,
+  ): Mono<Void> {
+    val token: String? =
+      extractTokenFromRequest(exchange)
+        ?.takeIf { jwtTokenService.validateToken(it) }
 
-        return if (token != null) {
-            mono {
-                try {
-                    val user = userService.getUser(token)
-                    if (user != null) {
-                        val authentication: Authentication =
-                            UsernamePasswordAuthenticationToken(
-                                user,
-                                null,
-                                emptyList(),
-                            )
-                        authentication
-                    } else {
-                        null
-                    }
-                } catch (e: Exception) {
-                    logger.debug("JWT token validation failed: ${e.message}")
-                    null
-                }
-            }.flatMap { authentication ->
-                if (authentication != null) {
-                    chain
-                        .filter(exchange)
-                        .contextWrite { ReactiveSecurityContextHolder.withAuthentication(authentication) }
-                } else {
-                    logger.debug("JWT token validation failed")
-                    chain.filter(exchange)
-                }
-            }
-        } else {
-            logger.debug("No JWT token found in request")
-            chain.filter(exchange)
-        }
-    }
-
-    private fun extractTokenFromRequest(request: ServerWebExchange): String? {
-        val authHeader = request.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
-        return if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            authHeader.substring(7)
-        } else {
+    return if (token != null) {
+      mono {
+        try {
+          val user = userService.getUser(token)
+          if (user != null) {
+            val authentication: Authentication =
+              UsernamePasswordAuthenticationToken(
+                user,
+                null,
+                emptyList(),
+              )
+            authentication
+          } else {
             null
+          }
+        } catch (e: Exception) {
+          logger.debug("JWT token validation failed: ${e.message}")
+          null
         }
+      }.flatMap { authentication ->
+        if (authentication != null) {
+          chain
+            .filter(exchange)
+            .contextWrite { ReactiveSecurityContextHolder.withAuthentication(authentication) }
+        } else {
+          logger.debug("JWT token validation failed")
+          chain.filter(exchange)
+        }
+      }
+    } else {
+      logger.debug("No JWT token found in request")
+      chain.filter(exchange)
     }
+  }
+
+  private fun extractTokenFromRequest(request: ServerWebExchange): String? {
+    val authHeader = request.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
+    return if (authHeader != null && authHeader.startsWith("Bearer ")) {
+      authHeader.substring(7)
+    } else {
+      null
+    }
+  }
 }

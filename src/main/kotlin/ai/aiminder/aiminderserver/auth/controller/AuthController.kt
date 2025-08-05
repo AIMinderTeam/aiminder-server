@@ -11,11 +11,11 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/auth")
 class AuthController {
-    @GetMapping("/user")
-    suspend fun getUser(
-        @AuthenticationPrincipal user: User?,
-    ): ResponseEntity<GetUserResponse> =
-        user
-            ?.let { ResponseEntity.ok(GetUserResponse.from(user)) }
-            ?: ResponseEntity.status(401).build()
+  @GetMapping("/user")
+  suspend fun getUser(
+    @AuthenticationPrincipal user: User?,
+  ): ResponseEntity<GetUserResponse> =
+    user
+      ?.let { ResponseEntity.ok(GetUserResponse.from(user)) }
+      ?: ResponseEntity.status(401).build()
 }

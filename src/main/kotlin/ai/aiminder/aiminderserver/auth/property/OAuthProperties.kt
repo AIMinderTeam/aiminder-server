@@ -5,10 +5,10 @@ import java.net.URI
 
 @ConfigurationProperties(prefix = "aiminder.oauth")
 data class OAuthProperties(
-    private val successUrl: String,
-    private val errorUrl: String,
+  private val successUrl: String,
+  private val errorUrl: String,
 ) {
-    fun getSuccessUri(token: String): URI = URI.create("$successUrl?token=$token")
+  fun getSuccessUri(token: String): URI = URI.create("$successUrl?token=$token")
 
-    fun getErrorUri(): URI = URI.create(errorUrl)
+  fun getErrorUri(): URI = URI.create(errorUrl)
 }

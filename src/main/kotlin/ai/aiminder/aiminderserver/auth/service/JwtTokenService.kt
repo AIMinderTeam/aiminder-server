@@ -12,50 +12,50 @@ import java.util.UUID
 
 @Service
 class JwtTokenService(
-    private val jwtProperties: JwtProperties,
+  private val jwtProperties: JwtProperties,
 ) {
-    private val key = jwtProperties.secretKey
-    private val logger = logger()
+  private val key = jwtProperties.secretKey
+  private val logger = logger()
 
-    fun generateToken(user: User): String {
-        val now = Instant.now()
-        val expireDate = jwtProperties.addExpirationTime(now)
+  fun generateToken(user: User): String {
+    val now = Instant.now()
+    val expireDate = jwtProperties.addExpirationTime(now)
 
-        return Jwts
-            .builder()
-            .subject(user.id.toString())
-            .claim("provider", user.provider)
-            .issuedAt(Date.from(now))
-            .expiration(Date.from(expireDate))
-            .signWith(key)
-            .compact()
+    return Jwts
+      .builder()
+      .subject(user.id.toString())
+      .claim("provider", user.provider)
+      .issuedAt(Date.from(now))
+      .expiration(Date.from(expireDate))
+      .signWith(key)
+      .compact()
+  }
+
+  fun validateToken(token: String): Boolean =
+    runCatching {
+      Jwts
+        .parser()
+        .verifyWith(key)
+        .build()
+        .parseSignedClaims(token)
+      true
+    }.getOrElse { exception ->
+      logger.error("Invalid JWT token: ${exception.message}", exception)
+      false
     }
 
-    fun validateToken(token: String): Boolean =
-        runCatching {
-            Jwts
-                .parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-            true
-        }.getOrElse { exception ->
-            logger.error("Invalid JWT token: ${exception.message}", exception)
-            false
-        }
-
-    fun getUserIdFromToken(token: String): UUID =
-        runCatching {
-            Jwts
-                .parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .payload
-                .subject
-                .toUUID()
-        }.getOrElse {
-            logger.error("Error getting user ID from token: ${it.message}", it)
-            throw IllegalAccessException("Error getting user ID from token: $token")
-        }
+  fun getUserIdFromToken(token: String): UUID =
+    runCatching {
+      Jwts
+        .parser()
+        .verifyWith(key)
+        .build()
+        .parseSignedClaims(token)
+        .payload
+        .subject
+        .toUUID()
+    }.getOrElse {
+      logger.error("Error getting user ID from token: ${it.message}", it)
+      throw IllegalAccessException("Error getting user ID from token: $token")
+    }
 }

@@ -13,13 +13,13 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api")
 class AssistantController(
-    private val assistantService: AssistantService,
+  private val assistantService: AssistantService,
 ) {
-    @PostMapping("/chat/{conversationId}")
-    suspend fun chat(
-        @PathVariable
-        conversationId: UUID,
-        @RequestBody
-        request: AssistantRequest,
-    ): AssistantResponse = assistantService.chat(conversationId, request)
+  @PostMapping("/chat/{conversationId}")
+  suspend fun chat(
+    @PathVariable
+    conversationId: UUID,
+    @RequestBody
+    request: AssistantRequest,
+  ): AssistantResponse = assistantService.chat(conversationId, request)
 }

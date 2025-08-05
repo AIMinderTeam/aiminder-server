@@ -8,8 +8,8 @@ import java.util.UUID
 
 @Repository
 interface UserRepository : CoroutineCrudRepository<User, UUID> {
-    suspend fun findByProviderAndProviderId(
-        provider: OAuth2Provider,
-        providerId: String,
-    ): User?
+  suspend fun findByProviderAndProviderId(
+    provider: OAuth2Provider,
+    providerId: String,
+  ): User?
 }
