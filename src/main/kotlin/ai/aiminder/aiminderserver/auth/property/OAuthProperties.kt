@@ -8,7 +8,7 @@ data class OAuthProperties(
   private val successUrl: String,
   private val errorUrl: String,
 ) {
-  fun getSuccessUri(token: String): URI = URI.create("$successUrl?token=$token")
+  fun getSuccessUri(): URI = URI.create(successUrl)
 
   fun getErrorUri(): URI = URI.create(errorUrl)
 }

@@ -1,11 +1,13 @@
 package ai.aiminder.aiminderserver.auth.config
 
+import ai.aiminder.aiminderserver.auth.error.AuthErrorCode
 import ai.aiminder.aiminderserver.auth.filter.JwtAuthenticationWebFilter
 import ai.aiminder.aiminderserver.auth.property.OAuthProperties
 import ai.aiminder.aiminderserver.auth.property.SecurityProperties
 import ai.aiminder.aiminderserver.auth.service.AuthService
 import ai.aiminder.aiminderserver.auth.service.JwtTokenService
 import ai.aiminder.aiminderserver.auth.service.UserService
+import ai.aiminder.aiminderserver.common.error.ErrorResponse
 import ai.aiminder.aiminderserver.common.util.logger
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactor.mono
@@ -63,7 +65,7 @@ class SecurityConfig(
       }.oauth2Login { oauth2 ->
         oauth2.authenticationSuccessHandler(authenticationSuccessHandler())
       }.exceptionHandling { exceptions ->
-        exceptions.authenticationEntryPoint(customAuthenticationEntryPoint())
+        exceptions.authenticationEntryPoint(unauthorizedEntryPoint())
       }.build()
 
   @Bean
@@ -89,20 +91,21 @@ class SecurityConfig(
   ): JwtAuthenticationWebFilter = JwtAuthenticationWebFilter(jwtTokenService, userService)
 
   @Bean
-  fun customAuthenticationEntryPoint(): ServerAuthenticationEntryPoint =
+  fun unauthorizedEntryPoint(): ServerAuthenticationEntryPoint =
     ServerAuthenticationEntryPoint { exchange: ServerWebExchange, exception: AuthenticationException ->
       val response: ServerHttpResponse = exchange.response
       response.statusCode = HttpStatus.UNAUTHORIZED
       response.headers.contentType = MediaType.APPLICATION_JSON
 
-      val errorResponse =
-        mapOf(
-          "error" to "AUTHENTICATION_REQUIRED",
-          "message" to "인증이 필요합니다. 로그인을 진행해주세요.",
-          "status" to HttpStatus.UNAUTHORIZED.value(),
-          "timestamp" to System.currentTimeMillis(),
-          "path" to exchange.request.path.value(),
-        )
+      val errorResponse = ErrorResponse<Unit>(HttpStatus.UNAUTHORIZED, AuthErrorCode.UNAUTHORIZED)
+      // TODO errorResponse 적용
+      mapOf(
+        "error" to "AUTHENTICATION_REQUIRED",
+        "message" to "인증이 필요합니다. 로그인을 진행해주세요.",
+        "status" to HttpStatus.UNAUTHORIZED.value(),
+        "timestamp" to System.currentTimeMillis(),
+        "path" to exchange.request.path.value(),
+      )
 
       val responseBody = objectMapper.writeValueAsString(errorResponse)
       val buffer: DataBuffer = response.bufferFactory().wrap(responseBody.toByteArray())
@@ -118,13 +121,14 @@ class SecurityConfig(
 
         try {
           val token = oauthService.processOAuth2User(authentication, request.path)
-          response.headers.location = oauthProperties.getSuccessUri(token)
-          response.statusCode = HttpStatus.FOUND
+          response.headers.location = oauthProperties.getSuccessUri()
+          // TODO refreshToken 적용
+          // TODO errorResponse 적용
+          response.statusCode = HttpStatus.OK
         } catch (error: Exception) {
           logger.error("Authentication success handler error: ${error.message}", error)
           val response = webFilterExchange.exchange.response
-          response.headers.location = oauthProperties.getErrorUri()
-          response.statusCode = HttpStatus.FOUND
+          response.statusCode = HttpStatus.UNAUTHORIZED
         }
       }.then(webFilterExchange.exchange.response.setComplete())
     }
