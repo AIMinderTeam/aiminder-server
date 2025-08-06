@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/oauth2/authorization")
+@RequestMapping("/oauth2/authorization")
 @Tag(name = "OAuth2 Login", description = "OAuth2 소셜 로그인 API")
 class OAuth2Controller {
   @GetMapping("/google")
