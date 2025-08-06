@@ -10,13 +10,13 @@ aiminder:
     permit-paths:
       - /api/error
       - /api/login/**
-      - /api/oauth2/**
       - /api/swagger-ui.html
       - /api/swagger-ui/**
       - /api/v3/api-docs
       - /api/v3/api-docs.yaml
       - /api/v3/api-docs/**
       - /api/actuator/**
+      - /oauth2/**
     allow-origin-patterns:
       - http://localhost
       - http://localhost:*
