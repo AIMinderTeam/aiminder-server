@@ -63,7 +63,8 @@ class SecurityConfig(
           .anyExchange()
           .authenticated()
       }.oauth2Login { oauth2 ->
-        oauth2.authenticationSuccessHandler(authenticationSuccessHandler())
+        oauth2
+          .authenticationSuccessHandler(authenticationSuccessHandler())
       }.exceptionHandling { exceptions ->
         exceptions.authenticationEntryPoint(unauthorizedEntryPoint())
       }.build()
