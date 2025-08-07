@@ -8,10 +8,15 @@ import javax.crypto.SecretKey
 
 @ConfigurationProperties(prefix = "aiminder.jwt")
 data class JwtProperties(
-  private val secret: String,
-  private val expiration: Long,
+  private val accessTokenSecret: String,
+  private val accessTokenExpiration: Long,
+  private val refreshTokenSecret: String,
+  private val refreshTokenExpiration: Long,
 ) {
-  val secretKey: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray())
+  val accessTokenSecretKey: SecretKey = Keys.hmacShaKeyFor(accessTokenSecret.toByteArray())
+  val refreshTokenSecretKey: SecretKey = Keys.hmacShaKeyFor(refreshTokenSecret.toByteArray())
 
-  fun addExpirationTime(now: Instant): Instant = now.plus(expiration, ChronoUnit.SECONDS)
+  fun addAccessTokenExpiration(now: Instant): Instant = now.plus(accessTokenExpiration, ChronoUnit.SECONDS)
+
+  fun addRefreshTokenExpiration(now: Instant): Instant = now.plus(refreshTokenExpiration, ChronoUnit.SECONDS)
 }

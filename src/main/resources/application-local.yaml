@@ -3,9 +3,6 @@ aiminder:
     url: http://localhost:8080
   client:
     url: http://localhost:3000
-  jwt:
-    secret: f60c2ec255d1244a90ba9c522f7ba7d8abd474cef7bacd38f90b553b09ec11ae502357a2471ecb5733661d8b8e3e98dd4a3fbd080acf6f2b06373fd884d0040d
-    expiration: 86400
   security:
     permit-paths:
       - /api/actuator/**

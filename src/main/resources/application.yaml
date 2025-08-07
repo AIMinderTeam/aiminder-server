@@ -1,8 +1,9 @@
 aiminder:
-  oauth:
-    success-url: ${aiminder.client.url}/login/success
-    error-url: ${aiminder.client.url}/login/error
-
+  jwt:
+      access-token-secret: ${ACCESS_TOKEN_SECRET}
+      access-token-expiration: ${ACCESS_TOKEN_EXPIRATION}
+      refresh-token-secret: ${REFRESH_TOKEN_SECRET}
+      refresh-token-expiration: ${REFRESH_TOKEN_EXPIRATION}
 spring:
   ai:
     openai:

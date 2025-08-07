@@ -14,12 +14,13 @@ import java.util.UUID
 class JwtTokenService(
   private val jwtProperties: JwtProperties,
 ) {
-  private val key = jwtProperties.secretKey
+  private val accessTokenKey = jwtProperties.accessTokenSecretKey
+  private val refreshTokenKey = jwtProperties.refreshTokenSecretKey
   private val logger = logger()
 
   fun generateToken(user: User): String {
     val now = Instant.now()
-    val expireDate = jwtProperties.addExpirationTime(now)
+    val expireDate = jwtProperties.addAccessTokenExpiration(now)
 
     return Jwts
       .builder()
@@ -27,7 +28,7 @@ class JwtTokenService(
       .claim("provider", user.provider)
       .issuedAt(Date.from(now))
       .expiration(Date.from(expireDate))
-      .signWith(key)
+      .signWith(accessTokenKey)
       .compact()
   }
 
@@ -35,7 +36,7 @@ class JwtTokenService(
     runCatching {
       Jwts
         .parser()
-        .verifyWith(key)
+        .verifyWith(accessTokenKey)
         .build()
         .parseSignedClaims(token)
       true
@@ -48,7 +49,7 @@ class JwtTokenService(
     runCatching {
       Jwts
         .parser()
-        .verifyWith(key)
+        .verifyWith(accessTokenKey)
         .build()
         .parseSignedClaims(token)
         .payload
