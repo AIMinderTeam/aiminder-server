@@ -1,6 +1,8 @@
 package ai.aiminder.aiminderserver.auth.filter
 
-import ai.aiminder.aiminderserver.auth.service.JwtTokenService
+import ai.aiminder.aiminderserver.auth.entity.UserEntity
+import ai.aiminder.aiminderserver.auth.property.CookieProperties
+import ai.aiminder.aiminderserver.auth.service.TokenService
 import ai.aiminder.aiminderserver.auth.service.UserService
 import ai.aiminder.aiminderserver.common.util.logger
 import kotlinx.coroutines.reactor.mono
@@ -14,8 +16,9 @@ import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
 class JwtAuthenticationWebFilter(
-  private val jwtTokenService: JwtTokenService,
+  private val tokenService: TokenService,
   private val userService: UserService,
+  private val cookieProperties: CookieProperties,
 ) : WebFilter {
   private val logger = logger()
 
@@ -25,12 +28,12 @@ class JwtAuthenticationWebFilter(
   ): Mono<Void> {
     val token: String? =
       extractTokenFromRequest(exchange)
-        ?.takeIf { jwtTokenService.validateToken(it) }
+        ?.takeIf { tokenService.validateAccessToken(it) }
 
     return if (token != null) {
       mono {
         try {
-          val user = userService.getUser(token)
+          val user: UserEntity? = userService.getUser(token)
           if (user != null) {
             val authentication: Authentication =
               UsernamePasswordAuthenticationToken(

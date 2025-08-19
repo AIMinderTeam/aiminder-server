@@ -1,5 +1,6 @@
-package ai.aiminder.aiminderserver.auth.domain
+package ai.aiminder.aiminderserver.auth.entity
 
+import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import org.springframework.data.annotation.Id
 import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
@@ -8,7 +9,7 @@ import java.time.Instant
 import java.util.UUID
 
 @Table("users")
-data class User(
+data class UserEntity(
   @Id
   @Column("user_id")
   @get:JvmName("userId")
