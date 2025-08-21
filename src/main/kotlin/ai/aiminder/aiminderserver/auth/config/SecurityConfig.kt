@@ -70,7 +70,7 @@ class SecurityConfig(
 
   @Bean
   fun unauthorizedEntryPoint(): ServerAuthenticationEntryPoint =
-    ServerAuthenticationEntryPoint { exchange: ServerWebExchange, exception: AuthenticationException ->
+    ServerAuthenticationEntryPoint { exchange: ServerWebExchange, _: AuthenticationException ->
       val responseDto = Response.from<Unit>(AuthError.UNAUTHORIZED)
       writeResponse(exchange.response, responseDto)
     }

@@ -46,7 +46,7 @@ class TokenLoginSuccessHandler(
       }.getOrElse {
         logger.error("Authentication success handler error: ${it.message}", it)
         val responseDto = Response.from<Unit>(AuthError.UNAUTHORIZED)
-        writeResponse(exchange.response, responseDto)
+        writeResponse(exchange.response, responseDto).subscribe()
       }
     }.then(redirect.sendRedirect(webFilterExchange.exchange, URI.create("/")))
 
