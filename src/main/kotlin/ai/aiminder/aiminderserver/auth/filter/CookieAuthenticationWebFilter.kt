@@ -40,74 +40,63 @@ class CookieAuthenticationWebFilter(
     val accessToken: AccessToken? = request.cookies.getFirst("ACCESS_TOKEN")?.value
     val refreshToken: RefreshToken? = request.cookies.getFirst("REFRESH_TOKEN")?.value
 
-    if (accessToken.isNullOrBlank().not()) {
-      decoder
-        .decode(accessToken!!)
-        .flatMap { jwt ->
-          tokenService.validateAccessToken(accessToken)
-          if (jwt == null) {
-            logger.error("Invalid JWT accessToken: $accessToken")
-            return@flatMap Mono.empty<JwtAuthenticationToken>()
-          }
-          processAuthentication(jwt, chain, exchange)
-        }.onErrorResume {
-          logger.error("Error during JWT accessToken validation: ${it.message}", it)
-          if (refreshToken.isNullOrBlank().not()) {
-            decoder
-              .decode(refreshToken!!)
-              .flatMap { jwt ->
-                mono {
-                  tokenService.validateRefreshToken(refreshToken)
-                  if (jwt == null) {
-                    logger.error("Invalid JWT refreshToken: $refreshToken")
-                    Mono.empty()
-                  } else {
-                    val user = userService.getUser(refreshToken)
-                    val createdAccessToken = tokenService.createAccessToken(user)
-                    val createRefreshToken = tokenService.createRefreshToken(user)
-                    val accessTokenCookie = cookieProperties.buildCookie("ACCESS_TOKEN", createdAccessToken)
-                    val refreshTokenCookie = cookieProperties.buildCookie("REFRESH_TOKEN", createRefreshToken)
-                    decoder
-                      .decode(createdAccessToken)
-                      .flatMap { newJwt ->
-                        response.addCookie(accessTokenCookie)
-                        response.addCookie(refreshTokenCookie)
-                        processAuthentication(newJwt, chain, exchange)
-                      }
-                  }
-                }
-              }.onErrorResume {
-                response.addCookie(
-                  ResponseCookie
-                    .from("ACCESS_TOKEN", "")
-                    .maxAge(0)
-                    .path("/")
-                    .build(),
-                )
-                response.addCookie(
-                  ResponseCookie
-                    .from("REFRESH_TOKEN", "")
-                    .maxAge(0)
-                    .path("/")
-                    .build(),
-                )
-                Mono.empty()
-              }
-          } else {
-            logger.error("No JWT accessToken and no JWT refreshToken found in request", it)
-            chain.filter(exchange)
-          }
-        }
+    if (accessToken.isNullOrBlank()) {
+      return chain.filter(exchange)
     }
 
-    return chain.filter(exchange)
+    return decoder
+      .decode(accessToken)
+      .flatMap { jwt ->
+        tokenService.validateAccessToken(accessToken)
+        processAuthentication(jwt, chain, exchange)
+      }.onErrorResume { err ->
+        logger.error("Error during JWT accessToken validation: ${err.message}", err)
+        if (refreshToken.isNullOrBlank()) {
+          return@onErrorResume chain.filter(exchange)
+        }
+        decoder
+          .decode(refreshToken)
+          .flatMap {
+            mono {
+              tokenService.validateRefreshToken(refreshToken)
+              val user = userService.getUser(refreshToken)
+              val newAccess = tokenService.createAccessToken(user)
+              val newRefresh = tokenService.createRefreshToken(user)
+              Pair(newAccess, newRefresh)
+            }.flatMap { (newAccess, newRefresh) ->
+              val accessTokenCookie = cookieProperties.buildCookie("ACCESS_TOKEN", newAccess)
+              val refreshTokenCookie = cookieProperties.buildCookie("REFRESH_TOKEN", newRefresh)
+              decoder.decode(newAccess).flatMap { newJwt ->
+                response.addCookie(accessTokenCookie)
+                response.addCookie(refreshTokenCookie)
+                processAuthentication(newJwt, chain, exchange)
+              }
+            }
+          }.onErrorResume {
+            response.addCookie(
+              ResponseCookie
+                .from("ACCESS_TOKEN", "")
+                .maxAge(0)
+                .path("/")
+                .build(),
+            )
+            response.addCookie(
+              ResponseCookie
+                .from("REFRESH_TOKEN", "")
+                .maxAge(0)
+                .path("/")
+                .build(),
+            )
+            Mono.empty()
+          }
+      }
   }
 
   private fun processAuthentication(
     jwt: Jwt,
     chain: WebFilterChain,
     exchange: ServerWebExchange,
-  ): Mono<Void?> {
+  ): Mono<Void> {
     val authentication = JwtAuthenticationToken(jwt, null)
     val context: Context = ReactiveSecurityContextHolder.withAuthentication(authentication)
     return chain
