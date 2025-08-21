@@ -1,7 +1,5 @@
 package ai.aiminder.aiminderserver.auth.handler
 
-import ai.aiminder.aiminderserver.auth.domain.AccessToken
-import ai.aiminder.aiminderserver.auth.domain.RefreshToken
 import ai.aiminder.aiminderserver.auth.domain.TokenGroup
 import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
@@ -16,7 +14,6 @@ import org.springframework.http.MediaType
 import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.http.server.reactive.ServerHttpResponse
 import org.springframework.security.core.Authentication
-import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.security.web.server.DefaultServerRedirectStrategy
 import org.springframework.security.web.server.WebFilterExchange
 import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler

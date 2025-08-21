@@ -1,14 +1,10 @@
 package ai.aiminder.aiminderserver.auth.config
 
 import ai.aiminder.aiminderserver.auth.error.AuthError
-import ai.aiminder.aiminderserver.auth.filter.JwtAuthenticationWebFilter
+import ai.aiminder.aiminderserver.auth.filter.CookieAuthenticationWebFilter
 import ai.aiminder.aiminderserver.auth.handler.TokenLoginSuccessHandler
 import ai.aiminder.aiminderserver.auth.property.SecurityProperties
-import ai.aiminder.aiminderserver.auth.service.AuthService
-import ai.aiminder.aiminderserver.auth.service.TokenService
-import ai.aiminder.aiminderserver.auth.service.UserService
 import ai.aiminder.aiminderserver.common.error.Response
-import ai.aiminder.aiminderserver.common.util.logger
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactor.mono
 import org.springframework.context.annotation.Bean
@@ -18,6 +14,7 @@ import org.springframework.http.HttpStatusCode
 import org.springframework.http.MediaType
 import org.springframework.http.server.reactive.ServerHttpResponse
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.web.server.SecurityWebFilterChain
@@ -31,19 +28,13 @@ import reactor.core.publisher.Mono
 @Configuration
 @EnableWebFluxSecurity
 class SecurityConfig(
-  private val authService: AuthService,
   private val securityProperties: SecurityProperties,
   private val objectMapper: ObjectMapper,
   private val tokenLoginSuccessHandler: TokenLoginSuccessHandler,
+  private val cookieAuthenticationWebFilter: CookieAuthenticationWebFilter,
 ) {
-  private val logger = logger()
-
   @Bean
-  fun securityWebFilterChain(
-    http: ServerHttpSecurity,
-    tokenService: TokenService,
-    userService: UserService,
-  ): SecurityWebFilterChain =
+  fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
     http
       .cors { cors -> cors.configurationSource(corsConfigurationSource()) }
       .csrf { it.disable() }
@@ -58,7 +49,8 @@ class SecurityConfig(
           .authenticationSuccessHandler(tokenLoginSuccessHandler)
       }.exceptionHandling { exceptions ->
         exceptions.authenticationEntryPoint(unauthorizedEntryPoint())
-      }.build()
+      }.addFilterAt(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+      .build()
 
   @Bean
   fun corsConfigurationSource(): CorsConfigurationSource {
