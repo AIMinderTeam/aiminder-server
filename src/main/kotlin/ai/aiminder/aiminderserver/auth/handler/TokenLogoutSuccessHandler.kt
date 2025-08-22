@@ -28,4 +28,3 @@ class TokenLogoutSuccessHandler(
     return response.writeWith(mono { buffer })
   }
 }
-
