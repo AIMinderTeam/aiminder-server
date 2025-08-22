@@ -99,6 +99,10 @@ tasks.withType<Test> {
   useJUnitPlatform()
 }
 
+tasks.named<Test>("test") {
+  dependsOn("ktlintFormat")
+}
+
 tasks.register("copyJar", Copy::class) {
   dependsOn("bootJar")
   val jarFile = "aiminder-server-$version.jar"
