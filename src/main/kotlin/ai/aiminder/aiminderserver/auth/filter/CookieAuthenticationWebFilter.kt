@@ -30,6 +30,11 @@ class CookieAuthenticationWebFilter(
 ) : WebFilter {
   private val logger = logger()
 
+  private companion object {
+    private const val ACCESS_COOKIE = "ACCESS_TOKEN"
+    private const val REFRESH_COOKIE = "REFRESH_TOKEN"
+  }
+
   override fun filter(
     exchange: ServerWebExchange,
     chain: WebFilterChain,
@@ -37,28 +42,8 @@ class CookieAuthenticationWebFilter(
     val request: ServerHttpRequest = exchange.request
     val response: ServerHttpResponse = exchange.response
 
-    var accessToken: AccessToken? = request.cookies.getFirst("ACCESS_TOKEN")?.value
-    var refreshToken: RefreshToken? = request.cookies.getFirst("REFRESH_TOKEN")?.value
-
-    if (accessToken.isNullOrBlank() || refreshToken.isNullOrBlank()) {
-      val rawCookie = request.headers.getFirst("Cookie") ?: request.headers.getFirst("COOKIE")
-      if (!rawCookie.isNullOrBlank()) {
-        rawCookie
-          .split(";")
-          .map { it.trim() }
-          .forEach { pair ->
-            val idx = pair.indexOf('=')
-            if (idx > 0) {
-              val name = pair.substring(0, idx)
-              val value = pair.substring(idx + 1)
-              when (name) {
-                "ACCESS_TOKEN" -> accessToken = value
-                "REFRESH_TOKEN" -> refreshToken = value
-              }
-            }
-          }
-      }
-    }
+    val accessToken: AccessToken? = extractCookie(request, ACCESS_COOKIE)
+    val refreshToken: RefreshToken? = extractCookie(request, REFRESH_COOKIE)
 
     if (accessToken.isNullOrBlank()) {
       return chain.filter(exchange)
@@ -67,8 +52,10 @@ class CookieAuthenticationWebFilter(
     return decoder
       .decode(accessToken)
       .flatMap { jwt ->
-        val token: AccessToken = accessToken!!
-        tokenService.validateAccessToken(token)
+        val token: AccessToken = accessToken
+        if (!tokenService.validateAccessToken(token)) {
+          return@flatMap Mono.error(IllegalAccessException("Invalid access token"))
+        }
         processAuthentication(jwt, chain, exchange)
       }.onErrorResume { err ->
         logger.error("Error during JWT accessToken validation: ${err.message}", err)
@@ -79,37 +66,27 @@ class CookieAuthenticationWebFilter(
           .decode(refreshToken)
           .flatMap {
             mono {
-              val token: RefreshToken = refreshToken!!
+              val token: RefreshToken = refreshToken
               tokenService.validateRefreshToken(token)
               val user = userService.getUser(token)
               val newAccess = tokenService.createAccessToken(user)
               val newRefresh = tokenService.createRefreshToken(user)
               Pair(newAccess, newRefresh)
             }.flatMap { (newAccess, newRefresh) ->
-              val accessTokenCookie = cookieProperties.buildCookie("ACCESS_TOKEN", newAccess)
-              val refreshTokenCookie = cookieProperties.buildCookie("REFRESH_TOKEN", newRefresh)
+              val accessTokenCookie = cookieProperties.buildCookie(ACCESS_COOKIE, newAccess)
+              val refreshTokenCookie = cookieProperties.buildCookie(REFRESH_COOKIE, newRefresh)
               decoder.decode(newAccess).flatMap { newJwt ->
                 response.addCookie(accessTokenCookie)
                 response.addCookie(refreshTokenCookie)
                 processAuthentication(newJwt, chain, exchange)
               }
             }
-          }.onErrorResume {
-            response.addCookie(
-              ResponseCookie
-                .from("ACCESS_TOKEN", "")
-                .maxAge(0)
-                .path("/")
-                .build(),
-            )
-            response.addCookie(
-              ResponseCookie
-                .from("REFRESH_TOKEN", "")
-                .maxAge(0)
-                .path("/")
-                .build(),
-            )
-            Mono.empty()
+          }.onErrorResume { refreshErr ->
+            logger.error("Error during refresh-token flow: ${refreshErr.message}", refreshErr)
+            // Clear auth cookies and continue unauthenticated
+            response.addCookie(expiredCookie(ACCESS_COOKIE))
+            response.addCookie(expiredCookie(REFRESH_COOKIE))
+            chain.filter(exchange)
           }
       }
   }
@@ -125,4 +102,32 @@ class CookieAuthenticationWebFilter(
       .filter(exchange)
       .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)))
   }
+
+  private fun extractCookie(
+    request: ServerHttpRequest,
+    name: String,
+  ): String? {
+    request.cookies
+      .getFirst(name)
+      ?.value
+      ?.let { return it }
+    val raw = request.headers.getFirst("Cookie") ?: request.headers.getFirst("COOKIE")
+    if (raw.isNullOrBlank()) return null
+    return raw
+      .split(";")
+      .map { it.trim() }
+      .firstOrNull { it.startsWith("$name=") }
+      ?.substringAfter('=')
+  }
+
+  private fun expiredCookie(name: String): ResponseCookie =
+    ResponseCookie
+      .from(name, "")
+      .let { if (cookieProperties.domain.isNotBlank()) it.domain(cookieProperties.domain) else it }
+      .sameSite(cookieProperties.sameSite)
+      .httpOnly(cookieProperties.httpOnly)
+      .secure(cookieProperties.secure)
+      .path("/")
+      .maxAge(0)
+      .build()
 }
