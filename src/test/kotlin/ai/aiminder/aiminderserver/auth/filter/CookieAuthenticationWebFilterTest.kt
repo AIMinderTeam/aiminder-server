@@ -21,7 +21,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class CookieAuthenticationWebFilterTest {
-  private val decoder: ReactiveJwtDecoder = mockk()
+  private val accessDecoder: ReactiveJwtDecoder = mockk()
+  private val refreshDecoder: ReactiveJwtDecoder = mockk()
   private val tokenService: TokenService = mockk()
   private val userService: UserService = mockk()
   private val cookieProps = CookieProperties(domain = "", sameSite = "Lax", httpOnly = true, secure = false)
@@ -37,7 +38,7 @@ class CookieAuthenticationWebFilterTest {
   fun `유효한 액세스 토큰으로 인증 컨텍스트가 설정된다`() {
     // given
     val access = "aaa.bbb.ccc"
-    every { decoder.decode(access) } returns Mono.just(jwt(access))
+    every { accessDecoder.decode(access) } returns Mono.just(jwt(access))
     every { tokenService.validateAccessToken(access) } returns true
 
     val request =
@@ -56,7 +57,7 @@ class CookieAuthenticationWebFilterTest {
           .then()
       }
 
-    val filter = CookieAuthenticationWebFilter(decoder, tokenService, userService, cookieProps)
+    val filter = CookieAuthenticationWebFilter(accessDecoder, refreshDecoder, tokenService, userService, cookieProps)
 
     // when
     filter.filter(exchange, chain).block()
@@ -73,15 +74,15 @@ class CookieAuthenticationWebFilterTest {
     val newAccess = "new.access"
     val newRefresh = "new.refresh"
 
-    every { decoder.decode(access) } returns Mono.error(RuntimeException("invalid"))
-    every { decoder.decode(refresh) } returns Mono.just(jwt(refresh))
+    every { accessDecoder.decode(access) } returns Mono.error(RuntimeException("invalid"))
+    every { refreshDecoder.decode(refresh) } returns Mono.just(jwt(refresh))
     coEvery { tokenService.validateRefreshToken(refresh) } returns true
 
     val user = UserEntity(id = java.util.UUID.randomUUID(), provider = OAuth2Provider.GOOGLE, providerId = "123")
     coEvery { userService.getUser(refresh) } returns user
     every { tokenService.createAccessToken(user) } returns newAccess
     coEvery { tokenService.createRefreshToken(user) } returns newRefresh
-    every { decoder.decode(newAccess) } returns Mono.just(jwt(newAccess))
+    every { accessDecoder.decode(newAccess) } returns Mono.just(jwt(newAccess))
 
     val request =
       MockServerHttpRequest
@@ -99,7 +100,7 @@ class CookieAuthenticationWebFilterTest {
           .then()
       }
 
-    val filter = CookieAuthenticationWebFilter(decoder, tokenService, userService, cookieProps)
+    val filter = CookieAuthenticationWebFilter(accessDecoder, refreshDecoder, tokenService, userService, cookieProps)
 
     // when
     filter.filter(exchange, chain).block()
@@ -119,8 +120,8 @@ class CookieAuthenticationWebFilterTest {
     // given
     val access = "bad.access"
     val refresh = "bad.refresh"
-    every { decoder.decode(access) } returns Mono.error(RuntimeException("invalid"))
-    every { decoder.decode(refresh) } returns Mono.error(RuntimeException("invalid"))
+    every { accessDecoder.decode(access) } returns Mono.error(RuntimeException("invalid"))
+    every { refreshDecoder.decode(refresh) } returns Mono.error(RuntimeException("invalid"))
 
     val request =
       MockServerHttpRequest
@@ -138,7 +139,7 @@ class CookieAuthenticationWebFilterTest {
           .then()
       }
 
-    val filter = CookieAuthenticationWebFilter(decoder, tokenService, userService, cookieProps)
+    val filter = CookieAuthenticationWebFilter(accessDecoder, refreshDecoder, tokenService, userService, cookieProps)
 
     // when
     filter.filter(exchange, chain).block()
@@ -168,7 +169,7 @@ class CookieAuthenticationWebFilterTest {
           .then()
       }
 
-    val filter = CookieAuthenticationWebFilter(decoder, tokenService, userService, cookieProps)
+    val filter = CookieAuthenticationWebFilter(accessDecoder, refreshDecoder, tokenService, userService, cookieProps)
 
     // when
     filter.filter(exchange, chain).block()

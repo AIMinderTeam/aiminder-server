@@ -7,6 +7,7 @@ import ai.aiminder.aiminderserver.auth.service.TokenService
 import ai.aiminder.aiminderserver.auth.service.UserService
 import ai.aiminder.aiminderserver.common.util.logger
 import kotlinx.coroutines.reactor.mono
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.ResponseCookie
 import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.http.server.reactive.ServerHttpResponse
@@ -23,7 +24,8 @@ import reactor.core.publisher.Mono
 
 @Component
 class CookieAuthenticationWebFilter(
-  private val decoder: ReactiveJwtDecoder,
+  @field:Qualifier("accessJwtDecoder") private val accessDecoder: ReactiveJwtDecoder,
+  @field:Qualifier("refreshJwtDecoder") private val refreshDecoder: ReactiveJwtDecoder,
   private val tokenService: TokenService,
   private val userService: UserService,
   private val cookieProperties: CookieProperties,
@@ -42,15 +44,13 @@ class CookieAuthenticationWebFilter(
     val request: ServerHttpRequest = exchange.request
     val response: ServerHttpResponse = exchange.response
 
-    // Entry log for quick tracing
-    runCatching {
-      logger.debug(
-        "CookieAuth start method=${request.method?.name()} path=${request.uri.path} id=${request.id}",
-      )
-    }
+    logger.debug("CookieAuth start method=${request.method.name()} path=${request.uri.path} id=${request.id}")
 
     val accessToken: AccessToken? = extractCookie(request, ACCESS_COOKIE)
     val refreshToken: RefreshToken? = extractCookie(request, REFRESH_COOKIE)
+
+    logHeader("access", accessToken)
+    logHeader("refresh", refreshToken)
 
     logger.debug(
       "CookieAuth cookies present: access=${!accessToken.isNullOrBlank()} refresh=${!refreshToken.isNullOrBlank()} " +
@@ -62,7 +62,7 @@ class CookieAuthenticationWebFilter(
       return chain.filter(exchange)
     }
 
-    return decoder
+    return accessDecoder
       .decode(accessToken)
       .flatMap { jwt ->
         logger.debug("CookieAuth access decoded: sub={} exp={} id={}", jwt.subject, jwt.expiresAt, request.id)
@@ -83,7 +83,7 @@ class CookieAuthenticationWebFilter(
           return@onErrorResume chain.filter(exchange)
         }
         logger.debug("CookieAuth attempting refresh flow id=${request.id}")
-        decoder
+        refreshDecoder
           .decode(refreshToken)
           .flatMap {
             mono {
@@ -98,7 +98,7 @@ class CookieAuthenticationWebFilter(
             }.flatMap { (newAccess, newRefresh) ->
               val accessTokenCookie = cookieProperties.buildCookie(ACCESS_COOKIE, newAccess)
               val refreshTokenCookie = cookieProperties.buildCookie(REFRESH_COOKIE, newRefresh)
-              decoder.decode(newAccess).flatMap { newJwt ->
+              accessDecoder.decode(newAccess).flatMap { newJwt ->
                 response.addCookie(accessTokenCookie)
                 response.addCookie(refreshTokenCookie)
                 logger.info("CookieAuth reissued tokens; cookies set id=${request.id}")
@@ -114,7 +114,6 @@ class CookieAuthenticationWebFilter(
               "CookieAuth error during refresh flow id=${request.id} path=${request.uri.path}: ${refreshErr.message}",
               refreshErr,
             )
-            // Clear auth cookies and continue unauthenticated
             response.addCookie(expiredCookie(ACCESS_COOKIE))
             response.addCookie(expiredCookie(REFRESH_COOKIE))
             logger.info("CookieAuth cleared auth cookies after refresh failure id=${request.id}")
@@ -174,4 +173,27 @@ class CookieAuthenticationWebFilter(
       .path("/")
       .maxAge(0)
       .build()
+
+  fun logHeader(
+    name: String,
+    token: String?,
+  ) {
+    if (token.isNullOrBlank()) return
+    runCatching {
+      val parts = token.split('.')
+      if (parts.size >= 2) {
+        val headerJson =
+          String(
+            java.util.Base64
+              .getUrlDecoder()
+              .decode(parts[0]),
+          )
+        val alg = Regex("\"alg\"\\s*:\\s*\"([^\"]+)\"").find(headerJson)?.groupValues?.getOrNull(1)
+        val kid = Regex("\"kid\"\\s*:\\s*\"([^\"]+)\"").find(headerJson)?.groupValues?.getOrNull(1)
+        logger.debug("CookieAuth $name header alg=${alg ?: "?"} kid=${kid ?: "-"}")
+      }
+    }.onFailure {
+      logger.debug("CookieAuth $name header error parsing token: ${it.message}")
+    }
+  }
 }
