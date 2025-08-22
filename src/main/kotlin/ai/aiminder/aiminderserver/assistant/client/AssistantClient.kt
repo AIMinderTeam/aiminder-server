@@ -5,8 +5,8 @@ import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import java.util.UUID
 
 interface AssistantClient {
-    suspend fun chat(
-        conversationId: UUID,
-        assistantRequest: AssistantRequest,
-    ): AssistantResponse
+  suspend fun chat(
+    conversationId: UUID,
+    assistantRequest: AssistantRequest,
+  ): AssistantResponse
 }

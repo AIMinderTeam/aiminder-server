@@ -3,24 +3,20 @@ aiminder:
     url: ${SERVER_HOST}
   client:
     url: ${CLIENT_HOST}
-  jwt:
-    secret: f60c2ec255d1244a90ba9c522f7ba7d8abd474cef7bacd38f90b553b09ec11ae502357a2471ecb5733661d8b8e3e98dd4a3fbd080acf6f2b06373fd884d0040d
-    expiration: 86400
   security:
     permit-paths:
-      - /api/error
-      - /api/login/**
-      - /api/oauth2/**
+      - /api/actuator/**
       - /api/swagger-ui.html
       - /api/swagger-ui/**
       - /api/v3/api-docs
       - /api/v3/api-docs.yaml
       - /api/v3/api-docs/**
-      - /api/actuator/**
+      - /login/oauth2/**
+      - /oauth2/**
     allow-origin-patterns:
       - http://localhost
       - http://localhost:*
-      - ${SERVER_HOST}
+      - ${CLIENT_HOST}
 
 spring:
   r2dbc:

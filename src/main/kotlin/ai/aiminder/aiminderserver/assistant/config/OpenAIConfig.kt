@@ -8,12 +8,12 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class OpenAIConfig {
-    @Bean
-    fun chatClient(
-        builder: ChatClient.Builder,
-        memory: ChatMemory,
-    ): ChatClient =
-        builder
-            .defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
-            .build()
+  @Bean
+  fun chatClient(
+    builder: ChatClient.Builder,
+    memory: ChatMemory,
+  ): ChatClient =
+    builder
+      .defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
+      .build()
 }

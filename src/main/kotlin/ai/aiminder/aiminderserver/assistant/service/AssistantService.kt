@@ -8,10 +8,10 @@ import java.util.UUID
 
 @Service
 class AssistantService(
-    private val assistantClient: AssistantClient,
+  private val assistantClient: AssistantClient,
 ) {
-    suspend fun chat(
-        conversationId: UUID,
-        request: AssistantRequest,
-    ): AssistantResponse = assistantClient.chat(conversationId, request)
+  suspend fun chat(
+    conversationId: UUID,
+    request: AssistantRequest,
+  ): AssistantResponse = assistantClient.chat(conversationId, request)
 }

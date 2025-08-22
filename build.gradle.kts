@@ -1,120 +1,128 @@
 plugins {
-    kotlin("jvm") version "1.9.25"
-    kotlin("plugin.spring") version "1.9.25"
-    id("org.springframework.boot") version "3.5.3"
-    id("io.spring.dependency-management") version "1.1.7"
-    id("com.google.osdetector") version "1.7.3"
-    id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
-    id("pl.allegro.tech.build.axion-release") version "1.18.17"
+  kotlin("jvm") version "1.9.25"
+  kotlin("plugin.spring") version "1.9.25"
+  id("org.springframework.boot") version "3.5.3"
+  id("io.spring.dependency-management") version "1.1.7"
+  id("com.google.osdetector") version "1.7.3"
+  id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
+  id("pl.allegro.tech.build.axion-release") version "1.18.17"
+  id("org.jlleitschuh.gradle.ktlint") version "12.2.0"
 }
 
 scmVersion {
-    tag { prefix.set("") }
-    versionCreator { tag, _ -> tag }
-    snapshotCreator { _, _ -> "" }
+  tag { prefix.set("") }
+  versionCreator { tag, _ -> tag }
+  snapshotCreator { _, _ -> "" }
 }
 
 group = "ai.aiminder"
 version = scmVersion.version
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(21)
+  }
 }
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 }
 
 extra["springAiVersion"] = "1.0.0"
 
 dependencies {
-    val jwtVersion = "0.12.3"
-    val flywayVersion = "11.10.4"
+  val jwtVersion = "0.12.3"
+  val flywayVersion = "11.10.4"
 
-    // env
-    implementation("io.github.cdimascio:dotenv-java:3.0.0")
+  // env
+  implementation("io.github.cdimascio:dotenv-java:3.0.0")
 
-    // spring
-    implementation("org.springframework.ai:spring-ai-starter-model-openai")
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
-    if (osdetector.arch.equals("aarch_64")) {
-        implementation("io.netty:netty-resolver-dns-native-macos:4.2.2.Final:osx-aarch_64")
-    }
-    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
-    implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
+  // spring
+  implementation("org.springframework.ai:spring-ai-starter-model-openai")
+  implementation("org.springframework.boot:spring-boot-starter-webflux")
+  if (osdetector.arch.equals("aarch_64")) {
+    implementation("io.netty:netty-resolver-dns-native-macos:4.2.2.Final:osx-aarch_64")
+  }
+  implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+  implementation("org.springframework.boot:spring-boot-starter-security")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+  implementation("org.springframework.boot:spring-boot-starter-actuator")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
-    // postgres
-    implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
-    implementation("org.postgresql:postgresql:42.7.7")
+  // postgres
+  implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
+  implementation("org.postgresql:postgresql:42.7.7")
 
-    // kotlin
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+  // kotlin
+  implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+  implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
+  implementation("org.jetbrains.kotlin:kotlin-reflect")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
-    // jwt
-    implementation("io.jsonwebtoken:jjwt-api:$jwtVersion")
-    implementation("io.jsonwebtoken:jjwt-impl:$jwtVersion")
-    implementation("io.jsonwebtoken:jjwt-jackson:$jwtVersion")
+  // jwt
+  implementation("io.jsonwebtoken:jjwt-api:$jwtVersion")
+  implementation("io.jsonwebtoken:jjwt-impl:$jwtVersion")
+  implementation("io.jsonwebtoken:jjwt-jackson:$jwtVersion")
 
-    // flyway
-    implementation("org.flywaydb:flyway-core:$flywayVersion")
-    implementation("org.flywaydb:flyway-database-postgresql:$flywayVersion")
+  // flyway
+  implementation("org.flywaydb:flyway-core:$flywayVersion")
+  implementation("org.flywaydb:flyway-database-postgresql:$flywayVersion")
 
-    // swagger
-    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
+  // swagger
+  implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
 
-    // test
-    run {
-        testImplementation("org.springframework.boot:spring-boot-starter-test")
-        testImplementation("io.projectreactor:reactor-test")
-        testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-        testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    }
+  // test
+  run {
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("io.projectreactor:reactor-test")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+    testImplementation("org.springframework.security:spring-security-test")
+    testImplementation("io.mockk:mockk:1.13.12")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+  }
 }
 
 dependencyManagement {
-    imports {
-        mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
-    }
+  imports {
+    mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
+  }
 }
 
 kotlin {
-    compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict")
-    }
+  compilerOptions {
+    freeCompilerArgs.addAll("-Xjsr305=strict")
+  }
 }
 
 tasks.withType<Test> {
-    useJUnitPlatform()
+  useJUnitPlatform()
+}
+
+tasks.named<Test>("test") {
+  dependsOn("ktlintFormat")
 }
 
 tasks.register("copyJar", Copy::class) {
-    dependsOn("bootJar")
-    val jarFile = "aiminder-server-$version.jar"
-    from("build/libs")
-    into(file("docker"))
-    include(jarFile)
+  dependsOn("bootJar")
+  val jarFile = "aiminder-server-$version.jar"
+  from("build/libs")
+  into(file("docker"))
+  include(jarFile)
 }
 
 tasks.named("build") {
-    dependsOn("copyJar")
+  dependsOn("copyJar")
 }
 
 openApi {
-    apiDocsUrl.set("http://localhost:8080/api/v3/api-docs")
+  apiDocsUrl.set("http://localhost:8080/api/v3/api-docs")
 }
 
 tasks.register<Exec>("publishTypeNpm") {
-    dependsOn("test")
-    val npmrcPassword =
-        project.findProperty("password")?.toString()
-            ?: throw GradleException("Please provide a password using -Ppassword=<value>")
-    commandLine("./openapi-generate.sh", "-version", scmVersion.version, "-password", npmrcPassword)
+  dependsOn("test")
+  val npmrcPassword =
+    project.findProperty("password")?.toString()
+      ?: throw GradleException("Please provide a password using -Ppassword=<value>")
+  commandLine("./openapi-generate.sh", "-version", scmVersion.version, "-password", npmrcPassword)
 }
