@@ -17,6 +17,7 @@ import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -40,6 +41,9 @@ class CookieAuthenticationWebFilterTest {
     val access = "aaa.bbb.ccc"
     every { accessDecoder.decode(access) } returns Mono.just(jwt(access))
     every { tokenService.validateAccessToken(access) } returns true
+    val subjectId = UUID.fromString("00000000-0000-0000-0000-000000000000")
+    val user = UserEntity(id = subjectId, provider = OAuth2Provider.GOOGLE, providerId = "123")
+    coEvery { userService.getUserById(subjectId) } returns user
 
     val request =
       MockServerHttpRequest
@@ -78,11 +82,13 @@ class CookieAuthenticationWebFilterTest {
     every { refreshDecoder.decode(refresh) } returns Mono.just(jwt(refresh))
     coEvery { tokenService.validateRefreshToken(refresh) } returns true
 
-    val user = UserEntity(id = java.util.UUID.randomUUID(), provider = OAuth2Provider.GOOGLE, providerId = "123")
+    val subjectId = UUID.fromString("00000000-0000-0000-0000-000000000000")
+    val user = UserEntity(id = subjectId, provider = OAuth2Provider.GOOGLE, providerId = "123")
     coEvery { userService.getUser(refresh) } returns user
     every { tokenService.createAccessToken(user) } returns newAccess
     coEvery { tokenService.createRefreshToken(user) } returns newRefresh
     every { accessDecoder.decode(newAccess) } returns Mono.just(jwt(newAccess))
+    coEvery { userService.getUserById(subjectId) } returns user
 
     val request =
       MockServerHttpRequest
