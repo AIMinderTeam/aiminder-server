@@ -3,6 +3,8 @@ package ai.aiminder.aiminderserver.auth.config
 import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.filter.CookieAuthenticationWebFilter
 import ai.aiminder.aiminderserver.auth.handler.TokenLoginSuccessHandler
+import ai.aiminder.aiminderserver.auth.handler.TokenLogoutHandler
+import ai.aiminder.aiminderserver.auth.handler.TokenLogoutSuccessHandler
 import ai.aiminder.aiminderserver.auth.property.SecurityProperties
 import ai.aiminder.aiminderserver.common.error.Response
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -32,6 +34,8 @@ class SecurityConfig(
   private val objectMapper: ObjectMapper,
   private val tokenLoginSuccessHandler: TokenLoginSuccessHandler,
   private val cookieAuthenticationWebFilter: CookieAuthenticationWebFilter,
+  private val tokenLogoutHandler: TokenLogoutHandler,
+  private val tokenLogoutSuccessHandler: TokenLogoutSuccessHandler,
 ) {
   @Bean
   fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
@@ -47,6 +51,9 @@ class SecurityConfig(
       }.oauth2Login { oauth2 ->
         oauth2
           .authenticationSuccessHandler(tokenLoginSuccessHandler)
+      }.logout { logout ->
+        logout.logoutHandler(tokenLogoutHandler)
+        logout.logoutSuccessHandler(tokenLogoutSuccessHandler)
       }.exceptionHandling { exceptions ->
         exceptions.authenticationEntryPoint(unauthorizedEntryPoint())
       }.addFilterAt(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
