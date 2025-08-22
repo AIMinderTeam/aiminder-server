@@ -42,33 +42,56 @@ class CookieAuthenticationWebFilter(
     val request: ServerHttpRequest = exchange.request
     val response: ServerHttpResponse = exchange.response
 
+    // Entry log for quick tracing
+    runCatching {
+      logger.debug(
+        "CookieAuth start method=${request.method?.name()} path=${request.uri.path} id=${request.id}",
+      )
+    }
+
     val accessToken: AccessToken? = extractCookie(request, ACCESS_COOKIE)
     val refreshToken: RefreshToken? = extractCookie(request, REFRESH_COOKIE)
 
+    logger.debug(
+      "CookieAuth cookies present: access=${!accessToken.isNullOrBlank()} refresh=${!refreshToken.isNullOrBlank()} " +
+        "id=${request.id}",
+    )
+
     if (accessToken.isNullOrBlank()) {
+      logger.debug("CookieAuth no access token; skipping auth id=${request.id}")
       return chain.filter(exchange)
     }
 
     return decoder
       .decode(accessToken)
       .flatMap { jwt ->
+        logger.debug("CookieAuth access decoded: sub={} exp={} id={}", jwt.subject, jwt.expiresAt, request.id)
         val token: AccessToken = accessToken
         if (!tokenService.validateAccessToken(token)) {
+          logger.warn("CookieAuth access token invalid for sub=${jwt.subject} id=${request.id}")
           return@flatMap Mono.error(IllegalAccessException("Invalid access token"))
         }
+        logger.debug("CookieAuth access token valid for sub=${jwt.subject} id=${request.id}")
         processAuthentication(jwt, chain, exchange)
       }.onErrorResume { err ->
-        logger.error("Error during JWT accessToken validation: ${err.message}", err)
+        logger.error(
+          "CookieAuth error on access validation id=${request.id} path=${request.uri.path}: ${err.message}",
+          err,
+        )
         if (refreshToken.isNullOrBlank()) {
+          logger.debug("CookieAuth no refresh token; proceeding unauthenticated id=${request.id}")
           return@onErrorResume chain.filter(exchange)
         }
+        logger.debug("CookieAuth attempting refresh flow id=${request.id}")
         decoder
           .decode(refreshToken)
           .flatMap {
             mono {
               val token: RefreshToken = refreshToken
+              logger.debug("CookieAuth decoding refresh token succeeded id=${request.id}")
               tokenService.validateRefreshToken(token)
               val user = userService.getUser(token)
+              logger.debug("CookieAuth refresh validated; issuing new tokens userId={} id={}", user.id, request.id)
               val newAccess = tokenService.createAccessToken(user)
               val newRefresh = tokenService.createRefreshToken(user)
               Pair(newAccess, newRefresh)
@@ -78,14 +101,23 @@ class CookieAuthenticationWebFilter(
               decoder.decode(newAccess).flatMap { newJwt ->
                 response.addCookie(accessTokenCookie)
                 response.addCookie(refreshTokenCookie)
+                logger.info("CookieAuth reissued tokens; cookies set id=${request.id}")
+                logger.debug(
+                  "CookieAuth cookie flags domain=${cookieProperties.domain} sameSite=${cookieProperties.sameSite} " +
+                    "secure=${cookieProperties.secure} id=${request.id}",
+                )
                 processAuthentication(newJwt, chain, exchange)
               }
             }
           }.onErrorResume { refreshErr ->
-            logger.error("Error during refresh-token flow: ${refreshErr.message}", refreshErr)
+            logger.error(
+              "CookieAuth error during refresh flow id=${request.id} path=${request.uri.path}: ${refreshErr.message}",
+              refreshErr,
+            )
             // Clear auth cookies and continue unauthenticated
             response.addCookie(expiredCookie(ACCESS_COOKIE))
             response.addCookie(expiredCookie(REFRESH_COOKIE))
+            logger.info("CookieAuth cleared auth cookies after refresh failure id=${request.id}")
             chain.filter(exchange)
           }
       }
@@ -98,6 +130,12 @@ class CookieAuthenticationWebFilter(
   ): Mono<Void> {
     val authentication = JwtAuthenticationToken(jwt)
     val securityContext = SecurityContextImpl(authentication)
+    logger.debug(
+      "CookieAuth setting SecurityContext sub={} authorities={} id={}",
+      jwt.subject,
+      authentication.authorities,
+      exchange.request.id,
+    )
     return chain
       .filter(exchange)
       .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)))
@@ -110,14 +148,20 @@ class CookieAuthenticationWebFilter(
     request.cookies
       .getFirst(name)
       ?.value
-      ?.let { return it }
+      ?.let {
+        logger.debug("CookieAuth extractCookie name=$name found=true (from cookies) id=${request.id}")
+        return it
+      }
     val raw = request.headers.getFirst("Cookie") ?: request.headers.getFirst("COOKIE")
     if (raw.isNullOrBlank()) return null
-    return raw
-      .split(";")
-      .map { it.trim() }
-      .firstOrNull { it.startsWith("$name=") }
-      ?.substringAfter('=')
+    val value =
+      raw
+        .split(";")
+        .map { it.trim() }
+        .firstOrNull { it.startsWith("$name=") }
+        ?.substringAfter('=')
+    logger.debug("CookieAuth extractCookie name=$name found=${!value.isNullOrBlank()} (from header) id=${request.id}")
+    return value
   }
 
   private fun expiredCookie(name: String): ResponseCookie =
