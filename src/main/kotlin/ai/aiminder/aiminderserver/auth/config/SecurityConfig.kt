@@ -52,8 +52,10 @@ class SecurityConfig(
         oauth2
           .authenticationSuccessHandler(tokenLoginSuccessHandler)
       }.logout { logout ->
-        logout.logoutHandler(tokenLogoutHandler)
-        logout.logoutSuccessHandler(tokenLogoutSuccessHandler)
+        logout
+          .logoutUrl("/api/auth/logout")
+          .logoutHandler(tokenLogoutHandler)
+          .logoutSuccessHandler(tokenLogoutSuccessHandler)
       }.exceptionHandling { exceptions ->
         exceptions.authenticationEntryPoint(unauthorizedEntryPoint())
       }.addFilterAt(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
