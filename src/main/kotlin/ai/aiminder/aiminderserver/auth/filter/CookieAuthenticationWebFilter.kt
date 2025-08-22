@@ -6,16 +6,18 @@ import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.service.TokenService
 import ai.aiminder.aiminderserver.auth.service.UserService
 import ai.aiminder.aiminderserver.common.util.logger
+import ai.aiminder.aiminderserver.common.util.toUUID
 import kotlinx.coroutines.reactor.mono
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.ResponseCookie
 import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.http.server.reactive.ServerHttpResponse
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContextImpl
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
@@ -24,8 +26,8 @@ import reactor.core.publisher.Mono
 
 @Component
 class CookieAuthenticationWebFilter(
-  @field:Qualifier("accessJwtDecoder") private val accessDecoder: ReactiveJwtDecoder,
-  @field:Qualifier("refreshJwtDecoder") private val refreshDecoder: ReactiveJwtDecoder,
+  @Qualifier("accessJwtDecoder") private val accessDecoder: ReactiveJwtDecoder,
+  @Qualifier("refreshJwtDecoder") private val refreshDecoder: ReactiveJwtDecoder,
   private val tokenService: TokenService,
   private val userService: UserService,
   private val cookieProperties: CookieProperties,
@@ -127,17 +129,32 @@ class CookieAuthenticationWebFilter(
     chain: WebFilterChain,
     exchange: ServerWebExchange,
   ): Mono<Void> {
-    val authentication = JwtAuthenticationToken(jwt)
-    val securityContext = SecurityContextImpl(authentication)
-    logger.debug(
-      "CookieAuth setting SecurityContext sub={} authorities={} id={}",
-      jwt.subject,
-      authentication.authorities,
-      exchange.request.id,
-    )
-    return chain
-      .filter(exchange)
-      .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)))
+    val requestId = exchange.request.id
+    val userId =
+      runCatching { jwt.subject.toUUID() }
+        .getOrElse {
+          logger.error("CookieAuth invalid subject on JWT; sub='${jwt.subject}' id=$requestId", it)
+          return chain.filter(exchange)
+        }
+
+    return mono { userService.getUserById(userId) }
+      .flatMap { user ->
+        val authorities = listOf(SimpleGrantedAuthority("ROLE_USER"))
+        val authentication = UsernamePasswordAuthenticationToken(user, null, authorities).apply { details = jwt }
+        val securityContext = SecurityContextImpl(authentication)
+        logger.debug(
+          "CookieAuth setting SecurityContext sub={} authorities={} id={}",
+          jwt.subject,
+          authentication.authorities,
+          requestId,
+        )
+        chain
+          .filter(exchange)
+          .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)))
+      }.onErrorResume { err ->
+        logger.error("CookieAuth failed to resolve user from JWT subject id=$requestId: ${err.message}", err)
+        chain.filter(exchange)
+      }
   }
 
   private fun extractCookie(
