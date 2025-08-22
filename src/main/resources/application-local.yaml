@@ -3,6 +3,11 @@ aiminder:
     url: http://localhost:8080
   client:
     url: http://localhost:3000
+  cookie:
+    domain: ""
+    same-site: Lax
+    http-only: true
+    secure: false
   security:
     permit-paths:
       - /api/actuator/**
@@ -13,6 +18,7 @@ aiminder:
       - /api/v3/api-docs/**
       - /login/oauth2/**
       - /oauth2/**
+      - /favicon.ico
     allow-origin-patterns:
       - http://localhost:*
 

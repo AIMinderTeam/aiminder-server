@@ -1,14 +1,12 @@
 package ai.aiminder.aiminderserver.auth.config
 
-import ai.aiminder.aiminderserver.auth.dto.OAuth2Response
 import ai.aiminder.aiminderserver.auth.error.AuthError
-import ai.aiminder.aiminderserver.auth.filter.JwtAuthenticationWebFilter
+import ai.aiminder.aiminderserver.auth.filter.CookieAuthenticationWebFilter
+import ai.aiminder.aiminderserver.auth.handler.TokenLoginSuccessHandler
+import ai.aiminder.aiminderserver.auth.handler.TokenLogoutHandler
+import ai.aiminder.aiminderserver.auth.handler.TokenLogoutSuccessHandler
 import ai.aiminder.aiminderserver.auth.property.SecurityProperties
-import ai.aiminder.aiminderserver.auth.service.AuthService
-import ai.aiminder.aiminderserver.auth.service.JwtTokenService
-import ai.aiminder.aiminderserver.auth.service.UserService
 import ai.aiminder.aiminderserver.common.error.Response
-import ai.aiminder.aiminderserver.common.util.logger
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactor.mono
 import org.springframework.context.annotation.Bean
@@ -16,17 +14,13 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpStatusCode
 import org.springframework.http.MediaType
-import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.http.server.reactive.ServerHttpResponse
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder
 import org.springframework.security.config.web.server.ServerHttpSecurity
-import org.springframework.security.core.Authentication
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.ServerAuthenticationEntryPoint
-import org.springframework.security.web.server.WebFilterExchange
-import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.reactive.CorsConfigurationSource
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
@@ -36,28 +30,19 @@ import reactor.core.publisher.Mono
 @Configuration
 @EnableWebFluxSecurity
 class SecurityConfig(
-  private val oauthService: AuthService,
   private val securityProperties: SecurityProperties,
   private val objectMapper: ObjectMapper,
+  private val tokenLoginSuccessHandler: TokenLoginSuccessHandler,
+  private val cookieAuthenticationWebFilter: CookieAuthenticationWebFilter,
+  private val tokenLogoutHandler: TokenLogoutHandler,
+  private val tokenLogoutSuccessHandler: TokenLogoutSuccessHandler,
 ) {
-  private val logger = logger()
-
   @Bean
-  fun securityWebFilterChain(
-    http: ServerHttpSecurity,
-    jwtTokenService: JwtTokenService,
-    userService: UserService,
-  ): SecurityWebFilterChain =
+  fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
     http
       .cors { cors -> cors.configurationSource(corsConfigurationSource()) }
       .csrf { it.disable() }
-      .addFilterBefore(
-        jwtAuthenticationWebFilter(
-          jwtTokenService,
-          userService,
-        ),
-        SecurityWebFiltersOrder.AUTHENTICATION,
-      ).authorizeExchange { exchanges ->
+      .authorizeExchange { exchanges ->
         exchanges
           .pathMatchers(*securityProperties.permitPaths.toTypedArray())
           .permitAll()
@@ -65,10 +50,16 @@ class SecurityConfig(
           .authenticated()
       }.oauth2Login { oauth2 ->
         oauth2
-          .authenticationSuccessHandler(authenticationSuccessHandler())
+          .authenticationSuccessHandler(tokenLoginSuccessHandler)
+      }.logout { logout ->
+        logout
+          .logoutUrl("/api/auth/logout")
+          .logoutHandler(tokenLogoutHandler)
+          .logoutSuccessHandler(tokenLogoutSuccessHandler)
       }.exceptionHandling { exceptions ->
         exceptions.authenticationEntryPoint(unauthorizedEntryPoint())
-      }.build()
+      }.addFilterAt(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+      .build()
 
   @Bean
   fun corsConfigurationSource(): CorsConfigurationSource {
@@ -87,35 +78,10 @@ class SecurityConfig(
   }
 
   @Bean
-  fun jwtAuthenticationWebFilter(
-    jwtTokenService: JwtTokenService,
-    userService: UserService,
-  ): JwtAuthenticationWebFilter = JwtAuthenticationWebFilter(jwtTokenService, userService)
-
-  @Bean
   fun unauthorizedEntryPoint(): ServerAuthenticationEntryPoint =
-    ServerAuthenticationEntryPoint { exchange: ServerWebExchange, exception: AuthenticationException ->
+    ServerAuthenticationEntryPoint { exchange: ServerWebExchange, _: AuthenticationException ->
       val responseDto = Response.from<Unit>(AuthError.UNAUTHORIZED)
       writeResponse(exchange.response, responseDto)
-    }
-
-  @Bean
-  fun authenticationSuccessHandler(): ServerAuthenticationSuccessHandler =
-    ServerAuthenticationSuccessHandler { webFilterExchange: WebFilterExchange, authentication: Authentication ->
-      mono {
-        val request: ServerHttpRequest = webFilterExchange.exchange.request
-        val response: ServerHttpResponse = webFilterExchange.exchange.response
-
-        try {
-          val accessToken: String = oauthService.processOAuth2User(authentication, request.path)
-          val responseDto = Response.from(OAuth2Response(accessToken))
-          writeResponse(response, responseDto).subscribe()
-        } catch (error: Exception) {
-          logger.error("Authentication success handler error: ${error.message}", error)
-          val responseDto = Response.from<Unit>(AuthError.UNAUTHORIZED)
-          writeResponse(response, responseDto).subscribe()
-        }
-      }.then(webFilterExchange.exchange.response.setComplete())
     }
 
   private fun <T> writeResponse(

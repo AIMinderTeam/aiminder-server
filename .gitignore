@@ -236,3 +236,4 @@ gradle-app.setting
 .env
 .env.*
 docker/data
+AGENTS.md

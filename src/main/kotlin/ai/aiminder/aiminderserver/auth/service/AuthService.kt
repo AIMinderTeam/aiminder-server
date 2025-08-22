@@ -1,8 +1,9 @@
 package ai.aiminder.aiminderserver.auth.service
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
-import ai.aiminder.aiminderserver.auth.domain.User
+import ai.aiminder.aiminderserver.auth.domain.TokenGroup
 import ai.aiminder.aiminderserver.auth.dto.OAuth2UserInfo
+import ai.aiminder.aiminderserver.auth.entity.UserEntity
 import ai.aiminder.aiminderserver.auth.repository.UserRepository
 import org.springframework.http.server.RequestPath
 import org.springframework.security.core.Authentication
@@ -12,13 +13,13 @@ import org.springframework.stereotype.Service
 
 @Service
 class AuthService(
-  private val jwtTokenService: JwtTokenService,
+  private val tokenService: TokenService,
   private val userRepository: UserRepository,
 ) {
   suspend fun processOAuth2User(
     authentication: Authentication,
     requestPath: RequestPath,
-  ): String {
+  ): TokenGroup {
     val oauth2User = authentication.principal as OAuth2User
     val registrationId: String =
       if (authentication is OAuth2AuthenticationToken) {
@@ -39,21 +40,21 @@ class AuthService(
           provider = provider,
           providerId = oauthInfo.id,
         ) ?: createNewUser(userInfo = oauthInfo, provider = registrationId)
-    val token = jwtTokenService.generateToken(user)
-    return token
+    val tokenGroup: TokenGroup = tokenService.createTokenGroup(user)
+    return tokenGroup
   }
 
   private suspend fun createNewUser(
     userInfo: OAuth2UserInfo,
     provider: String,
-  ): User {
-    val newUser =
-      User(
+  ): UserEntity {
+    val newUserEntity =
+      UserEntity(
         provider = OAuth2Provider.from(provider),
         providerId = userInfo.id,
       )
 
-    return userRepository.save(newUser)
+    return userRepository.save(newUserEntity)
   }
 
   private fun extractUserInfo(

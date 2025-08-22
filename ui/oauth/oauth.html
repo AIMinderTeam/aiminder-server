@@ -22,10 +22,14 @@
         </a>
       </div>
 
+      <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
+        <button id="check-session-btn" class="btn" style="flex:1; border:1px solid #ddd; background:#fff; color:#333;">세션 확인</button>
+        <button id="logout-btn" class="btn btn-logout" style="flex:1;">로그아웃</button>
+      </div>
+
       <div id="login-result" class="result-container hidden">
-        <h2>로그인 결과</h2>
+        <h2>세션 상태</h2>
         <div id="token-info"></div>
-        <button id="logout-btn" class="btn btn-logout">로그아웃</button>
       </div>
     </div>
   </div>

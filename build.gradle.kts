@@ -47,6 +47,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-security")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
   implementation("org.springframework.boot:spring-boot-starter-actuator")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
   // postgres
   implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
@@ -76,6 +77,8 @@ dependencies {
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+    testImplementation("org.springframework.security:spring-security-test")
+    testImplementation("io.mockk:mockk:1.13.12")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
   }
 }
@@ -94,6 +97,10 @@ kotlin {
 
 tasks.withType<Test> {
   useJUnitPlatform()
+}
+
+tasks.named<Test>("test") {
+  dependsOn("ktlintFormat")
 }
 
 tasks.register("copyJar", Copy::class) {
