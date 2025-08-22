@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/auth")
-class AuthController {
+class AuthController : AuthControllerDocs {
   @GetMapping("/user")
-  suspend fun getUser(
+  override suspend fun getUser(
     @AuthenticationPrincipal userEntity: UserEntity?,
   ): Response<GetUserResponse> =
     userEntity
