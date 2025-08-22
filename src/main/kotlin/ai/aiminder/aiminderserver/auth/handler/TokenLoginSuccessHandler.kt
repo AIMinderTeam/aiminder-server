@@ -5,6 +5,7 @@ import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.service.AuthService
 import ai.aiminder.aiminderserver.common.error.Response
+import ai.aiminder.aiminderserver.common.property.ClientProperties
 import ai.aiminder.aiminderserver.common.util.logger
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactor.mono
@@ -27,6 +28,7 @@ class TokenLoginSuccessHandler(
   private val authService: AuthService,
   private val objectMapper: ObjectMapper,
   private val cookieProperties: CookieProperties,
+  private val clientProperties: ClientProperties,
 ) : ServerAuthenticationSuccessHandler {
   private val logger = logger()
   private val redirect = DefaultServerRedirectStrategy()
@@ -48,7 +50,12 @@ class TokenLoginSuccessHandler(
         val responseDto = Response.from<Unit>(AuthError.UNAUTHORIZED)
         writeResponse(exchange.response, responseDto).subscribe()
       }
-    }.then(redirect.sendRedirect(webFilterExchange.exchange, URI.create("/")))
+    }.then(
+      redirect.sendRedirect(
+        webFilterExchange.exchange,
+        URI.create(clientProperties.url.trimEnd('/') + "/login/success"),
+      ),
+    )
 
   private fun <T> writeResponse(
     response: ServerHttpResponse,
