@@ -3,8 +3,29 @@ document.addEventListener('DOMContentLoaded', function() {
   const infoDiv = document.getElementById('token-info');
   const logoutBtn = document.getElementById('logout-btn');
   const checkSessionBtn = document.getElementById('check-session-btn');
+  const API_BASE = 'http://localhost:8080';
+
+  // OAuth URL 생성 유틸리티
+  function buildOAuthUrl(provider, returnPath = '/login/success') {
+    const absoluteReturn = new URL(returnPath, window.location.origin).toString();
+    const returnTo = encodeURIComponent(absoluteReturn);
+    return `${API_BASE}/oauth2/authorization/${provider}?return_to=${returnTo}`;
+  }
+
+  // 페이지 내 OAuth 링크에 동적 href 적용
+  function applyOAuthLinks() {
+    const googleLink = document.getElementById('login-google');
+    const kakaoLink = document.getElementById('login-kakao');
+    if (googleLink) {
+      googleLink.href = buildOAuthUrl('google', '/login/success');
+    }
+    if (kakaoLink) {
+      kakaoLink.href = buildOAuthUrl('kakao', '/login/success');
+    }
+  }
 
   // 초기 세션 상태 확인
+  applyOAuthLinks();
   checkSession();
 
   // 이벤트 바인딩
@@ -24,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   async function checkSession(showEmpty = false) {
     try {
-      const response = await fetch('http://localhost:8080/api/auth/user', {
+      const response = await fetch(`${API_BASE}/api/auth/user`, {
         method: 'GET',
         credentials: 'include',
         headers: { 'Accept': 'application/json' }
@@ -52,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   async function logout() {
     try {
-      const resp = await fetch('http://localhost:8080/api/auth/logout', {
+      const resp = await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });
