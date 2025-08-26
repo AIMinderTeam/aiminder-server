@@ -3,6 +3,11 @@ aiminder:
     url: ${SERVER_HOST}
   client:
     url: ${CLIENT_HOST}
+  cookie:
+    domain: ""
+    same-site: Lax
+    http-only: true
+    secure: false
   security:
     permit-paths:
       - /api/actuator/**
