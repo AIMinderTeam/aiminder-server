@@ -24,7 +24,6 @@ aiminder:
       - ${CLIENT_HOST}
     allowed-redirect-hosts:
       - dev.aiminder.click
-      - localhost:3000
       - localhost
     default-redirect-base-url: http://dev.aiminder.click
 
