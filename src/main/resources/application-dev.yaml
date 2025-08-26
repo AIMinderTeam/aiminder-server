@@ -20,7 +20,7 @@ aiminder:
     allowed-redirect-hosts:
       - dev.aiminder.click
       - localhost
-    default-redirect-base-url: https://dev.aiminder.click
+    default-redirect-base-url: http://dev.aiminder.click
 
 spring:
   r2dbc:
