@@ -21,3 +21,9 @@ POST localhost:8080/chat/test1
 Content-Type: text/plain
 
 부자되기
+
+### OAuth2 로그인 (로컬 → dev with return_to)
+GET https://dev.aiminder.click/oauth2/authorization/google?return_to=http://localhost:3000
+
+### OAuth2 로그인 (dev 기본 리다이렉트)
+GET https://dev.aiminder.click/oauth2/authorization/google
