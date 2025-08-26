@@ -19,7 +19,7 @@ aiminder:
       - ${CLIENT_HOST}
     allowed-redirect-hosts:
       - dev.aiminder.click
-      - localhost
+      - localhost:3000
     default-redirect-base-url: http://dev.aiminder.click
 
 spring:
