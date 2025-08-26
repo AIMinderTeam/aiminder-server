@@ -1,60 +1,102 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 PASSWORD=""
 VERSION="0.0.0"
+API_DOCS_URL="http://localhost:8080/api/v3/api-docs"
+BOOT_LOG=".openapi-boot.log"
+ENABLE_NPM_PUBLISH="${ENABLE_NPM_PUBLISH:-}" # set to any non-empty value to publish
 
 echo "VERSION=$VERSION"
 
-# 인자 파싱: -password 와 -version 옵션 사용`
+# Parse args: -password and -version
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -password)
-      PASSWORD="$2"
-      shift 2
-      ;;
+      PASSWORD="$2"; shift 2 ;;
     -version)
-      VERSION="$2"
-      shift 2
-      ;;
-    *)
-      echo "Unknown parameter: $1"
-      exit 1
-      ;;
+      VERSION="$2"; shift 2 ;;
+    *) echo "Unknown parameter: $1"; exit 1 ;;
   esac
 done
 
-# 2. 데이터베이스 컨테이너가 실행 중인지 확인하고, 실행 중이 아니면 실행
-echo "Checking if database container 'aiminder-database' is already running..."
-if [ "$(docker ps -q -f name=aiminder-database)" ]; then
-  echo "Database container 'aiminder-database' is already running. Skipping docker run."
-else
-  echo "Starting database container using docker run..."
-  docker run -d \
-    --name aiminder-database \
-    -e POSTGRES_DB=aiminderdb \
-    -e POSTGRES_USER=aiminder \
-    -e POSTGRES_PASSWORD=aiminder \
-    -v "$(pwd)/data":/var/lib/postgresql/data \
-    -p 5432:5432 \
-    postgres:14
-  if [ $? -ne 0 ]; then
-    echo "[ERROR] Failed to start database container via docker run"
-    exit 1
+# Ensure Docker daemon is up (if available)
+if command -v docker >/dev/null 2>&1; then
+  if ! docker ps >/dev/null 2>&1; then
+    echo "[WARN] Docker seems not running or not accessible. Steps using Docker may fail."
   fi
 fi
-echo "Database container is running."
 
-# 3. Execute Gradle task: generateOpenApiDocs
-echo "Running './gradlew generateOpenApiDocs' ..."
-./gradlew generateOpenApiDocs
-if [ $? -ne 0 ]; then
-  echo "[ERROR] Gradle task generateOpenApiDocs failed"
+# 1) Ensure database container is up (best-effort)
+if command -v docker >/dev/null 2>&1; then
+  echo "Checking if database container 'aiminder-database' is already running..."
+  if [ "$(docker ps -q -f name=aiminder-database)" ]; then
+    echo "Database container is already running."
+  else
+    echo "Starting database container using docker run..."
+    if ! docker run -d \
+      --name aiminder-database \
+      -e POSTGRES_DB=aiminderdb \
+      -e POSTGRES_USER=aiminder \
+      -e POSTGRES_PASSWORD=aiminder \
+      -v "$(pwd)/data":/var/lib/postgresql/data \
+      -p 5432:5432 \
+      postgres:14; then
+      echo "[WARN] Failed to start database container via docker run. Continuing; app may start without DB for api-docs."
+    fi
+  fi
+fi
+
+# Helper to cleanly stop background app
+APP_PID=""
+stop_app() {
+  if [ -n "${APP_PID}" ] && ps -p "${APP_PID}" >/dev/null 2>&1; then
+    echo "Stopping Spring Boot app (pid=${APP_PID})..."
+    kill "${APP_PID}" >/dev/null 2>&1 || true
+    # give it a moment
+    sleep 2
+    if ps -p "${APP_PID}" >/dev/null 2>&1; then
+      echo "Force killing app (pid=${APP_PID})..."
+      kill -9 "${APP_PID}" >/dev/null 2>&1 || true
+    fi
+  fi
+}
+trap stop_app EXIT
+
+# 2) Start the app in background and wait for api-docs
+echo "Starting Spring Boot app in background to serve api-docs..."
+set +e
+nohup ./gradlew bootRun >"${BOOT_LOG}" 2>&1 &
+APP_PID=$!
+set -e
+echo "App started (pid=${APP_PID}). Waiting for ${API_DOCS_URL} ..."
+
+READY=0
+for i in {1..120}; do
+  if curl -fsS "${API_DOCS_URL}" >/dev/null 2>&1; then
+    READY=1
+    break
+  fi
+  sleep 1
+done
+
+if [ "$READY" -ne 1 ]; then
+  echo "[ERROR] api-docs did not become ready within 120s. See ${BOOT_LOG}"
+  exit 1
+fi
+echo "api-docs is ready. Generating OpenAPI file..."
+
+# 3) Generate openapi.json via gradle task
+if ! ./gradlew generateOpenApiDocs; then
+  echo "[ERROR] Gradle task generateOpenApiDocs failed. See ${BOOT_LOG}"
   exit 1
 fi
 
+# Stop the background app before continuing heavy steps
+stop_app
+
 rm -rf openapi-generator
-mkdir openapi-generator
+mkdir -p openapi-generator
 
 cat <<EOF > openapi-generator/.openapi-generator-ignore
 # OpenAPI Generator Ignore
@@ -143,6 +185,7 @@ EOF
 
 cp "$(ls -t build/openapi.json | head -n 1)" openapi-generator/openapi.json
 
+# 4) Generate TypeScript client using OpenAPI Generator (Docker image)
 docker run --rm \
   -v "$(pwd)/openapi-generator":/local openapitools/openapi-generator-cli generate \
   -i /local/openapi.json \
@@ -150,30 +193,48 @@ docker run --rm \
   -o /local/src \
   --additional-properties=withSeparateModelsAndApi=true,apiPackage=apis,modelPackage=models,useSingleRequestParameter=true
 
-cd openapi-generator && npm i && npm run build
+cd openapi-generator
 
-# 5. npm publish 시도 및 실패 시 버전 업데이트 후 재시도
+# 5) Install deps; fallback to known-good versions if initial install fails (e.g., E404)
 set +e
-npm publish -f
-PUBLISH_EXIT_CODE=$?
+npm i
+NPM_I_CODE=$?
 set -e
-
-if [ $PUBLISH_EXIT_CODE -ne 0 ]; then
-  echo "npm publish failed, updating version..."
-  # 현재 날짜와 시간을 UTC 기준으로 YYYYMMDDHHmmss 형식으로 생성
-  CURRENT_DATE=$(date -u +"%Y%m%d%H%M%S")
-  NEW_VERSION="${VERSION}-${CURRENT_DATE}"
-  echo "Updating version to: $NEW_VERSION"
-
-  # OS별 sed 옵션 처리: macOS와 Linux 호환
+if [ $NPM_I_CODE -ne 0 ]; then
+  echo "[WARN] npm install failed. Falling back to stable dependency versions..."
   if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' "s/\"version\": *\"$VERSION\"/\"version\": \"$NEW_VERSION\"/" package.json
+    sed -i '' 's/"typescript": *"[^"]\+"/"typescript": "^5.6.3"/' package.json
+    sed -i '' 's/"axios": *"[^"]\+"/"axios": "^1.7.7"/' package.json
   else
-    sed -i.bak "s/\"version\": *\"$VERSION\"/\"version\": \"$NEW_VERSION\"/" package.json
+    sed -i.bak 's/"typescript": *"[^"]\+"/"typescript": "^5.6.3"/' package.json
+    sed -i.bak 's/"axios": *"[^"]\+"/"axios": "^1.7.7"/' package.json
   fi
-
-  # 다시 npm publish 수행
-  npm publish -f
+  npm i
 fi
 
-echo "All steps completed successfully."
+npm run build
+
+# 6) Optionally publish to GitHub Packages
+if [ -n "$ENABLE_NPM_PUBLISH" ]; then
+  echo "Publishing package to GitHub Packages..."
+  set +e
+  npm publish -f
+  PUBLISH_EXIT_CODE=$?
+  set -e
+  if [ $PUBLISH_EXIT_CODE -ne 0 ]; then
+    echo "npm publish failed, updating version and retrying..."
+    CURRENT_DATE=$(date -u +"%Y%m%d%H%M%S")
+    NEW_VERSION="${VERSION}-${CURRENT_DATE}"
+    echo "Updating version to: $NEW_VERSION"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      sed -i '' "s/\"version\": *\"$VERSION\"/\"version\": \"$NEW_VERSION\"/" package.json
+    else
+      sed -i.bak "s/\"version\": *\"$VERSION\"/\"version\": \"$NEW_VERSION\"/" package.json
+    fi
+    npm publish -f
+  fi
+else
+  echo "Skipping npm publish (ENABLE_NPM_PUBLISH not set)."
+fi
+
+echo "All steps completed successfully. Output: openapi-generator/dist"

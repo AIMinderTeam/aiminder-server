@@ -6,6 +6,8 @@ import io.swagger.v3.oas.models.headers.Header
 import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.responses.ApiResponse
 import io.swagger.v3.oas.models.responses.ApiResponses
+import io.swagger.v3.oas.models.parameters.Parameter
+import io.swagger.v3.oas.models.media.StringSchema
 import org.springdoc.core.customizers.OpenApiCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -89,6 +91,17 @@ class OAuth2OpenApiConfig {
                 "로그인 성공 시 `ACCESS_TOKEN`, `REFRESH_TOKEN` 쿠키가 설정되며, 클라이언트의 `/login/success`로 리다이렉트됩니다.",
             ).responses(responses)
             .security(listOf()) // permitAll
+
+        // 스펙 유효성 오류 해결: 경로 변수 `{provider}` 정의 추가
+        val providerParam =
+          Parameter()
+            .name("provider")
+            .description("OAuth2 공급자 이름 (예: google, kakao)")
+            .required(true)
+            .`in`("path")
+            .schema(StringSchema())
+
+        op.addParametersItem(providerParam)
 
         val pathItem = PathItem().get(op)
         openApi.path("/login/oauth2/code/{provider}", pathItem)

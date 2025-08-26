@@ -237,3 +237,5 @@ gradle-app.setting
 .env.*
 docker/data
 AGENTS.md
+
+openapi-generator
