@@ -1,4 +1,4 @@
-name: Publish Develop Server
+name: Publish Develop Server SSL
 
 on:
   push:
@@ -16,6 +16,8 @@ env:
   DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
   DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
   APPLICATION_ENV: ${{ secrets.APPLICATION_ENV }}
+  DOMAIN: 'dev.aiminder.click'
+  EMAIL: 'nalsm0518@gmail.com'
 
 jobs:
   build-and-deploy:
@@ -76,13 +78,36 @@ jobs:
           tags: ${{ env.DOCKER_HUB_USERNAME}}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}
           push: true
 
-      - name: Deploy to EC2
+      - name: Copy Docker SSL Files to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "docker/*"
+          target: "/home/ec2-user/aiminder-deployment/"
+          strip_components: 1
+
+      - name: Set execute permission for renewal script
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
+            cd /home/ec2-user/aiminder-deployment
+            chmod +x scripts/renew-cert.sh
+
+      - name: Deploy SSL to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/ec2-user/aiminder-deployment
+            
+            # Update .env file with new image tag
             if [ ! -f .env ]; then
               echo "DEVELOP_AIMINDER_SERVER_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}" > .env
             else
@@ -92,4 +117,46 @@ jobs:
                 echo "DEVELOP_AIMINDER_SERVER_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}" >> .env
               fi
             fi
-            sudo docker-compose down && sudo docker-compose up -d
+            
+            # Create backup of current setup
+            if [ -f docker-compose.yml ]; then
+              cp docker-compose.yml docker-compose.yml.backup
+            fi
+            
+            # Check if SSL certificate exists
+            if [ ! -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
+              echo "SSL certificate not found. Starting initial certificate issuance..."
+              
+              # Stop existing services
+              sudo docker-compose down || true
+              
+              # Create necessary directories
+              mkdir -p cert/webroot cert/letsencrypt
+              
+              # Issue initial certificate
+              echo "Issuing SSL certificate..."
+              sudo docker-compose -f docker-compose-certbot-init.yml up --abort-on-container-exit
+              sudo docker-compose -f docker-compose-certbot-init.yml down
+              
+              # Start SSL services
+              echo "Starting SSL services..."
+              sudo docker-compose -f docker-compose-ssl.yml up -d
+            else
+              echo "Existing SSL certificate found. Redeploying with SSL configuration..."
+              sudo docker-compose -f docker-compose-ssl.yml down || true
+              sudo docker-compose -f docker-compose-ssl.yml up -d
+            fi
+            
+            # Verify deployment
+            echo "Waiting for services to start..."
+            sleep 10
+            
+            echo "Service status:"
+            sudo docker-compose -f docker-compose-ssl.yml ps
+            
+            echo "SSL certificate status:"
+            if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
+              sudo openssl x509 -in ./cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -text -noout | grep -E "(Subject|Not After)"
+            else
+              echo "SSL certificate directory not found"
+            fi
