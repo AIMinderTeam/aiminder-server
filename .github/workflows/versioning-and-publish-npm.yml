@@ -102,25 +102,3 @@ jobs:
         env:
           # 만약 Gradle가 환경변수로 NPMRC_PASSWORD 접근할 수 있도록 지정
           NPMRC_PASSWORD: ${{ secrets.NPMRC_PASSWORD }}
-
-      - name: Show BOOT_LOG on failure
-        if: ${{ failure() }}
-        run: |
-          echo "=== .openapi-boot.log (on failure) ==="
-          if [ -f .openapi-boot.log ]; then
-            echo "File exists. Printing full log:"
-            cat .openapi-boot.log || true
-          else
-            echo ".openapi-boot.log not found"
-          fi
-
-      - name: Show BOOT_LOG at job end
-        if: ${{ always() }}
-        run: |
-          echo "=== .openapi-boot.log (job end tail) ==="
-          if [ -f .openapi-boot.log ]; then
-            echo "File exists. Printing last 200 lines:"
-            tail -n 200 .openapi-boot.log || true
-          else
-            echo ".openapi-boot.log not found"
-          fi
