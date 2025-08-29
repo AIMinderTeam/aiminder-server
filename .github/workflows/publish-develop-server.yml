@@ -116,6 +116,22 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Debug EC2 directory state
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            echo "=== 디렉토리 상태 ==="
+            ls -la /home/ec2-user/
+            ls -la /home/ec2-user/aiminder-deployment/ || echo "디렉토리가 존재하지 않음"
+            echo "=== 디스크 공간 ==="
+            df -h /home/ec2-user/
+            echo "=== 사용자 정보 ==="
+            whoami
+            id
+
       - name: Prepare EC2 deployment directory
         uses: appleboy/ssh-action@master
         with:
@@ -125,11 +141,10 @@ jobs:
           script: |
             # Remove existing directory completely to avoid permission conflicts
             sudo rm -rf /home/ec2-user/aiminder-deployment
-            # Create fresh directory with proper permissions
-            sudo mkdir -p /home/ec2-user/aiminder-deployment
-            # Ensure ec2-user owns the directory
-            sudo chown -R ec2-user:ec2-user /home/ec2-user/aiminder-deployment
-            sudo chmod 755 /home/ec2-user/aiminder-deployment
+            # Create fresh directory as ec2-user (no sudo needed)
+            mkdir -p /home/ec2-user/aiminder-deployment
+            # Set proper permissions
+            chmod 755 /home/ec2-user/aiminder-deployment
         
       - name: Copy Docker SSL Files to EC2
         uses: appleboy/scp-action@master
@@ -140,6 +155,7 @@ jobs:
           source: "docker/*"
           target: "/home/ec2-user/aiminder-deployment/"
           strip_components: 1
+          overwrite: true
 
       - name: Set execute permission for renewal script
         uses: appleboy/ssh-action@master
