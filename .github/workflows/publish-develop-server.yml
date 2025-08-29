@@ -167,33 +167,7 @@ jobs:
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
             sudo chmod +x scripts/renew-cert.sh
 
-      - name: Check SSL certificate status
-        id: ssl-check
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USER }}
-          key: ${{ env.EC2_SSH_KEY }}
-          script: |
-            cd /home/${{ env.EC2_USER }}/aiminder-deployment
-            if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
-              echo "ssl-exists=true" >> /tmp/ssl_status
-            else
-              echo "ssl-exists=false" >> /tmp/ssl_status
-            fi
-            
-      - name: Get SSL status
-        id: ssl-status
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USER }}
-          key: ${{ env.EC2_SSH_KEY }}
-          script: |
-            cat /tmp/ssl_status
-
-      - name: Deploy with existing SSL
-        if: contains(steps.ssl-status.outputs.stdout, 'ssl-exists=true')
+      - name: Deploy with SSL Auto-Detection
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_HOST }}
@@ -213,67 +187,41 @@ jobs:
               fi
             fi
             
-            echo "Existing SSL certificate found. Redeploying with SSL configuration..."
-            sudo docker-compose -f docker-compose-ssl.yml down || true
-            sudo docker-compose -f docker-compose-ssl.yml up -d
-            
-            # Verify deployment
-            echo "Waiting for services to start..."
-            sleep 10
-            
-            echo "Service status:"
-            sudo docker-compose -f docker-compose-ssl.yml ps
-
-      - name: Deploy with SSL initialization
-        if: contains(steps.ssl-status.outputs.stdout, 'ssl-exists=false')
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USER }}
-          key: ${{ env.EC2_SSH_KEY }}
-          script: |
-            cd /home/${{ env.EC2_USER }}/aiminder-deployment
-            
-            # Update .env file with new image tag
-            if [ ! -f .env ]; then
-              echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" > .env
+            # SSL certificate existence check and deployment
+            if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
+              echo "기존 SSL 인증서가 발견되었습니다. SSL 구성으로 재배포합니다..."
+              sudo docker-compose -f docker-compose-ssl.yml down || true
+              sudo docker-compose -f docker-compose-ssl.yml up -d
             else
-              if grep -q "^DEVELOP_AIMINDER_SERVER_TAG=" .env; then
-                sed -i "s/^DEVELOP_AIMINDER_SERVER_TAG=.*/DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}/" .env
-              else
-                echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" >> .env
-              fi
+              echo "SSL 인증서가 없습니다. 초기 인증서 발급을 시작합니다..."
+              
+              # Stop existing services
+              sudo docker-compose down || true
+              
+              # Create necessary directories
+              sudo mkdir -p cert/webroot cert/letsencrypt
+              
+              # Issue initial certificate
+              echo "SSL 인증서 발급 중..."
+              sudo docker-compose -f docker-compose-certbot-init.yml up --abort-on-container-exit
+              sudo docker-compose -f docker-compose-certbot-init.yml down
+              
+              # Start SSL services
+              echo "SSL 서비스 시작 중..."
+              sudo docker-compose -f docker-compose-ssl.yml up -d
             fi
             
-            echo "SSL certificate not found. Starting initial certificate issuance..."
-            
-            # Stop existing services
-            sudo docker-compose down || true
-            
-            # Create necessary directories
-            sudo mkdir -p cert/webroot cert/letsencrypt
-            
-            # Issue initial certificate
-            echo "Issuing SSL certificate..."
-            sudo docker-compose -f docker-compose-certbot-init.yml up --abort-on-container-exit
-            sudo docker-compose -f docker-compose-certbot-init.yml down
-            
-            # Start SSL services
-            echo "Starting SSL services..."
-            sudo docker-compose -f docker-compose-ssl.yml up -d
-            
-            # Verify deployment
-            echo "Waiting for services to start..."
+            # Deployment verification
+            echo "서비스 시작을 기다리는 중..."
             sleep 10
             
-            echo "Service status:"
+            echo "서비스 상태:"
             sudo docker-compose -f docker-compose-ssl.yml ps
             
-            echo "SSL certificate status:"
+            # SSL status check (optional)
             if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
-              sudo openssl x509 -in ./cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -text -noout | grep -E "(Subject|Not After)"
-            else
-              echo "SSL certificate directory not found"
+              echo "SSL 인증서 상태:"
+              sudo openssl x509 -in ./cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -text -noout | grep -E "(Subject|Not After)" || echo "인증서 정보 읽기 실패"
             fi
 
       - name: Performance Metrics - Deploy End
