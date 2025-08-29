@@ -174,8 +174,7 @@ jobs:
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            cd /home/${{ env.EC2_USER }}/aiminder-deployment
-            
+            cd /home/${{ env.EC2_USER }}
             # Update .env file with new image tag
             if [ ! -f .env ]; then
               echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" > .env
@@ -186,6 +185,8 @@ jobs:
                 echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" >> .env
               fi
             fi
+            
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
             
             # SSL certificate existence check and deployment
             if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
@@ -255,7 +256,7 @@ jobs:
             for i in $(seq 1 $MAX_RETRIES); do
               echo "컨테이너 상태 확인 시도 $i/$MAX_RETRIES..."
               
-              if ./container-check.sh; then
+              if sudo ./container-check.sh; then
                 echo "✅ 모든 컨테이너가 정상적으로 실행 중입니다!"
                 break
               else
