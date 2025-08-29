@@ -126,10 +126,10 @@ jobs:
             # Remove existing directory completely to avoid permission conflicts
             sudo rm -rf /home/ec2-user/aiminder-deployment
             # Create fresh directory with proper permissions
-            mkdir -p /home/ec2-user/aiminder-deployment
+            sudo mkdir -p /home/ec2-user/aiminder-deployment
             # Ensure ec2-user owns the directory
             sudo chown -R ec2-user:ec2-user /home/ec2-user/aiminder-deployment
-            chmod 755 /home/ec2-user/aiminder-deployment
+            sudo chmod 755 /home/ec2-user/aiminder-deployment
         
       - name: Copy Docker SSL Files to EC2
         uses: appleboy/scp-action@master
@@ -149,7 +149,7 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd /home/ec2-user/aiminder-deployment
-            chmod +x scripts/renew-cert.sh
+            sudo chmod +x scripts/renew-cert.sh
 
       - name: Check SSL certificate status
         id: ssl-check
@@ -235,7 +235,7 @@ jobs:
             sudo docker-compose down || true
             
             # Create necessary directories
-            mkdir -p cert/webroot cert/letsencrypt
+            sudo mkdir -p cert/webroot cert/letsencrypt
             
             # Issue initial certificate
             echo "Issuing SSL certificate..."
