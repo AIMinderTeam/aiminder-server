@@ -1,0 +1,18 @@
+services:
+  certbot-init:
+    image: nginx:alpine
+    container_name: certbot-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./cert/webroot:/var/www/certbot
+      - ./cert/nginx-init.conf:/etc/nginx/conf.d/default.conf
+    command: nginx -g 'daemon off;'
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./cert/letsencrypt:/etc/letsencrypt
+      - ./cert/webroot:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email nalsm0518@gmail.com --agree-tos --no-eff-email -d dev.aiminder.click
