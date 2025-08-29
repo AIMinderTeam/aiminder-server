@@ -5,9 +5,9 @@ aiminder:
     url: ${CLIENT_HOST}
   cookie:
     domain: ""
-    same-site: None
+    same-site: Lax
     http-only: true
-    secure: true
+    secure: false
   security:
     permit-paths:
       - /api/actuator/**
@@ -25,7 +25,7 @@ aiminder:
     allowed-redirect-hosts:
       - dev.aiminder.click
       - localhost
-    default-redirect-base-url: https://dev.aiminder.click
+    default-redirect-base-url: http://dev.aiminder.click
 
 spring:
   r2dbc:
