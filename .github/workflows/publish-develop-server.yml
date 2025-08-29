@@ -1,0 +1,266 @@
+name: Publish Develop Server SSL
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+env:
+  CONTAINER_CONTEXT_PATH: 'docker'
+  DOCKERFILE_PATH: 'docker/Dockerfile'
+  IMAGE_NAME: 'aiminder-server'
+  IMAGE_TAG: 'develop-server'
+  EC2_SSH_KEY: ${{ secrets.DEVELOP_EC2_SSH_PRIVATE_KEY }}
+  EC2_USER: ${{ secrets.DEVELOP_EC2_SSH_USER }}
+  EC2_HOST: ${{ secrets.DEVELOP_EC2_HOST }}
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+  DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+  APPLICATION_ENV: ${{ secrets.APPLICATION_ENV }}
+  DOMAIN: 'dev.aiminder.click'
+  EMAIL: 'nalsm0518@gmail.com'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      image-tag: ${{ steps.vars.outputs.image-tag }}
+      
+    steps:
+      - name: Performance Metrics - Build Start
+        run: |
+          echo "Build start time: $(date)"
+          echo "GITHUB_RUN_ID: $GITHUB_RUN_ID"
+          echo "GITHUB_RUN_NUMBER: $GITHUB_RUN_NUMBER"
+          echo "Workflow: Build Job Started"
+
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          touch ./src/main/resources/.env
+          echo "${{ env.APPLICATION_ENV }}" > ./src/main/resources/.env
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle with caching
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: false
+          gradle-home-cache-cleanup: true
+
+      - name: Build with Gradle (optimized)
+        run: ./gradlew build --parallel --build-cache --configuration-cache
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.configureondemand=true"
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: build/reports/tests/test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_HUB_USERNAME }}
+          password: ${{ env.DOCKER_HUB_PASSWORD }}
+
+      - name: Get current date and time in custom format
+        id: vars
+        run: |
+          CURRENT_DATE_TIME=$(date "+%Y%m%d%H%M%S")
+          echo "Current date and time is $CURRENT_DATE_TIME"
+          echo "CURRENT_DATE_TIME=$CURRENT_DATE_TIME" >> $GITHUB_ENV
+          echo "image-tag=${{ env.IMAGE_TAG }}-$CURRENT_DATE_TIME" >> $GITHUB_OUTPUT
+
+      - name: Build and Push with caching
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.CONTAINER_CONTEXT_PATH }}
+          file: ${{ env.DOCKERFILE_PATH }}
+          tags: ${{ env.DOCKER_HUB_USERNAME}}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.image-tag }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Performance Metrics - Build End
+        run: |
+          echo "Build end time: $(date)"
+          echo "Workflow: Build Job Completed"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Performance Metrics - Deploy Start
+        run: |
+          echo "Deploy start time: $(date)"
+          echo "GITHUB_RUN_ID: $GITHUB_RUN_ID"
+          echo "GITHUB_RUN_NUMBER: $GITHUB_RUN_NUMBER"
+          echo "Workflow: Deploy Job Started"
+          echo "Image tag from build: ${{ needs.build.outputs.image-tag }}"
+
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Prepare EC2 deployment directory
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            # Create directory if it doesn't exist and set proper permissions
+            mkdir -p /home/ec2-user/aiminder-deployment
+            chmod 755 /home/ec2-user/aiminder-deployment
+            # Clean up any existing files to avoid permission conflicts
+            rm -rf /home/ec2-user/aiminder-deployment/*
+        
+      - name: Copy Docker SSL Files to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "docker/*"
+          target: "/home/ec2-user/aiminder-deployment/"
+          strip_components: 1
+
+      - name: Set execute permission for renewal script
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/ec2-user/aiminder-deployment
+            chmod +x scripts/renew-cert.sh
+
+      - name: Check SSL certificate status
+        id: ssl-check
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/ec2-user/aiminder-deployment
+            if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
+              echo "ssl-exists=true" >> /tmp/ssl_status
+            else
+              echo "ssl-exists=false" >> /tmp/ssl_status
+            fi
+            
+      - name: Get SSL status
+        id: ssl-status
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cat /tmp/ssl_status
+
+      - name: Deploy with existing SSL
+        if: contains(steps.ssl-status.outputs.stdout, 'ssl-exists=true')
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/ec2-user/aiminder-deployment
+            
+            # Update .env file with new image tag
+            if [ ! -f .env ]; then
+              echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" > .env
+            else
+              if grep -q "^DEVELOP_AIMINDER_SERVER_TAG=" .env; then
+                sed -i "s/^DEVELOP_AIMINDER_SERVER_TAG=.*/DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}/" .env
+              else
+                echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" >> .env
+              fi
+            fi
+            
+            echo "Existing SSL certificate found. Redeploying with SSL configuration..."
+            sudo docker-compose -f docker-compose-ssl.yml down || true
+            sudo docker-compose -f docker-compose-ssl.yml up -d
+            
+            # Verify deployment
+            echo "Waiting for services to start..."
+            sleep 10
+            
+            echo "Service status:"
+            sudo docker-compose -f docker-compose-ssl.yml ps
+
+      - name: Deploy with SSL initialization
+        if: contains(steps.ssl-status.outputs.stdout, 'ssl-exists=false')
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/ec2-user/aiminder-deployment
+            
+            # Update .env file with new image tag
+            if [ ! -f .env ]; then
+              echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" > .env
+            else
+              if grep -q "^DEVELOP_AIMINDER_SERVER_TAG=" .env; then
+                sed -i "s/^DEVELOP_AIMINDER_SERVER_TAG=.*/DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}/" .env
+              else
+                echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" >> .env
+              fi
+            fi
+            
+            echo "SSL certificate not found. Starting initial certificate issuance..."
+            
+            # Stop existing services
+            sudo docker-compose down || true
+            
+            # Create necessary directories
+            mkdir -p cert/webroot cert/letsencrypt
+            
+            # Issue initial certificate
+            echo "Issuing SSL certificate..."
+            sudo docker-compose -f docker-compose-certbot-init.yml up --abort-on-container-exit
+            sudo docker-compose -f docker-compose-certbot-init.yml down
+            
+            # Start SSL services
+            echo "Starting SSL services..."
+            sudo docker-compose -f docker-compose-ssl.yml up -d
+            
+            # Verify deployment
+            echo "Waiting for services to start..."
+            sleep 10
+            
+            echo "Service status:"
+            sudo docker-compose -f docker-compose-ssl.yml ps
+            
+            echo "SSL certificate status:"
+            if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
+              sudo openssl x509 -in ./cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -text -noout | grep -E "(Subject|Not After)"
+            else
+              echo "SSL certificate directory not found"
+            fi
+
+      - name: Performance Metrics - Deploy End
+        if: always()
+        run: |
+          echo "Deploy end time: $(date)"
+          echo "Workflow: Deploy Job Completed"
+          echo "Total workflow completed for run: $GITHUB_RUN_NUMBER"
