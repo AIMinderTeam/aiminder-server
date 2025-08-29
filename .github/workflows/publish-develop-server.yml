@@ -1,4 +1,4 @@
-name: Publish Develop Server SSL
+name: Publish Develop Server
 
 on:
   push:
