@@ -124,10 +124,10 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             echo "=== 디렉토리 상태 ==="
-            ls -la /home/ec2-user/
-            ls -la /home/ec2-user/aiminder-deployment/ || echo "디렉토리가 존재하지 않음"
+            ls -la /home/${{ env.EC2_USER }}/
+            ls -la /home/${{ env.EC2_USER }}/aiminder-deployment/ || echo "디렉토리가 존재하지 않음"
             echo "=== 디스크 공간 ==="
-            df -h /home/ec2-user/
+            df -h /home/${{ env.EC2_USER }}/
             echo "=== 사용자 정보 ==="
             whoami
             id
@@ -140,11 +140,11 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             # Remove existing directory completely to avoid permission conflicts
-            sudo rm -rf /home/ec2-user/aiminder-deployment
-            # Create fresh directory as ec2-user (no sudo needed)
-            mkdir -p /home/ec2-user/aiminder-deployment
+            sudo rm -rf /home/${{ env.EC2_USER }}/aiminder-deployment
+            # Create fresh directory as current user (no sudo needed)
+            mkdir -p /home/${{ env.EC2_USER }}/aiminder-deployment
             # Set proper permissions
-            chmod 755 /home/ec2-user/aiminder-deployment
+            chmod 755 /home/${{ env.EC2_USER }}/aiminder-deployment
         
       - name: Copy Docker SSL Files to EC2
         uses: appleboy/scp-action@master
@@ -153,7 +153,7 @@ jobs:
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           source: "docker/*"
-          target: "/home/ec2-user/aiminder-deployment/"
+          target: "/home/${{ env.EC2_USER }}/aiminder-deployment/"
           strip_components: 1
           overwrite: true
 
@@ -164,7 +164,7 @@ jobs:
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            cd /home/ec2-user/aiminder-deployment
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
             sudo chmod +x scripts/renew-cert.sh
 
       - name: Check SSL certificate status
@@ -175,7 +175,7 @@ jobs:
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            cd /home/ec2-user/aiminder-deployment
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
             if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
               echo "ssl-exists=true" >> /tmp/ssl_status
             else
@@ -200,7 +200,7 @@ jobs:
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            cd /home/ec2-user/aiminder-deployment
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
             
             # Update .env file with new image tag
             if [ ! -f .env ]; then
@@ -232,7 +232,7 @@ jobs:
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            cd /home/ec2-user/aiminder-deployment
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
             
             # Update .env file with new image tag
             if [ ! -f .env ]; then
