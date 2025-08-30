@@ -174,52 +174,39 @@ jobs:
           script: |
             cd /home/${{ env.EC2_USER }}
             
-            # Docker Hub에서 최신 클라이언트 태그 조회 함수
-            get_latest_client_tag() {
-              # Docker Hub API를 통해 최신 develop-client 태그 조회
-              TAGS=$(curl -s "https://hub.docker.com/v2/repositories/${{ env.DOCKER_HUB_USERNAME }}/aiminder-server/tags?page_size=100" | \
-                     jq -r '.results[].name' | \
-                     grep "^develop-client-" | \
-                     sort -r | \
-                     head -1)
-              
-              if [ -z "$TAGS" ]; then
-                # API 호출 실패시 docker 명령으로 재시도
-                docker pull ${{ env.DOCKER_HUB_USERNAME }}/aiminder-server:develop-client-latest 2>/dev/null || true
-                TAGS=$(docker images --format "{{.Tag}}" ${{ env.DOCKER_HUB_USERNAME }}/aiminder-server | \
-                       grep "^develop-client-" | \
-                       sort -r | \
-                       head -1)
-              fi
-              
-              echo "${TAGS:-develop-client-latest}"
-            }
-            
             # .env 파일 업데이트 (SERVER_TAG만 업데이트, CLIENT_TAG는 보존)
             if [ ! -f .env ]; then
-              # 새로운 .env 파일 생성 (초기 배포 시)
-              LATEST_CLIENT_TAG=$(get_latest_client_tag)
-              echo "최신 클라이언트 태그 조회: $LATEST_CLIENT_TAG"
+              # 새로운 .env 파일 생성 (초기 배포 시) - 기본값 사용
+              echo "초기 .env 파일 생성 중..."
               
               cat > .env << EOF
             DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}
-            DEVELOP_AIMINDER_CLIENT_TAG=$LATEST_CLIENT_TAG
+            DEVELOP_AIMINDER_CLIENT_TAG=develop-client-latest
             EOF
+              echo "⚠️  초기 배포: CLIENT_TAG를 기본값(develop-client-latest)으로 설정했습니다."
+              echo "   클라이언트 워크플로우 실행 후 자동으로 업데이트됩니다."
             else
               # 기존 .env 파일에서 SERVER_TAG만 업데이트
+              echo "기존 .env 파일에서 SERVER_TAG 업데이트 중..."
               if grep -q "^DEVELOP_AIMINDER_SERVER_TAG=" .env; then
                 sed -i "s/^DEVELOP_AIMINDER_SERVER_TAG=.*/DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}/" .env
               else
                 echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" >> .env
               fi
               
-              # CLIENT_TAG가 없으면 최신 태그 조회 후 추가
+              # CLIENT_TAG가 없으면 기본값으로 추가
               if ! grep -q "^DEVELOP_AIMINDER_CLIENT_TAG=" .env; then
-                LATEST_CLIENT_TAG=$(get_latest_client_tag)
-                echo "클라이언트 태그 누락 - 최신 태그 조회: $LATEST_CLIENT_TAG"
-                echo "DEVELOP_AIMINDER_CLIENT_TAG=$LATEST_CLIENT_TAG" >> .env
+                echo "DEVELOP_AIMINDER_CLIENT_TAG=develop-client-latest" >> .env
+                echo "⚠️  CLIENT_TAG 누락: 기본값(develop-client-latest)으로 설정했습니다."
+                echo "   클라이언트 워크플로우 실행 후 자동으로 업데이트됩니다."
+              else
+                echo "✅ CLIENT_TAG 보존됨"
               fi
             fi
+            
+            # 현재 환경 변수 상태 출력
+            echo "=== 현재 환경 변수 ==="
+            cat .env
             
             # deployment 디렉토리로 이동
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
