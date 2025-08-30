@@ -280,7 +280,15 @@ jobs:
             echo "  - DEVELOP_AIMINDER_SERVER_TAG=$DEVELOP_AIMINDER_SERVER_TAG"
             echo "  - DEVELOP_AIMINDER_CLIENT_TAG=$DEVELOP_AIMINDER_CLIENT_TAG"
             
+            # 환경 변수를 export하여 sudo 실행 시 전달
+            export DEVELOP_AIMINDER_SERVER_TAG
+            export DEVELOP_AIMINDER_CLIENT_TAG
+            
             echo "=== 컨테이너 상태 확인 시작 ==="
+            
+            # Docker Compose 명령어로 직접 상태 확인 (디버깅용)
+            echo "디버깅: Docker Compose ps 명령 직접 실행"
+            sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
             
             # 컨테이너 상태 확인 재시도 로직 (최대 3분, 30초 간격)
             MAX_RETRIES=6
@@ -289,7 +297,8 @@ jobs:
             for i in $(seq 1 $MAX_RETRIES); do
               echo "컨테이너 상태 확인 시도 $i/$MAX_RETRIES..."
               
-              if sudo ./container-check.sh; then
+              # sudo -E 옵션으로 환경 변수 보존
+              if sudo -E ./container-check.sh; then
                 echo "✅ 모든 컨테이너가 정상적으로 실행 중입니다!"
                 break
               else

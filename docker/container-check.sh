@@ -26,21 +26,39 @@ log_error() {
 
 # Docker Compose 파일 경로
 COMPOSE_FILE="docker-compose-ssl.yml"
+ENV_FILE="../.env"
 
 # 예상되는 서비스 목록
 EXPECTED_SERVICES=("aiminder-database" "aiminder-server" "aiminder-client")
 
 log_info "컨테이너 상태 확인을 시작합니다..."
 
+# 환경 변수 파일 존재 여부 확인
+if [ -f "$ENV_FILE" ]; then
+    log_info "환경 변수 파일 발견: $ENV_FILE"
+    # 환경 변수 파일 내용 확인 (민감 정보 제외)
+    log_info "환경 변수 파일 내 Docker 태그 확인:"
+    grep -E "DEVELOP_AIMINDER_.*_TAG" "$ENV_FILE" || log_warn "Docker 태그 환경 변수를 찾을 수 없습니다"
+else
+    log_warn "환경 변수 파일이 없습니다: $ENV_FILE"
+fi
+
+# Docker Compose 버전 확인
+log_info "Docker Compose 버전: $(docker-compose --version)"
+
+# 현재 디렉토리 확인
+log_info "현재 디렉토리: $(pwd)"
+log_info "Docker Compose 파일 위치: $COMPOSE_FILE"
+
 # 1단계: 모든 컨테이너 상태 확인
 log_info "1단계: 모든 컨테이너 상태 확인 중..."
-if ! docker-compose -f "$COMPOSE_FILE" ps > /dev/null 2>&1; then
+if ! docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps > /dev/null 2>&1; then
     log_error "Docker Compose 파일을 읽을 수 없습니다: $COMPOSE_FILE"
     exit 1
 fi
 
 # 컨테이너 상태 정보 수집
-CONTAINER_STATUS=$(docker-compose -f "$COMPOSE_FILE" ps --format "table {{.Service}}\t{{.State}}\t{{.Status}}")
+CONTAINER_STATUS=$(docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps --format "table {{.Service}}\t{{.State}}\t{{.Status}}")
 echo "$CONTAINER_STATUS"
 
 # 2단계: 각 서비스별 실행 상태 검증
@@ -52,7 +70,10 @@ for service in "${EXPECTED_SERVICES[@]}"; do
     log_info "서비스 확인: $service"
     
     # 서비스가 Up 상태인지 확인
-    service_state=$(docker-compose -f "$COMPOSE_FILE" ps "$service" --format "{{.State}}" 2>/dev/null || echo "Not Found")
+    service_state=$(docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps "$service" --format "{{.State}}" 2>/dev/null || echo "Not Found")
+    
+    # 디버깅: 서비스 상태 원시 값 출력
+    log_info "서비스 $service 원시 상태: '$service_state'"
     
     if [ "$service_state" != "Up" ]; then
         log_error "서비스 $service 상태: $service_state (예상: Up)"
@@ -61,7 +82,7 @@ for service in "${EXPECTED_SERVICES[@]}"; do
     fi
     
     # 컨테이너가 충분한 시간 동안 실행 중인지 확인 (최소 5초)
-    service_status=$(docker-compose -f "$COMPOSE_FILE" ps "$service" --format "{{.Status}}" 2>/dev/null || echo "Unknown")
+    service_status=$(docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps "$service" --format "{{.Status}}" 2>/dev/null || echo "Unknown")
     log_info "서비스 $service 실행 시간: $service_status"
     
     # Up 시간이 5초 이상인지 간단히 확인 (seconds 또는 minutes가 포함되어 있으면 충분)
@@ -76,7 +97,7 @@ done
 log_info "3단계: 컨테이너 재시작 상태 확인 중..."
 
 for service in "${EXPECTED_SERVICES[@]}"; do
-    container_name=$(docker-compose -f "$COMPOSE_FILE" ps "$service" --format "{{.Names}}" 2>/dev/null || echo "")
+    container_name=$(docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps "$service" --format "{{.Names}}" 2>/dev/null || echo "")
     
     if [ -n "$container_name" ]; then
         restart_count=$(docker inspect "$container_name" --format='{{.RestartCount}}' 2>/dev/null || echo "N/A")
@@ -105,7 +126,7 @@ else
     # 실패한 서비스의 로그 출력 (최근 10줄)
     for service in "${failed_services[@]}"; do
         log_error "서비스 $service 최근 로그:"
-        docker-compose -f "$COMPOSE_FILE" logs --tail=10 "$service" || log_error "$service 로그를 가져올 수 없습니다"
+        docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs --tail=10 "$service" || log_error "$service 로그를 가져올 수 없습니다"
         echo "---"
     done
     
