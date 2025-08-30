@@ -14,11 +14,6 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Create .env file
-        run: |
-          touch ./src/main/resources/.env
-          echo "${{ env.APPLICATION_ENV }}" > ./src/main/resources/.env
-
       - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
@@ -117,6 +112,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      - name: Create .env file
+        run: |
+          touch ./src/main/resources/.env
+          echo "${{ env.APPLICATION_ENV }}" > ./src/main/resources/.env
 
       - name: Setup Java 21
         uses: actions/setup-java@v4
