@@ -139,11 +139,9 @@ jobs:
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            # Remove existing directory completely to avoid permission conflicts
+            # .env 파일은 건드리지 않고 deployment 디렉토리만 정리
             sudo rm -rf /home/${{ env.EC2_USER }}/aiminder-deployment
-            # Create fresh directory as current user (no sudo needed)
             mkdir -p /home/${{ env.EC2_USER }}/aiminder-deployment
-            # Set proper permissions
             chmod 755 /home/${{ env.EC2_USER }}/aiminder-deployment
         
       - name: Copy Docker SSL Files to EC2
@@ -175,41 +173,70 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd /home/${{ env.EC2_USER }}
-            # Update .env file with new image tag
+            
+            # Docker Hub에서 최신 클라이언트 태그 조회 함수
+            get_latest_client_tag() {
+              # Docker Hub API를 통해 최신 develop-client 태그 조회
+              TAGS=$(curl -s "https://hub.docker.com/v2/repositories/${{ env.DOCKER_HUB_USERNAME }}/aiminder-server/tags?page_size=100" | \
+                     jq -r '.results[].name' | \
+                     grep "^develop-client-" | \
+                     sort -r | \
+                     head -1)
+              
+              if [ -z "$TAGS" ]; then
+                # API 호출 실패시 docker 명령으로 재시도
+                docker pull ${{ env.DOCKER_HUB_USERNAME }}/aiminder-server:develop-client-latest 2>/dev/null || true
+                TAGS=$(docker images --format "{{.Tag}}" ${{ env.DOCKER_HUB_USERNAME }}/aiminder-server | \
+                       grep "^develop-client-" | \
+                       sort -r | \
+                       head -1)
+              fi
+              
+              echo "${TAGS:-develop-client-latest}"
+            }
+            
+            # .env 파일 업데이트 (SERVER_TAG만 업데이트, CLIENT_TAG는 보존)
             if [ ! -f .env ]; then
-              echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" > .env
+              # 새로운 .env 파일 생성 (초기 배포 시)
+              LATEST_CLIENT_TAG=$(get_latest_client_tag)
+              echo "최신 클라이언트 태그 조회: $LATEST_CLIENT_TAG"
+              
+              cat > .env << EOF
+            DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}
+            DEVELOP_AIMINDER_CLIENT_TAG=$LATEST_CLIENT_TAG
+            EOF
             else
+              # 기존 .env 파일에서 SERVER_TAG만 업데이트
               if grep -q "^DEVELOP_AIMINDER_SERVER_TAG=" .env; then
                 sed -i "s/^DEVELOP_AIMINDER_SERVER_TAG=.*/DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}/" .env
               else
                 echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" >> .env
               fi
+              
+              # CLIENT_TAG가 없으면 최신 태그 조회 후 추가
+              if ! grep -q "^DEVELOP_AIMINDER_CLIENT_TAG=" .env; then
+                LATEST_CLIENT_TAG=$(get_latest_client_tag)
+                echo "클라이언트 태그 누락 - 최신 태그 조회: $LATEST_CLIENT_TAG"
+                echo "DEVELOP_AIMINDER_CLIENT_TAG=$LATEST_CLIENT_TAG" >> .env
+              fi
             fi
             
+            # deployment 디렉토리로 이동
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
             
-            # SSL certificate existence check and deployment
+            # SSL 인증서 체크 및 배포 (동일한 로직 유지)
             if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
               echo "기존 SSL 인증서가 발견되었습니다. SSL 구성으로 재배포합니다..."
-              sudo docker-compose -f docker-compose-ssl.yml down || true
-              sudo docker-compose -f docker-compose-ssl.yml up -d
+              # 상위 디렉토리의 .env 파일 사용
+              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml down || true
+              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
             else
               echo "SSL 인증서가 없습니다. 초기 인증서 발급을 시작합니다..."
-              
-              # Stop existing services
-              sudo docker-compose down || true
-              
-              # Create necessary directories
+              sudo docker-compose --env-file ../.env down || true
               sudo mkdir -p cert/webroot cert/letsencrypt
-              
-              # Issue initial certificate
-              echo "SSL 인증서 발급 중..."
-              sudo docker-compose -f docker-compose-certbot-init.yml up --abort-on-container-exit
-              sudo docker-compose -f docker-compose-certbot-init.yml down
-              
-              # Start SSL services
-              echo "SSL 서비스 시작 중..."
-              sudo docker-compose -f docker-compose-ssl.yml up -d
+              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml up --abort-on-container-exit
+              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
+              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
             fi
             
             # SSL status check (optional)
@@ -247,6 +274,25 @@ jobs:
           script: |
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
             
+            # 환경 변수 검증
+            echo "=== 환경 변수 확인 ===" 
+            if [ ! -f ../.env ]; then
+              echo "❌ .env 파일이 존재하지 않습니다!"
+              exit 1
+            fi
+            
+            source ../.env
+            if [ -z "$DEVELOP_AIMINDER_SERVER_TAG" ] || [ -z "$DEVELOP_AIMINDER_CLIENT_TAG" ]; then
+              echo "❌ 필수 환경 변수가 누락되었습니다:"
+              [ -z "$DEVELOP_AIMINDER_SERVER_TAG" ] && echo "  - DEVELOP_AIMINDER_SERVER_TAG"
+              [ -z "$DEVELOP_AIMINDER_CLIENT_TAG" ] && echo "  - DEVELOP_AIMINDER_CLIENT_TAG"
+              exit 1
+            fi
+            
+            echo "✅ 환경 변수 확인 완료:"
+            echo "  - DEVELOP_AIMINDER_SERVER_TAG=$DEVELOP_AIMINDER_SERVER_TAG"
+            echo "  - DEVELOP_AIMINDER_CLIENT_TAG=$DEVELOP_AIMINDER_CLIENT_TAG"
+            
             echo "=== 컨테이너 상태 확인 시작 ==="
             
             # 컨테이너 상태 확인 재시도 로직 (최대 3분, 30초 간격)
@@ -263,10 +309,10 @@ jobs:
                 if [ $i -eq $MAX_RETRIES ]; then
                   echo "❌ 컨테이너 상태 확인 실패: 최대 재시도 횟수 초과"
                   echo "컨테이너 상태 디버깅 정보:"
-                  sudo docker-compose -f docker-compose-ssl.yml ps
-                  sudo docker-compose -f docker-compose-ssl.yml logs --tail=20 aiminder-server
-                  sudo docker-compose -f docker-compose-ssl.yml logs --tail=20 aiminder-client
-                  sudo docker-compose -f docker-compose-ssl.yml logs --tail=20 aiminder-database
+                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
+                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-server
+                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-client
+                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-database
                   exit 1
                 else
                   echo "⏳ $RETRY_INTERVAL초 후 재시도..."
@@ -276,7 +322,7 @@ jobs:
             done
             
             echo "=== 최종 컨테이너 상태 ==="
-            sudo docker-compose -f docker-compose-ssl.yml ps
+            sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
 
       - name: Performance Metrics - Deploy End
         if: always()
