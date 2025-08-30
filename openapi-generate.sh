@@ -39,52 +39,12 @@ if command -v docker >/dev/null 2>&1; then
       -e POSTGRES_DB=aiminderdb \
       -e POSTGRES_USER=aiminder \
       -e POSTGRES_PASSWORD=aiminder \
-      -v "$(pwd)/data":/var/lib/postgresql/data \
       -p 5432:5432 \
       postgres:14; then
       echo "[WARN] Failed to start database container via docker run. Continuing; app may start without DB for api-docs."
     fi
   fi
 fi
-
-# Helper to cleanly stop background app
-APP_PID=""
-stop_app() {
-  if [ -n "${APP_PID}" ] && ps -p "${APP_PID}" >/dev/null 2>&1; then
-    echo "Stopping Spring Boot app (pid=${APP_PID})..."
-    kill "${APP_PID}" >/dev/null 2>&1 || true
-    # give it a moment
-    sleep 2
-    if ps -p "${APP_PID}" >/dev/null 2>&1; then
-      echo "Force killing app (pid=${APP_PID})..."
-      kill -9 "${APP_PID}" >/dev/null 2>&1 || true
-    fi
-  fi
-}
-trap stop_app EXIT
-
-# 2) Start the app in background and wait for api-docs
-echo "Starting Spring Boot app in background to serve api-docs..."
-set +e
-nohup ./gradlew bootRun >"${BOOT_LOG}" 2>&1 &
-APP_PID=$!
-set -e
-echo "App started (pid=${APP_PID}). Waiting for ${API_DOCS_URL} ..."
-
-READY=0
-for i in {1..120}; do
-  if curl -fsS "${API_DOCS_URL}" >/dev/null 2>&1; then
-    READY=1
-    break
-  fi
-  sleep 1
-done
-
-if [ "$READY" -ne 1 ]; then
-  echo "[ERROR] api-docs did not become ready within 120s. See ${BOOT_LOG}"
-  exit 1
-fi
-echo "api-docs is ready. Generating OpenAPI file..."
 
 # 3) Generate openapi.json via gradle task
 if ! ./gradlew generateOpenApiDocs; then
