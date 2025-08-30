@@ -69,14 +69,14 @@ failed_services=()
 for service in "${EXPECTED_SERVICES[@]}"; do
     log_info "서비스 확인: $service"
     
-    # 서비스가 Up 상태인지 확인
+    # 서비스가 running 상태인지 확인
     service_state=$(docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps "$service" --format "{{.State}}" 2>/dev/null || echo "Not Found")
     
     # 디버깅: 서비스 상태 원시 값 출력
     log_info "서비스 $service 원시 상태: '$service_state'"
     
-    if [ "$service_state" != "Up" ]; then
-        log_error "서비스 $service 상태: $service_state (예상: Up)"
+    if [ "$service_state" != "running" ]; then
+        log_error "서비스 $service 상태: $service_state (예상: running)"
         failed_services+=("$service")
         continue
     fi
@@ -85,7 +85,7 @@ for service in "${EXPECTED_SERVICES[@]}"; do
     service_status=$(docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps "$service" --format "{{.Status}}" 2>/dev/null || echo "Unknown")
     log_info "서비스 $service 실행 시간: $service_status"
     
-    # Up 시간이 5초 이상인지 간단히 확인 (seconds 또는 minutes가 포함되어 있으면 충분)
+    # running 시간이 5초 이상인지 간단히 확인 (seconds 또는 minutes가 포함되어 있으면 충분)
     if [[ "$service_status" =~ (second|minute|hour|day) ]]; then
         log_info "✅ 서비스 $service: 정상 실행 중"
     else

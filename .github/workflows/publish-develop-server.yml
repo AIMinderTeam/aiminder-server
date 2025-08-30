@@ -219,7 +219,8 @@ jobs:
               sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
             else
               echo "SSL 인증서가 없습니다. 초기 인증서 발급을 시작합니다..."
-              sudo docker-compose --env-file ../.env down || true
+              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml down || true
+              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
               sudo mkdir -p cert/webroot cert/letsencrypt
               sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml up --abort-on-container-exit
               sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
