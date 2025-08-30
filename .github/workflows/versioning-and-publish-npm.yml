@@ -145,7 +145,7 @@ jobs:
             -Ppassword=${{ secrets.NPMRC_PASSWORD }} \
             -x test \
             -x ktlintCheck \
-            --info --stacktrace' \
+            --info --stacktrace \
             2>&1 | tee "$LOG_FILE"
           
           # 실행 결과를 환경변수로 저장
