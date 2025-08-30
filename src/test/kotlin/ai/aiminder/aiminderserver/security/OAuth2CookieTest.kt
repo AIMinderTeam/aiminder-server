@@ -3,6 +3,8 @@ package ai.aiminder.aiminderserver.security
 import ai.aiminder.aiminderserver.auth.domain.TokenGroup
 import ai.aiminder.aiminderserver.auth.handler.TokenLoginSuccessHandler
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
+import ai.aiminder.aiminderserver.auth.property.SecurityProperties
+import ai.aiminder.aiminderserver.auth.security.AllowedRedirectValidator
 import ai.aiminder.aiminderserver.auth.service.AuthService
 import ai.aiminder.aiminderserver.common.property.ClientProperties
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -38,7 +40,23 @@ class OAuth2CookieTest {
         secure = false,
       )
     val clientProps = ClientProperties(url = "http://localhost:3000")
-    val handler = TokenLoginSuccessHandler(authService, objectMapper, cookieProps, clientProps)
+    val securityProps =
+      SecurityProperties(
+        permitPaths = emptyList(),
+        allowOriginPatterns = emptyList(),
+        allowedRedirectHosts = listOf("localhost"),
+        defaultRedirectBaseUrl = "",
+      )
+    val allowedRedirectValidator = AllowedRedirectValidator(securityProps)
+    val handler =
+      TokenLoginSuccessHandler(
+        authService,
+        objectMapper,
+        cookieProps,
+        clientProps,
+        securityProps,
+        allowedRedirectValidator,
+      )
 
     val request = MockServerHttpRequest.get("/oauth2/callback/test").build()
     val exchange = MockServerWebExchange.from(request)

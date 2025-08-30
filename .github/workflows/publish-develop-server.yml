@@ -16,13 +16,24 @@ env:
   DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
   DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
   APPLICATION_ENV: ${{ secrets.APPLICATION_ENV }}
+  DOMAIN: 'dev.aiminder.click'
+  EMAIL: 'nalsm0518@gmail.com'
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 15
+    outputs:
+      image-tag: ${{ steps.vars.outputs.image-tag }}
+      
     steps:
+      - name: Performance Metrics - Build Start
+        run: |
+          echo "Build start time: $(date)"
+          echo "GITHUB_RUN_ID: $GITHUB_RUN_ID"
+          echo "GITHUB_RUN_NUMBER: $GITHUB_RUN_NUMBER"
+          echo "Workflow: Build Job Started"
+
       - name: Checkout sources
         uses: actions/checkout@v4
 
@@ -37,11 +48,16 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+      - name: Setup Gradle with caching
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+          gradle-home-cache-cleanup: true
 
-      - name: Build with Gradle
-        run: ./gradlew build --parallel
+      - name: Build with Gradle (optimized)
+        run: ./gradlew build --parallel --build-cache --configuration-cache
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.configureondemand=true"
 
       - name: Upload Test Reports
         if: always()
@@ -60,36 +76,254 @@ jobs:
           password: ${{ env.DOCKER_HUB_PASSWORD }}
 
       - name: Get current date and time in custom format
+        id: vars
         run: |
           CURRENT_DATE_TIME=$(date "+%Y%m%d%H%M%S")
           echo "Current date and time is $CURRENT_DATE_TIME"
           echo "CURRENT_DATE_TIME=$CURRENT_DATE_TIME" >> $GITHUB_ENV
+          echo "image-tag=${{ env.IMAGE_TAG }}-$CURRENT_DATE_TIME" >> $GITHUB_OUTPUT
 
-      - name: Use current date and time
-        run: echo "The date and time in custom format is ${{ env.CURRENT_DATE_TIME }}"
-
-      - name: Build and Push the Docker image and
+      - name: Build and Push with caching
         uses: docker/build-push-action@v6
         with:
           context: ${{ env.CONTAINER_CONTEXT_PATH }}
           file: ${{ env.DOCKERFILE_PATH }}
-          tags: ${{ env.DOCKER_HUB_USERNAME}}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}
+          tags: ${{ env.DOCKER_HUB_USERNAME}}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.image-tag }}
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
 
-      - name: Deploy to EC2
+      - name: Performance Metrics - Build End
+        run: |
+          echo "Build end time: $(date)"
+          echo "Workflow: Build Job Completed"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Performance Metrics - Deploy Start
+        run: |
+          echo "Deploy start time: $(date)"
+          echo "GITHUB_RUN_ID: $GITHUB_RUN_ID"
+          echo "GITHUB_RUN_NUMBER: $GITHUB_RUN_NUMBER"
+          echo "Workflow: Deploy Job Started"
+          echo "Image tag from build: ${{ needs.build.outputs.image-tag }}"
+
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Debug EC2 directory state
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
+            echo "=== 디렉토리 상태 ==="
+            ls -la /home/${{ env.EC2_USER }}/
+            ls -la /home/${{ env.EC2_USER }}/aiminder-deployment/ || echo "디렉토리가 존재하지 않음"
+            echo "=== 디스크 공간 ==="
+            df -h /home/${{ env.EC2_USER }}/
+            echo "=== 사용자 정보 ==="
+            whoami
+            id
+
+      - name: Prepare EC2 deployment directory
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            # .env 파일은 건드리지 않고 deployment 디렉토리만 정리
+            sudo rm -rf /home/${{ env.EC2_USER }}/aiminder-deployment
+            mkdir -p /home/${{ env.EC2_USER }}/aiminder-deployment
+            chmod 755 /home/${{ env.EC2_USER }}/aiminder-deployment
+        
+      - name: Copy Docker SSL Files to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "docker/*"
+          target: "/home/${{ env.EC2_USER }}/aiminder-deployment/"
+          strip_components: 1
+          overwrite: true
+
+      - name: Set execute permission for renewal script
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            sudo chmod +x scripts/renew-cert.sh
+
+      - name: Deploy with SSL Auto-Detection
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ env.EC2_USER }}
+            
+            # .env 파일 업데이트 (SERVER_TAG만 업데이트, CLIENT_TAG는 보존)
             if [ ! -f .env ]; then
-              echo "DEVELOP_AIMINDER_SERVER_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}" > .env
+              # 새로운 .env 파일 생성 (초기 배포 시) - 기본값 사용
+              echo "초기 .env 파일 생성 중..."
+              
+              cat > .env << EOF
+            DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}
+            DEVELOP_AIMINDER_CLIENT_TAG=develop-client-latest
+            EOF
+              echo "⚠️  초기 배포: CLIENT_TAG를 기본값(develop-client-latest)으로 설정했습니다."
+              echo "   클라이언트 워크플로우 실행 후 자동으로 업데이트됩니다."
             else
+              # 기존 .env 파일에서 SERVER_TAG만 업데이트
+              echo "기존 .env 파일에서 SERVER_TAG 업데이트 중..."
               if grep -q "^DEVELOP_AIMINDER_SERVER_TAG=" .env; then
-                sed -i "s/^DEVELOP_AIMINDER_SERVER_TAG=.*/DEVELOP_AIMINDER_SERVER_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}/" .env
+                sed -i "s/^DEVELOP_AIMINDER_SERVER_TAG=.*/DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}/" .env
               else
-                echo "DEVELOP_AIMINDER_SERVER_TAG=${{ env.IMAGE_TAG }}-${{ env.CURRENT_DATE_TIME }}" >> .env
+                echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" >> .env
+              fi
+              
+              # CLIENT_TAG가 없으면 기본값으로 추가
+              if ! grep -q "^DEVELOP_AIMINDER_CLIENT_TAG=" .env; then
+                echo "DEVELOP_AIMINDER_CLIENT_TAG=develop-client-latest" >> .env
+                echo "⚠️  CLIENT_TAG 누락: 기본값(develop-client-latest)으로 설정했습니다."
+                echo "   클라이언트 워크플로우 실행 후 자동으로 업데이트됩니다."
+              else
+                echo "✅ CLIENT_TAG 보존됨"
               fi
             fi
-            sudo docker-compose down && sudo docker-compose up -d
+            
+            # 현재 환경 변수 상태 출력
+            echo "=== 현재 환경 변수 ==="
+            cat .env
+            
+            # deployment 디렉토리로 이동
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            
+            # SSL 인증서 체크 및 배포 (동일한 로직 유지)
+            if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
+              echo "기존 SSL 인증서가 발견되었습니다. SSL 구성으로 재배포합니다..."
+              # 상위 디렉토리의 .env 파일 사용
+              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml down || true
+              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
+            else
+              echo "SSL 인증서가 없습니다. 초기 인증서 발급을 시작합니다..."
+              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml down || true
+              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
+              sudo mkdir -p cert/webroot cert/letsencrypt
+              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml up --abort-on-container-exit
+              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
+              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
+            fi
+            
+            # SSL status check (optional)
+            if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
+              echo "SSL 인증서 상태:"
+              sudo openssl x509 -in ./cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -text -noout | grep -E "(Subject|Not After)" || echo "인증서 정보 읽기 실패"
+            fi
+
+      - name: Upload Container Check Script
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "docker/container-check.sh"
+          target: "/home/${{ env.EC2_USER }}/aiminder-deployment/"
+          strip_components: 1
+
+      - name: Set Container Check Script Permissions
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            chmod +x container-check.sh
+
+      - name: Container Status Verification with Retry Logic
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            
+            # 환경 변수 검증
+            echo "=== 환경 변수 확인 ===" 
+            if [ ! -f ../.env ]; then
+              echo "❌ .env 파일이 존재하지 않습니다!"
+              exit 1
+            fi
+            
+            source ../.env
+            if [ -z "$DEVELOP_AIMINDER_SERVER_TAG" ] || [ -z "$DEVELOP_AIMINDER_CLIENT_TAG" ]; then
+              echo "❌ 필수 환경 변수가 누락되었습니다:"
+              [ -z "$DEVELOP_AIMINDER_SERVER_TAG" ] && echo "  - DEVELOP_AIMINDER_SERVER_TAG"
+              [ -z "$DEVELOP_AIMINDER_CLIENT_TAG" ] && echo "  - DEVELOP_AIMINDER_CLIENT_TAG"
+              exit 1
+            fi
+            
+            echo "✅ 환경 변수 확인 완료:"
+            echo "  - DEVELOP_AIMINDER_SERVER_TAG=$DEVELOP_AIMINDER_SERVER_TAG"
+            echo "  - DEVELOP_AIMINDER_CLIENT_TAG=$DEVELOP_AIMINDER_CLIENT_TAG"
+            
+            # 환경 변수를 export하여 sudo 실행 시 전달
+            export DEVELOP_AIMINDER_SERVER_TAG
+            export DEVELOP_AIMINDER_CLIENT_TAG
+            
+            echo "=== 컨테이너 상태 확인 시작 ==="
+            
+            # Docker Compose 명령어로 직접 상태 확인 (디버깅용)
+            echo "디버깅: Docker Compose ps 명령 직접 실행"
+            sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
+            
+            # 컨테이너 상태 확인 재시도 로직 (최대 3분, 30초 간격)
+            MAX_RETRIES=6
+            RETRY_INTERVAL=30
+            
+            for i in $(seq 1 $MAX_RETRIES); do
+              echo "컨테이너 상태 확인 시도 $i/$MAX_RETRIES..."
+              
+              # sudo -E 옵션으로 환경 변수 보존
+              if sudo -E ./container-check.sh; then
+                echo "✅ 모든 컨테이너가 정상적으로 실행 중입니다!"
+                break
+              else
+                if [ $i -eq $MAX_RETRIES ]; then
+                  echo "❌ 컨테이너 상태 확인 실패: 최대 재시도 횟수 초과"
+                  echo "컨테이너 상태 디버깅 정보:"
+                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
+                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-server
+                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-client
+                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-database
+                  exit 1
+                else
+                  echo "⏳ $RETRY_INTERVAL초 후 재시도..."
+                  sleep $RETRY_INTERVAL
+                fi
+              fi
+            done
+            
+            echo "=== 최종 컨테이너 상태 ==="
+            sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
+
+      - name: Performance Metrics - Deploy End
+        if: always()
+        run: |
+          echo "Deploy end time: $(date)"
+          echo "Workflow: Deploy Job Completed"
+          echo "Total workflow completed for run: $GITHUB_RUN_NUMBER"

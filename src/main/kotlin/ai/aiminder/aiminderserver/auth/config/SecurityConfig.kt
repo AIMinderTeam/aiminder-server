@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.auth.config
 
 import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.filter.CookieAuthenticationWebFilter
+import ai.aiminder.aiminderserver.auth.filter.ReturnToCaptureWebFilter
 import ai.aiminder.aiminderserver.auth.handler.TokenLoginSuccessHandler
 import ai.aiminder.aiminderserver.auth.handler.TokenLogoutHandler
 import ai.aiminder.aiminderserver.auth.handler.TokenLogoutSuccessHandler
@@ -34,6 +35,7 @@ class SecurityConfig(
   private val objectMapper: ObjectMapper,
   private val tokenLoginSuccessHandler: TokenLoginSuccessHandler,
   private val cookieAuthenticationWebFilter: CookieAuthenticationWebFilter,
+  private val returnToCaptureWebFilter: ReturnToCaptureWebFilter,
   private val tokenLogoutHandler: TokenLogoutHandler,
   private val tokenLogoutSuccessHandler: TokenLogoutSuccessHandler,
 ) {
@@ -58,7 +60,8 @@ class SecurityConfig(
           .logoutSuccessHandler(tokenLogoutSuccessHandler)
       }.exceptionHandling { exceptions ->
         exceptions.authenticationEntryPoint(unauthorizedEntryPoint())
-      }.addFilterAt(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+      }.addFilterAt(returnToCaptureWebFilter, SecurityWebFiltersOrder.FIRST)
+      .addFilterAt(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
       .build()
 
   @Bean

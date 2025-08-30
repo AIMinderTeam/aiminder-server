@@ -4,6 +4,8 @@ import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.PathItem
 import io.swagger.v3.oas.models.headers.Header
 import io.swagger.v3.oas.models.media.Schema
+import io.swagger.v3.oas.models.media.StringSchema
+import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.oas.models.responses.ApiResponse
 import io.swagger.v3.oas.models.responses.ApiResponses
 import org.springdoc.core.customizers.OpenApiCustomizer
@@ -16,11 +18,30 @@ class OAuth2OpenApiConfig {
   fun oAuth2OpenApiCustomizer(): OpenApiCustomizer =
     OpenApiCustomizer { openApi ->
       run {
+        val returnToParam =
+          Parameter()
+            .name("return_to")
+            .description(
+              "로그인 성공 후 리다이렉트될 클라이언트 URL. 허용된 호스트에 한해 " +
+                "최대 180초 동안 임시 쿠키(`OAUTH2_RETURN_TO`)로 저장됩니다.",
+            )
+            .required(false)
+            .`in`("query")
+            .schema(StringSchema())
+
+        val setCookieHeader =
+          Header()
+            .description(
+              "`return_to`가 유효한 경우 설정되는 임시 쿠키. `OAUTH2_RETURN_TO=<url>; Max-Age=180; Path=/`",
+            ).schema(Schema<Any>().type("string"))
+
         val responses =
           ApiResponses()
             .addApiResponse(
               "302",
-              ApiResponse().description("Google 인증 페이지로 리다이렉트"),
+              ApiResponse()
+                .description("Google 인증 페이지로 리다이렉트")
+                .addHeaderObject("Set-Cookie", setCookieHeader),
             ).addApiResponse("500", ApiResponse().description("서버 오류"))
 
         val op =
@@ -31,7 +52,8 @@ class OAuth2OpenApiConfig {
             .description(
               "Google OAuth2를 통한 소셜 로그인을 시작합니다. " +
                 "이 엔드포인트는 Google 인증 페이지로 리다이렉트됩니다.",
-            ).responses(responses)
+            ).addParametersItem(returnToParam)
+            .responses(responses)
             .security(listOf()) // permitAll
 
         val pathItem = PathItem().get(op)
@@ -39,11 +61,30 @@ class OAuth2OpenApiConfig {
       }
 
       run {
+        val returnToParam =
+          Parameter()
+            .name("return_to")
+            .description(
+              "로그인 성공 후 리다이렉트될 클라이언트 URL. 허용된 호스트에 한해 " +
+                "최대 180초 동안 임시 쿠키(`OAUTH2_RETURN_TO`)로 저장됩니다.",
+            )
+            .required(false)
+            .`in`("query")
+            .schema(StringSchema())
+
+        val setCookieHeader =
+          Header()
+            .description(
+              "`return_to`가 유효한 경우 설정되는 임시 쿠키. `OAUTH2_RETURN_TO=<url>; Max-Age=180; Path=/`",
+            ).schema(Schema<Any>().type("string"))
+
         val responses =
           ApiResponses()
             .addApiResponse(
               "302",
-              ApiResponse().description("Kakao 인증 페이지로 리다이렉트"),
+              ApiResponse()
+                .description("Kakao 인증 페이지로 리다이렉트")
+                .addHeaderObject("Set-Cookie", setCookieHeader),
             ).addApiResponse("500", ApiResponse().description("서버 오류"))
 
         val op =
@@ -54,7 +95,8 @@ class OAuth2OpenApiConfig {
             .description(
               "Kakao OAuth2를 통한 소셜 로그인을 시작합니다. " +
                 "이 엔드포인트는 Kakao 인증 페이지로 리다이렉트됩니다.",
-            ).responses(responses)
+            ).addParametersItem(returnToParam)
+            .responses(responses)
             .security(listOf()) // permitAll
 
         val pathItem = PathItem().get(op)
@@ -86,9 +128,21 @@ class OAuth2OpenApiConfig {
             .summary("OAuth2 콜백")
             .description(
               "OAuth2 공급자에서 인증을 마친 후 호출되는 콜백 엔드포인트입니다. " +
-                "로그인 성공 시 `ACCESS_TOKEN`, `REFRESH_TOKEN` 쿠키가 설정되며, 클라이언트의 `/login/success`로 리다이렉트됩니다.",
+                "로그인 성공 시 `ACCESS_TOKEN`, `REFRESH_TOKEN` 쿠키가 설정되며, " +
+                "유효한 `return_to`가 제공된 경우 해당 URL로, 없거나 허용되지 않은 경우 기본 리다이렉트 베이스 URL로 이동합니다.",
             ).responses(responses)
             .security(listOf()) // permitAll
+
+        // 스펙 유효성 오류 해결: 경로 변수 `{provider}` 정의 추가
+        val providerParam =
+          Parameter()
+            .name("provider")
+            .description("OAuth2 공급자 이름 (예: google, kakao)")
+            .required(true)
+            .`in`("path")
+            .schema(StringSchema())
+
+        op.addParametersItem(providerParam)
 
         val pathItem = PathItem().get(op)
         openApi.path("/login/oauth2/code/{provider}", pathItem)

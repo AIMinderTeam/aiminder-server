@@ -1,0 +1,108 @@
+# Test Configuration
+aiminder:
+  jwt:
+    access-token-secret: test-access-token-secret-key-for-testing-only-must-be-at-least-256-bits
+    access-token-expiration: 900000  # 15 minutes
+    refresh-token-secret: test-refresh-token-secret-key-for-testing-only-must-be-at-least-256-bits
+    refresh-token-expiration: 604800000  # 7 days
+  
+  cookie:
+    domain: ""
+    same-site: Lax
+    http-only: true
+    secure: false  # Test environment doesn't require HTTPS
+  
+  server:
+    url: http://localhost:8080
+  
+  client:
+    url: http://localhost:3000
+  
+  security:
+    permit-paths:
+      - /api/actuator/**
+      - /api/swagger-ui.html
+      - /api/swagger-ui/**
+      - /api/v3/api-docs
+      - /api/v3/api-docs.yaml
+      - /api/v3/api-docs/**
+      - /login/oauth2/**
+      - /oauth2/**
+      - /favicon.ico
+    allow-origin-patterns:
+      - http://localhost:*
+    allowed-redirect-hosts:
+      - localhost
+      - 127.0.0.1
+    default-redirect-base-url: http://localhost:3000
+
+spring:
+  # Test Profile
+  profiles:
+    active: test
+  
+  # Database Configuration - Using H2 for tests
+  r2dbc:
+    url: r2dbc:h2:mem:///testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+  
+  # Disable Flyway for tests (H2 doesn't need migrations)
+  flyway:
+    enabled: false
+  
+  # OAuth2 Configuration - Test values
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-google-client-id
+            client-secret: test-google-client-secret
+            scope:
+              - openid
+              - email
+            redirect-uri: http://localhost:8080/login/oauth2/code/google
+          
+          kakao:
+            client-id: test-kakao-client-id
+            client-secret: test-kakao-client-secret
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: kakao
+            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+        
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+  
+  # AI Configuration - Mock values for testing
+  ai:
+    openai:
+      api-key: test-api-key-not-real
+      chat:
+        options:
+          model: gpt-3.5-turbo
+          temperature: 0.5
+
+# Logging Configuration - Minimize logs during tests
+logging:
+  level:
+    root: warn
+    ai.aiminder: debug  # Application logic at debug level
+    org.springframework.security: warn
+    io.r2dbc: warn
+
+# API Documentation - Disabled for tests
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# Server Configuration
+server:
+  forward-headers-strategy: framework

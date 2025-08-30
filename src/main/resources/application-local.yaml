@@ -21,6 +21,10 @@ aiminder:
       - /favicon.ico
     allow-origin-patterns:
       - http://localhost:*
+    allowed-redirect-hosts:
+      - localhost
+      - 127.0.0.1
+    default-redirect-base-url: http://localhost:3000
 
 spring:
   r2dbc:
@@ -50,3 +54,6 @@ springdoc:
   api-docs:
     path: /api/v3/api-docs
     enabled: true
+
+server:
+  forward-headers-strategy: framework

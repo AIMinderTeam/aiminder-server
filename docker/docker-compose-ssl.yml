@@ -11,6 +11,7 @@ services:
     ports:
       - "5432:5432"
     restart: always
+
   aiminder-server:
     image: nalsm0518/aiminder-server:${DEVELOP_AIMINDER_SERVER_TAG}
     container_name: aiminder-server
@@ -22,9 +23,24 @@ services:
     restart: always
     ports:
       - "8080:8080"
+
   aiminder-client:
     image: nalsm0518/aiminder-client:${DEVELOP_AIMINDER_CLIENT_TAG}
     container_name: aiminder-client
+    volumes:
+      - ./cert/letsencrypt:/etc/letsencrypt:ro
+      - ./cert/webroot:/var/www/certbot:ro
+      - ./nginx-ssl.conf:/etc/nginx/nginx.conf:ro
     restart: always
     ports:
       - "80:80"
+      - "443:443"
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./cert/letsencrypt:/etc/letsencrypt
+      - ./cert/webroot:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: always

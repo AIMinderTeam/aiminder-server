@@ -3,6 +3,8 @@ package ai.aiminder.aiminderserver.auth.handler
 import ai.aiminder.aiminderserver.auth.domain.TokenGroup
 import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
+import ai.aiminder.aiminderserver.auth.property.SecurityProperties
+import ai.aiminder.aiminderserver.auth.security.AllowedRedirectValidator
 import ai.aiminder.aiminderserver.auth.service.AuthService
 import ai.aiminder.aiminderserver.common.error.Response
 import ai.aiminder.aiminderserver.common.property.ClientProperties
@@ -29,6 +31,8 @@ class TokenLoginSuccessHandler(
   private val objectMapper: ObjectMapper,
   private val cookieProperties: CookieProperties,
   private val clientProperties: ClientProperties,
+  private val securityProperties: SecurityProperties,
+  private val allowedRedirectValidator: AllowedRedirectValidator,
 ) : ServerAuthenticationSuccessHandler {
   private val logger = logger()
   private val redirect = DefaultServerRedirectStrategy()
@@ -53,9 +57,37 @@ class TokenLoginSuccessHandler(
     }.then(
       redirect.sendRedirect(
         webFilterExchange.exchange,
-        URI.create(clientProperties.url.trimEnd('/') + "/login/success"),
+        URI.create(resolveRedirectUrl(webFilterExchange.exchange)),
       ),
     )
+
+  private fun resolveRedirectUrl(exchange: ServerWebExchange): String {
+    val request = exchange.request
+    val response = exchange.response
+
+    val cookie = request.cookies.getFirst("OAUTH2_RETURN_TO")?.value
+    val target = if (allowedRedirectValidator.isAllowed(cookie)) cookie else null
+
+    if (cookie != null) {
+      val deleteCookie =
+        org.springframework.http.ResponseCookie
+          .from("OAUTH2_RETURN_TO", "")
+          .let { if (cookieProperties.domain.isNotBlank()) it.domain(cookieProperties.domain) else it }
+          .httpOnly(true)
+          .secure(cookieProperties.secure)
+          .sameSite(cookieProperties.sameSite)
+          .path("/")
+          .maxAge(0)
+          .build()
+      response.addCookie(deleteCookie)
+    }
+
+    val base =
+      securityProperties.defaultRedirectBaseUrl.ifBlank {
+        clientProperties.url
+      }
+    return target ?: base.trimEnd('/')
+  }
 
   private fun <T> writeResponse(
     response: ServerHttpResponse,

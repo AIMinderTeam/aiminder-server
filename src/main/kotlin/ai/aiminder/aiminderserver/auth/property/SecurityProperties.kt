@@ -6,4 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class SecurityProperties(
   val permitPaths: List<String>,
   val allowOriginPatterns: List<String>,
+  val allowedRedirectHosts: List<String> = emptyList(),
+  val defaultRedirectBaseUrl: String = "",
 )
