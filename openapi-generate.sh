@@ -47,7 +47,7 @@ if command -v docker >/dev/null 2>&1; then
 fi
 
 # 3) Generate openapi.json via gradle task
-if ! ./gradlew generateOpenApiDocs; then
+if ! ./gradlew generateOpenApiDocs --info --stacktrace; then
   echo "[ERROR] Gradle task generateOpenApiDocs failed. See ${BOOT_LOG}"
   exit 1
 fi
