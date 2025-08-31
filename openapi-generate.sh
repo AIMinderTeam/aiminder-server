@@ -5,7 +5,6 @@ PASSWORD=""
 VERSION="0.0.0"
 API_DOCS_URL="http://localhost:8080/api/v3/api-docs"
 BOOT_LOG=".openapi-boot.log"
-ENABLE_NPM_PUBLISH="${ENABLE_NPM_PUBLISH:-}" # set to any non-empty value to publish
 
 echo "VERSION=$VERSION"
 
@@ -172,26 +171,22 @@ fi
 npm run build
 
 # 6) Optionally publish to GitHub Packages
-if [ -n "$ENABLE_NPM_PUBLISH" ]; then
-  echo "Publishing package to GitHub Packages..."
-  set +e
-  npm publish -f
-  PUBLISH_EXIT_CODE=$?
-  set -e
-  if [ $PUBLISH_EXIT_CODE -ne 0 ]; then
-    echo "npm publish failed, updating version and retrying..."
-    CURRENT_DATE=$(date -u +"%Y%m%d%H%M%S")
-    NEW_VERSION="${VERSION}-${CURRENT_DATE}"
-    echo "Updating version to: $NEW_VERSION"
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      sed -i '' "s/\"version\": *\"$VERSION\"/\"version\": \"$NEW_VERSION\"/" package.json
-    else
-      sed -i.bak "s/\"version\": *\"$VERSION\"/\"version\": \"$NEW_VERSION\"/" package.json
-    fi
-    npm publish -f
+echo "Publishing package to GitHub Packages..."
+set +e
+npm publish -f
+PUBLISH_EXIT_CODE=$?
+set -e
+if [ $PUBLISH_EXIT_CODE -ne 0 ]; then
+  echo "npm publish failed, updating version and retrying..."
+  CURRENT_DATE=$(date -u +"%Y%m%d%H%M%S")
+  NEW_VERSION="${VERSION}-${CURRENT_DATE}"
+  echo "Updating version to: $NEW_VERSION"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/\"version\": *\"$VERSION\"/\"version\": \"$NEW_VERSION\"/" package.json
+  else
+    sed -i.bak "s/\"version\": *\"$VERSION\"/\"version\": \"$NEW_VERSION\"/" package.json
   fi
-else
-  echo "Skipping npm publish (ENABLE_NPM_PUBLISH not set)."
+  npm publish -f
 fi
 
 echo "All steps completed successfully. Output: openapi-generator/dist"

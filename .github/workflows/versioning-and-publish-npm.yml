@@ -195,10 +195,3 @@ jobs:
           name: npm-publish-logs-${{ github.run_number }}
           path: logs/
           retention-days: 7
-
-      - name: Fail workflow if NPM publish failed
-        if: always()
-        run: |
-          echo "NPM publish failed with exit code: $GRADLE_EXIT_CODE"
-          echo "Check the uploaded artifact for detailed logs"
-          exit 1
