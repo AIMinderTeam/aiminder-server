@@ -132,59 +132,31 @@ jobs:
             whoami
             id
 
-      - name: Prepare EC2 deployment directory with SSL preservation
+      - name: Prepare EC2 deployment directory
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            echo "=== SSL 인증서 백업 프로세스 시작 ==="
+            echo "=== 배포 디렉토리 준비 ==="
 
-            # 1. 기존 인증서 유효성 검사
-            CERT_VALID=false
-            if [ -f "/home/${{ env.EC2_USER }}/aiminder-deployment/cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem" ]; then
-              echo "기존 인증서 발견. 유효성 검사 중..."
-
-              # 인증서 만료일 확인
-              CERT_EXPIRY=$(sudo openssl x509 -in /home/${{ env.EC2_USER }}/aiminder-deployment/cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -noout -enddate 2>/dev/null | cut -d= -f2)
-
-              if [ ! -z "$CERT_EXPIRY" ]; then
-                CERT_EXPIRY_EPOCH=$(date -d "$CERT_EXPIRY" +%s 2>/dev/null)
-                CURRENT_EPOCH=$(date +%s)
-
-                if [ "$CERT_EXPIRY_EPOCH" -gt "$CURRENT_EPOCH" ]; then
-                  DAYS_UNTIL_EXPIRY=$(( ($CERT_EXPIRY_EPOCH - $CURRENT_EPOCH) / 86400 ))
-                  echo "✅ 인증서가 유효합니다 (${DAYS_UNTIL_EXPIRY}일 남음)"
-                  CERT_VALID=true
-
-                  # 2. 유효한 인증서 전체 cert 폴더 백업
-                  echo "전체 cert 폴더를 백업 중..."
-                  sudo cp -r /home/${{ env.EC2_USER }}/aiminder-deployment/cert /tmp/cert-backup
-                else
-                  echo "⚠️ 인증서가 만료되었습니다"
-                fi
-              else
-                echo "⚠️ 인증서 파일을 읽을 수 없습니다"
-              fi
+            # 디렉토리가 없으면 생성
+            if [ ! -d "/home/${{ env.EC2_USER }}/aiminder-deployment" ]; then
+              echo "배포 디렉토리 생성 중..."
+              mkdir -p /home/${{ env.EC2_USER }}/aiminder-deployment
+              chmod 755 /home/${{ env.EC2_USER }}/aiminder-deployment
             else
-              echo "기존 인증서가 없습니다"
+              echo "기존 배포 디렉토리 사용"
             fi
 
-            # 3. deployment 디렉토리 정리 (cert 폴더 포함 전체 삭제)
-            echo "deployment 디렉토리 정리 중..."
-            sudo rm -rf /home/${{ env.EC2_USER }}/aiminder-deployment
-            mkdir -p /home/${{ env.EC2_USER }}/aiminder-deployment
-            chmod 755 /home/${{ env.EC2_USER }}/aiminder-deployment
-
-            # 4. 유효한 인증서가 있었다면 복원
-            if [ "$CERT_VALID" = true ] && [ -d "/tmp/cert-backup" ]; then
-              echo "백업된 cert 폴더를 복원 중..."
-              sudo cp -r /tmp/cert-backup /home/${{ env.EC2_USER }}/aiminder-deployment/cert
-              sudo rm -rf /tmp/cert-backup
-              echo "✅ 인증서 복원 완료"
+            # SSL 인증서 상태 확인 (정보 제공용)
+            if [ -f "/home/${{ env.EC2_USER }}/aiminder-deployment/cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem" ]; then
+              echo "✅ 기존 SSL 인증서 발견"
+              CERT_EXPIRY=$(sudo openssl x509 -in /home/${{ env.EC2_USER }}/aiminder-deployment/cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -noout -enddate 2>/dev/null | cut -d= -f2)
+              echo "인증서 만료일: $CERT_EXPIRY"
             else
-              echo "⚠️ 복원할 유효한 인증서가 없습니다. 새로 발급이 필요합니다."
+              echo "⚠️ SSL 인증서 없음 - 새로 발급 필요"
             fi
 
       - name: Copy Docker SSL Files to EC2
@@ -286,12 +258,11 @@ jobs:
               sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
             else
               echo "새 SSL 인증서 발급이 필요합니다..."
-              echo "Rate Limit이 해제되었습니다. 인증서 발급을 시도합니다..."
               sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml down || true
-              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
-              sudo mkdir -p cert/webroot cert/letsencrypt
-              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml up --abort-on-container-exit
-              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
+#              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
+#              sudo mkdir -p cert/webroot cert/letsencrypt
+#              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml up --abort-on-container-exit
+#              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
               sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
             fi
 
