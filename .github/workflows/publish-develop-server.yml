@@ -259,10 +259,12 @@ jobs:
             else
               echo "새 SSL 인증서 발급이 필요합니다..."
               sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml down || true
-              # sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
-              # sudo mkdir -p cert/webroot cert/letsencrypt
-              # sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml up --abort-on-container-exit
-              # sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
+              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
+              if [ ! -d "cert/webroot" ] || [ ! -d "cert/letsencrypt" ]; then
+                sudo mkdir -p cert/webroot cert/letsencrypt
+              fi
+              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml up --abort-on-container-exit
+              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
               sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
             fi
 

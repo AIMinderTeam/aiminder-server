@@ -52,9 +52,6 @@ if ! ./gradlew generateOpenApiDocs --info --stacktrace; then
   exit 1
 fi
 
-# Stop the background app before continuing heavy steps
-stop_app
-
 rm -rf openapi-generator
 mkdir -p openapi-generator
 
