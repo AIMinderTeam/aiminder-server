@@ -1,11 +1,11 @@
 package ai.aiminder.aiminderserver.auth.entity
 
+import java.time.Instant
+import java.util.UUID
 import org.springframework.data.annotation.Id
 import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
-import java.time.Instant
-import java.util.UUID
 
 typealias RefreshToken = String
 
@@ -17,8 +17,8 @@ data class RefreshTokenEntity(
   val id: UUID? = null,
   val userId: UUID,
   val token: RefreshToken,
-  val registeredDate: Instant = Instant.now(),
-  val modifiedDate: Instant = registeredDate,
+  val createdAt: Instant = Instant.now(),
+  val updatedAt: Instant = createdAt,
 ) : Persistable<UUID> {
   override fun getId(): UUID? = id
 
@@ -27,6 +27,6 @@ data class RefreshTokenEntity(
   fun update(token: RefreshToken): RefreshTokenEntity =
     this.copy(
       token = token,
-      modifiedDate = Instant.now(),
+      updatedAt = Instant.now(),
     )
 }
