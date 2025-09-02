@@ -132,108 +132,66 @@ jobs:
             whoami
             id
 
-      - name: Prepare EC2 deployment directory
+      - name: Copy SSL Scripts to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "docker/scripts/*"
+          target: "/home/${{ env.EC2_USER }}/aiminder-deployment/"
+          strip_components: 1
+
+      - name: Set Scripts Executable
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            echo "=== 배포 디렉토리 준비 ==="
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            chmod +x scripts/ssl/*.sh scripts/deployment/*.sh
+            echo "✅ Scripts are now executable"
 
-            # 디렉토리가 없으면 생성
-            if [ ! -d "/home/${{ env.EC2_USER }}/aiminder-deployment" ]; then
-              echo "배포 디렉토리 생성 중..."
-              mkdir -p /home/${{ env.EC2_USER }}/aiminder-deployment
-              chmod 755 /home/${{ env.EC2_USER }}/aiminder-deployment
-            else
-              echo "기존 배포 디렉토리 사용"
-            fi
-
-            # SSL 인증서 상태 확인 (정보 제공용)
-            if [ -f "/home/${{ env.EC2_USER }}/aiminder-deployment/cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem" ]; then
-              echo "✅ 기존 SSL 인증서 발견"
-              CERT_EXPIRY=$(sudo openssl x509 -in /home/${{ env.EC2_USER }}/aiminder-deployment/cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -noout -enddate 2>/dev/null | cut -d= -f2)
-              echo "인증서 만료일: $CERT_EXPIRY"
-            else
-              echo "⚠️ SSL 인증서 없음 - 새로 발급 필요"
-            fi
-
-      - name: Prepare Certificate Backup Directory
+      - name: Prepare Directories
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            echo "=== SSL 인증서 백업 디렉토리 준비 ==="
-            
-            # 백업 디렉토리 생성
-            if [ ! -d "/home/${{ env.EC2_USER }}/cert-backups" ]; then
-              mkdir -p /home/${{ env.EC2_USER }}/cert-backups
-              chmod 755 /home/${{ env.EC2_USER }}/cert-backups
-              echo "✅ 백업 디렉토리 생성 완료"
-            else
-              echo "✅ 기존 백업 디렉토리 사용"
-            fi
-            
-            # 백업 디렉토리 상태 확인
-            echo "현재 백업 파일:"
-            ls -lah /home/${{ env.EC2_USER }}/cert-backups/ | tail -n 10
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            ./scripts/ssl/prepare-directories.sh \
+              --deployment-dir "/home/${{ env.EC2_USER }}/aiminder-deployment" \
+              --backup-dir "/home/${{ env.EC2_USER }}/cert-backups" \
+              --user "${{ env.EC2_USER }}"
 
-      - name: Backup Existing SSL Certificates
+      - name: Check SSL Certificate Status
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            echo "=== SSL 인증서 백업 시작 ==="
-            
-            CERT_DIR="/home/${{ env.EC2_USER }}/aiminder-deployment/cert"
-            BACKUP_DIR="/home/${{ env.EC2_USER }}/cert-backups"
-            TIMESTAMP=$(date +%Y%m%d%H%M%S)
-            BACKUP_FILE="cert-backup-${TIMESTAMP}.tar.gz"
-            
-            # 인증서 디렉토리가 존재하는 경우에만 백업
-            if [ -d "$CERT_DIR" ]; then
-              # 인증서 파일 존재 여부 확인
-              if [ -d "$CERT_DIR/letsencrypt/live" ] && [ "$(ls -A $CERT_DIR/letsencrypt/live 2>/dev/null)" ]; then
-                echo "📦 기존 인증서 백업 중..."
-                
-                # 백업 생성
-                cd /home/${{ env.EC2_USER }}/aiminder-deployment
-                sudo tar -czf "$BACKUP_DIR/$BACKUP_FILE" cert/
-                
-                # 백업 파일 권한 설정
-                sudo chown ${{ env.EC2_USER }}:${{ env.EC2_USER }} "$BACKUP_DIR/$BACKUP_FILE"
-                chmod 644 "$BACKUP_DIR/$BACKUP_FILE"
-                
-                # 백업 파일 크기 확인
-                BACKUP_SIZE=$(du -h "$BACKUP_DIR/$BACKUP_FILE" | cut -f1)
-                echo "✅ 백업 완료: $BACKUP_FILE (크기: $BACKUP_SIZE)"
-                
-                # 백업 검증
-                if sudo tar -tzf "$BACKUP_DIR/$BACKUP_FILE" &>/dev/null; then
-                  echo "✅ 백업 파일 무결성 검증 성공"
-                else
-                  echo "❌ 백업 파일 검증 실패"
-                  exit 1
-                fi
-              else
-                echo "ℹ️ 백업할 인증서가 없습니다 (빈 디렉토리)"
-              fi
-            else
-              echo "ℹ️ 인증서 디렉토리가 존재하지 않습니다 (초기 배포)"
-            fi
-            
-            # 오래된 백업 정리 (최근 5개만 유지)
-            echo "🗑️ 오래된 백업 정리 중..."
-            cd "$BACKUP_DIR"
-            ls -t cert-backup-*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
-            
-            echo "=== 현재 백업 목록 ==="
-            ls -lah cert-backup-*.tar.gz 2>/dev/null || echo "백업 파일 없음"
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            ./scripts/ssl/check-certificate.sh \
+              --domain "${{ env.DOMAIN }}" \
+              --cert-dir "/home/${{ env.EC2_USER }}/aiminder-deployment/cert/letsencrypt" \
+              --days-threshold 30 || true
+
+      - name: Backup SSL Certificates
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            ./scripts/ssl/backup-certificate.sh \
+              --domain "${{ env.DOMAIN }}" \
+              --cert-dir "/home/${{ env.EC2_USER }}/aiminder-deployment/cert" \
+              --backup-dir "/home/${{ env.EC2_USER }}/cert-backups" \
+              --keep-count 5
 
       - name: Copy Docker SSL Files to EC2
         uses: appleboy/scp-action@master
@@ -256,7 +214,7 @@ jobs:
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
             sudo chmod +x scripts/renew-cert.sh
 
-      - name: Deploy with SSL Auto-Detection
+      - name: Update Environment Variables
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_HOST }}
@@ -299,58 +257,19 @@ jobs:
             echo "=== 현재 환경 변수 ==="
             cat .env
 
-            # deployment 디렉토리로 이동
+      - name: Deploy with SSL Auto-Detection
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
-
-            # 인증서 유효성 재확인
-            NEED_NEW_CERT=true
-            if [ -f "./cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem" ]; then
-              echo "인증서 파일 발견. 유효성 검사 중..."
-
-              # 인증서 유효 기간 확인
-              CERT_EXPIRY=$(sudo openssl x509 -in ./cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -noout -enddate 2>/dev/null | cut -d= -f2)
-              if [ ! -z "$CERT_EXPIRY" ]; then
-                CERT_EXPIRY_EPOCH=$(date -d "$CERT_EXPIRY" +%s 2>/dev/null)
-                CURRENT_EPOCH=$(date +%s)
-
-                if [ "$CERT_EXPIRY_EPOCH" -gt "$CURRENT_EPOCH" ]; then
-                  DAYS_UNTIL_EXPIRY=$(( ($CERT_EXPIRY_EPOCH - $CURRENT_EPOCH) / 86400 ))
-
-                  # 30일 이상 남았으면 기존 인증서 사용
-                  if [ $DAYS_UNTIL_EXPIRY -gt 30 ]; then
-                    echo "✅ 인증서가 충분히 유효합니다 (${DAYS_UNTIL_EXPIRY}일 남음). 기존 인증서 사용."
-                    NEED_NEW_CERT=false
-                  else
-                    echo "⚠️ 인증서 갱신이 필요합니다 (${DAYS_UNTIL_EXPIRY}일 남음)"
-                  fi
-                fi
-              fi
-            fi
-
-            # 배포 실행
-            if [ "$NEED_NEW_CERT" = false ]; then
-              echo "기존 SSL 인증서로 배포를 진행합니다..."
-              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml down || true
-              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
-            else
-              echo "새 SSL 인증서 발급이 필요합니다..."
-              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml down || true
-              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
-              if [ ! -d "cert/webroot" ] || [ ! -d "cert/letsencrypt" ]; then
-                sudo mkdir -p cert/webroot cert/letsencrypt
-              fi
-              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml up --abort-on-container-exit
-              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
-              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
-            fi
-
-            # SSL status check (optional)
-            if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
-              echo "=== SSL 인증서 최종 상태 ==="
-              sudo openssl x509 -in ./cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -text -noout | grep -E "(Subject|Not After)" || echo "인증서 정보 읽기 실패"
-            else
-              echo "⚠️ SSL 인증서가 없는 상태로 배포되었습니다"
-            fi
+            ./scripts/ssl/deploy-with-ssl.sh \
+              --domain "${{ env.DOMAIN }}" \
+              --deployment-dir "/home/${{ env.EC2_USER }}/aiminder-deployment" \
+              --env-file "/home/${{ env.EC2_USER }}/.env" \
+              --renew-threshold 30
 
       - name: Upload Container Check Script
         uses: appleboy/scp-action@master
@@ -372,6 +291,19 @@ jobs:
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
             chmod +x container-check.sh
 
+      - name: Verify Environment
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            ./scripts/deployment/verify-environment.sh \
+              --env-file "/home/${{ env.EC2_USER }}/.env" \
+              --required-vars "DEVELOP_AIMINDER_SERVER_TAG,DEVELOP_AIMINDER_CLIENT_TAG" \
+              --debug
+
       - name: Container Status Verification with Retry Logic
         uses: appleboy/ssh-action@master
         with:
@@ -381,26 +313,8 @@ jobs:
           script: |
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
 
-            # 환경 변수 검증
-            echo "=== 환경 변수 확인 ==="
-            if [ ! -f ../.env ]; then
-              echo "❌ .env 파일이 존재하지 않습니다!"
-              exit 1
-            fi
-
-            source ../.env
-            if [ -z "$DEVELOP_AIMINDER_SERVER_TAG" ] || [ -z "$DEVELOP_AIMINDER_CLIENT_TAG" ]; then
-              echo "❌ 필수 환경 변수가 누락되었습니다:"
-              [ -z "$DEVELOP_AIMINDER_SERVER_TAG" ] && echo "  - DEVELOP_AIMINDER_SERVER_TAG"
-              [ -z "$DEVELOP_AIMINDER_CLIENT_TAG" ] && echo "  - DEVELOP_AIMINDER_CLIENT_TAG"
-              exit 1
-            fi
-
-            echo "✅ 환경 변수 확인 완료:"
-            echo "  - DEVELOP_AIMINDER_SERVER_TAG=$DEVELOP_AIMINDER_SERVER_TAG"
-            echo "  - DEVELOP_AIMINDER_CLIENT_TAG=$DEVELOP_AIMINDER_CLIENT_TAG"
-
-            # 환경 변수를 export하여 sudo 실행 시 전달
+            # 환경 변수 로드
+            source /home/${{ env.EC2_USER }}/.env
             export DEVELOP_AIMINDER_SERVER_TAG
             export DEVELOP_AIMINDER_CLIENT_TAG
 
@@ -408,7 +322,7 @@ jobs:
 
             # Docker Compose 명령어로 직접 상태 확인 (디버깅용)
             echo "디버깅: Docker Compose ps 명령 직접 실행"
-            sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
+            sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml ps
 
             # 컨테이너 상태 확인 재시도 로직 (최대 3분, 30초 간격)
             MAX_RETRIES=6
@@ -425,10 +339,10 @@ jobs:
                 if [ $i -eq $MAX_RETRIES ]; then
                   echo "❌ 컨테이너 상태 확인 실패: 최대 재시도 횟수 초과"
                   echo "컨테이너 상태 디버깅 정보:"
-                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
-                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-server
-                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-client
-                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-database
+                  sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml ps
+                  sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml logs --tail=20 aiminder-server
+                  sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml logs --tail=20 aiminder-client
+                  sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml logs --tail=20 aiminder-database
                   exit 1
                 else
                   echo "⏳ $RETRY_INTERVAL초 후 재시도..."
@@ -438,7 +352,7 @@ jobs:
             done
 
             echo "=== 최종 컨테이너 상태 ==="
-            sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
+            sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml ps
 
       - name: Performance Metrics - Deploy End
         if: always()
