@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 15
     outputs:
       image-tag: ${{ steps.vars.outputs.image-tag }}
-      
+
     steps:
       - name: Performance Metrics - Build Start
         run: |
@@ -103,7 +103,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - name: Performance Metrics - Deploy Start
         run: |
@@ -132,18 +132,67 @@ jobs:
             whoami
             id
 
-      - name: Prepare EC2 deployment directory
+      - name: Copy SSL Scripts to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "docker/scripts/*"
+          target: "/home/${{ env.EC2_USER }}/aiminder-deployment/"
+          strip_components: 1
+
+      - name: Set Scripts Executable
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ env.EC2_SSH_KEY }}
           script: |
-            # .env 파일은 건드리지 않고 deployment 디렉토리만 정리
-            sudo rm -rf /home/${{ env.EC2_USER }}/aiminder-deployment
-            mkdir -p /home/${{ env.EC2_USER }}/aiminder-deployment
-            chmod 755 /home/${{ env.EC2_USER }}/aiminder-deployment
-        
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            chmod +x scripts/ssl/*.sh scripts/deployment/*.sh
+            echo "✅ Scripts are now executable"
+
+      - name: Prepare Directories
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            sudo ./scripts/ssl/prepare-directories.sh \
+              --deployment-dir "/home/${{ env.EC2_USER }}/aiminder-deployment" \
+              --backup-dir "/home/${{ env.EC2_USER }}/cert-backups" \
+              --user "${{ env.EC2_USER }}"
+
+      - name: Check SSL Certificate Status
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            sudo ./scripts/ssl/check-certificate.sh \
+              --domain "${{ env.DOMAIN }}" \
+              --cert-dir "/home/${{ env.EC2_USER }}/aiminder-deployment/cert/letsencrypt" \
+              --days-threshold 30 || true
+
+      - name: Backup SSL Certificates
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            sudo ./scripts/ssl/backup-certificate.sh \
+              --domain "${{ env.DOMAIN }}" \
+              --cert-dir "/home/${{ env.EC2_USER }}/aiminder-deployment/cert" \
+              --backup-dir "/home/${{ env.EC2_USER }}/cert-backups" \
+              --keep-count 5
+
       - name: Copy Docker SSL Files to EC2
         uses: appleboy/scp-action@master
         with:
@@ -165,7 +214,7 @@ jobs:
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
             sudo chmod +x scripts/renew-cert.sh
 
-      - name: Deploy with SSL Auto-Detection
+      - name: Update Environment Variables
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_HOST }}
@@ -173,12 +222,12 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd /home/${{ env.EC2_USER }}
-            
+
             # .env 파일 업데이트 (SERVER_TAG만 업데이트, CLIENT_TAG는 보존)
             if [ ! -f .env ]; then
               # 새로운 .env 파일 생성 (초기 배포 시) - 기본값 사용
               echo "초기 .env 파일 생성 중..."
-              
+
               cat > .env << EOF
             DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}
             DEVELOP_AIMINDER_CLIENT_TAG=develop-client-latest
@@ -193,7 +242,7 @@ jobs:
               else
                 echo "DEVELOP_AIMINDER_SERVER_TAG=${{ needs.build.outputs.image-tag }}" >> .env
               fi
-              
+
               # CLIENT_TAG가 없으면 기본값으로 추가
               if ! grep -q "^DEVELOP_AIMINDER_CLIENT_TAG=" .env; then
                 echo "DEVELOP_AIMINDER_CLIENT_TAG=develop-client-latest" >> .env
@@ -203,35 +252,24 @@ jobs:
                 echo "✅ CLIENT_TAG 보존됨"
               fi
             fi
-            
+
             # 현재 환경 변수 상태 출력
             echo "=== 현재 환경 변수 ==="
             cat .env
-            
-            # deployment 디렉토리로 이동
+
+      - name: Deploy with SSL Auto-Detection
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
-            
-            # SSL 인증서 체크 및 배포 (동일한 로직 유지)
-            if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
-              echo "기존 SSL 인증서가 발견되었습니다. SSL 구성으로 재배포합니다..."
-              # 상위 디렉토리의 .env 파일 사용
-              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml down || true
-              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
-            else
-              echo "SSL 인증서가 없습니다. 초기 인증서 발급을 시작합니다..."
-              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml down || true
-              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
-              sudo mkdir -p cert/webroot cert/letsencrypt
-              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml up --abort-on-container-exit
-              sudo docker-compose --env-file ../.env -f docker-compose-certbot-init.yml down
-              sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml up -d
-            fi
-            
-            # SSL status check (optional)
-            if [ -d "./cert/letsencrypt/live/${{ env.DOMAIN }}" ]; then
-              echo "SSL 인증서 상태:"
-              sudo openssl x509 -in ./cert/letsencrypt/live/${{ env.DOMAIN }}/cert.pem -text -noout | grep -E "(Subject|Not After)" || echo "인증서 정보 읽기 실패"
-            fi
+            sudo ./scripts/ssl/deploy-with-ssl.sh \
+              --domain "${{ env.DOMAIN }}" \
+              --deployment-dir "/home/${{ env.EC2_USER }}/aiminder-deployment" \
+              --env-file "/home/${{ env.EC2_USER }}/.env" \
+              --renew-threshold 30
 
       - name: Upload Container Check Script
         uses: appleboy/scp-action@master
@@ -253,6 +291,19 @@ jobs:
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
             chmod +x container-check.sh
 
+      - name: Verify Environment
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ env.EC2_USER }}/aiminder-deployment
+            sudo ./scripts/deployment/verify-environment.sh \
+              --env-file "/home/${{ env.EC2_USER }}/.env" \
+              --required-vars "DEVELOP_AIMINDER_SERVER_TAG,DEVELOP_AIMINDER_CLIENT_TAG" \
+              --debug
+
       - name: Container Status Verification with Retry Logic
         uses: appleboy/ssh-action@master
         with:
@@ -261,43 +312,25 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
-            
-            # 환경 변수 검증
-            echo "=== 환경 변수 확인 ===" 
-            if [ ! -f ../.env ]; then
-              echo "❌ .env 파일이 존재하지 않습니다!"
-              exit 1
-            fi
-            
-            source ../.env
-            if [ -z "$DEVELOP_AIMINDER_SERVER_TAG" ] || [ -z "$DEVELOP_AIMINDER_CLIENT_TAG" ]; then
-              echo "❌ 필수 환경 변수가 누락되었습니다:"
-              [ -z "$DEVELOP_AIMINDER_SERVER_TAG" ] && echo "  - DEVELOP_AIMINDER_SERVER_TAG"
-              [ -z "$DEVELOP_AIMINDER_CLIENT_TAG" ] && echo "  - DEVELOP_AIMINDER_CLIENT_TAG"
-              exit 1
-            fi
-            
-            echo "✅ 환경 변수 확인 완료:"
-            echo "  - DEVELOP_AIMINDER_SERVER_TAG=$DEVELOP_AIMINDER_SERVER_TAG"
-            echo "  - DEVELOP_AIMINDER_CLIENT_TAG=$DEVELOP_AIMINDER_CLIENT_TAG"
-            
-            # 환경 변수를 export하여 sudo 실행 시 전달
+
+            # 환경 변수 로드
+            source /home/${{ env.EC2_USER }}/.env
             export DEVELOP_AIMINDER_SERVER_TAG
             export DEVELOP_AIMINDER_CLIENT_TAG
-            
+
             echo "=== 컨테이너 상태 확인 시작 ==="
-            
+
             # Docker Compose 명령어로 직접 상태 확인 (디버깅용)
             echo "디버깅: Docker Compose ps 명령 직접 실행"
-            sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
-            
+            sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml ps
+
             # 컨테이너 상태 확인 재시도 로직 (최대 3분, 30초 간격)
             MAX_RETRIES=6
             RETRY_INTERVAL=30
-            
+
             for i in $(seq 1 $MAX_RETRIES); do
               echo "컨테이너 상태 확인 시도 $i/$MAX_RETRIES..."
-              
+
               # sudo -E 옵션으로 환경 변수 보존
               if sudo -E ./container-check.sh; then
                 echo "✅ 모든 컨테이너가 정상적으로 실행 중입니다!"
@@ -306,10 +339,10 @@ jobs:
                 if [ $i -eq $MAX_RETRIES ]; then
                   echo "❌ 컨테이너 상태 확인 실패: 최대 재시도 횟수 초과"
                   echo "컨테이너 상태 디버깅 정보:"
-                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
-                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-server
-                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-client
-                  sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml logs --tail=20 aiminder-database
+                  sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml ps
+                  sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml logs --tail=20 aiminder-server
+                  sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml logs --tail=20 aiminder-client
+                  sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml logs --tail=20 aiminder-database
                   exit 1
                 else
                   echo "⏳ $RETRY_INTERVAL초 후 재시도..."
@@ -317,9 +350,9 @@ jobs:
                 fi
               fi
             done
-            
+
             echo "=== 최종 컨테이너 상태 ==="
-            sudo docker-compose --env-file ../.env -f docker-compose-ssl.yml ps
+            sudo docker-compose --env-file /home/${{ env.EC2_USER }}/.env -f docker-compose-ssl.yml ps
 
       - name: Performance Metrics - Deploy End
         if: always()

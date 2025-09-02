@@ -4,7 +4,7 @@ import ai.aiminder.aiminderserver.assistant.dto.GoalMilestone
 import java.time.LocalDate
 import java.util.UUID
 
-data class Goal(
+data class AiGoal(
   val id: UUID,
   val goalTitle: String,
   val goalTargetDate: LocalDate,
@@ -12,8 +12,8 @@ data class Goal(
   val milestones: List<GoalMilestone>,
 ) {
   companion object {
-    fun create(draft: GoalDraft): Goal =
-      Goal(
+    fun create(draft: AiGoalDraft): AiGoal =
+      AiGoal(
         id = UUID.randomUUID(),
         goalTitle = draft.goalTitle,
         goalTargetDate = draft.goalTargetDate,
