@@ -5,9 +5,9 @@ aiminder:
     url: ${CLIENT_HOST}
   cookie:
     domain: ""
-    same-site: Lax
+    same-site: None
     http-only: true
-    secure: false
+    secure: true
   security:
     permit-paths:
       - /api/actuator/**
