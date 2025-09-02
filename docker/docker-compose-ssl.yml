@@ -25,7 +25,7 @@ services:
       - "8080:8080"
 
   aiminder-client:
-    image: nalsm0518/aiminder-client:${DEVELOP_AIMINDER_CLIENT_TAG}
+    image: nalsm0518/aiminder-server:${DEVELOP_AIMINDER_CLIENT_TAG}
     container_name: aiminder-client
     volumes:
       - ./cert/letsencrypt:/etc/letsencrypt:ro
