@@ -161,7 +161,7 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
-            ./scripts/ssl/prepare-directories.sh \
+            sudo ./scripts/ssl/prepare-directories.sh \
               --deployment-dir "/home/${{ env.EC2_USER }}/aiminder-deployment" \
               --backup-dir "/home/${{ env.EC2_USER }}/cert-backups" \
               --user "${{ env.EC2_USER }}"
@@ -174,7 +174,7 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
-            ./scripts/ssl/check-certificate.sh \
+            sudo ./scripts/ssl/check-certificate.sh \
               --domain "${{ env.DOMAIN }}" \
               --cert-dir "/home/${{ env.EC2_USER }}/aiminder-deployment/cert/letsencrypt" \
               --days-threshold 30 || true
@@ -187,7 +187,7 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
-            ./scripts/ssl/backup-certificate.sh \
+            sudo ./scripts/ssl/backup-certificate.sh \
               --domain "${{ env.DOMAIN }}" \
               --cert-dir "/home/${{ env.EC2_USER }}/aiminder-deployment/cert" \
               --backup-dir "/home/${{ env.EC2_USER }}/cert-backups" \
@@ -265,7 +265,7 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
-            ./scripts/ssl/deploy-with-ssl.sh \
+            sudo ./scripts/ssl/deploy-with-ssl.sh \
               --domain "${{ env.DOMAIN }}" \
               --deployment-dir "/home/${{ env.EC2_USER }}/aiminder-deployment" \
               --env-file "/home/${{ env.EC2_USER }}/.env" \
@@ -299,7 +299,7 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd /home/${{ env.EC2_USER }}/aiminder-deployment
-            ./scripts/deployment/verify-environment.sh \
+            sudo ./scripts/deployment/verify-environment.sh \
               --env-file "/home/${{ env.EC2_USER }}/.env" \
               --required-vars "DEVELOP_AIMINDER_SERVER_TAG,DEVELOP_AIMINDER_CLIENT_TAG" \
               --debug

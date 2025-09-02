@@ -35,8 +35,8 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown option: $1"
-            echo "Usage: $0 --env-file <path> [--required-vars <var1,var2,...>] [--export] [--debug]"
+            echo "알 수 없는 옵션: $1"
+            echo "사용법: $0 --env-file <path> [--required-vars <var1,var2,...>] [--export] [--debug]"
             exit 1
             ;;
     esac
@@ -44,30 +44,30 @@ done
 
 # Validate required parameters
 if [ -z "$ENV_FILE" ]; then
-    echo -e "${RED}Error: --env-file is required${NC}"
+    echo -e "${RED}오류: --env-file 옵션이 필요합니다${NC}"
     exit 1
 fi
 
 # Debug output
 if [ "$DEBUG" = true ]; then
-    echo "Debug mode enabled"
-    echo "Environment file: $ENV_FILE"
-    [ -n "$REQUIRED_VARS" ] && echo "Required variables: $REQUIRED_VARS"
-    echo "Export variables: $EXPORT_VARS"
+    echo "디버그 모드 활성화"
+    echo "환경 파일: $ENV_FILE"
+    [ -n "$REQUIRED_VARS" ] && echo "필수 변수들: $REQUIRED_VARS"
+    echo "변수 내보내기: $EXPORT_VARS"
 fi
 
-echo "=== Environment Verification ==="
+echo "=== 환경 변수 검증 ==="
 
 # Check if environment file exists
 if [ ! -f "$ENV_FILE" ]; then
-    echo -e "${RED}❌ Environment file not found: $ENV_FILE${NC}"
+    echo -e "${RED}❌ 환경 파일을 찾을 수 없습니다: $ENV_FILE${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Environment file found${NC}"
+echo -e "${GREEN}✅ 환경 파일을 찾았습니다${NC}"
 
 # Load environment variables
-echo "Loading environment variables..."
+echo "환경 변수를 로딩하는 중..."
 
 # Create a temporary file to store the environment
 TEMP_ENV=$(mktemp)
@@ -77,14 +77,14 @@ grep -v '^#' "$ENV_FILE" | grep -v '^[[:space:]]*$' > "$TEMP_ENV" || true
 
 # Check if file is empty
 if [ ! -s "$TEMP_ENV" ]; then
-    echo -e "${YELLOW}⚠️  Environment file is empty or contains only comments${NC}"
+    echo -e "${YELLOW}⚠️  환경 파일이 비어있거나 주석만 포함되어 있습니다${NC}"
     rm -f "$TEMP_ENV"
     exit 1
 fi
 
 # Count variables
 VAR_COUNT=$(wc -l < "$TEMP_ENV")
-echo "Found $VAR_COUNT environment variables"
+echo "$VAR_COUNT개의 환경 변수를 찾았습니다"
 
 # Function to check if a variable is set
 check_variable() {
@@ -96,7 +96,7 @@ check_variable() {
         var_value=$(grep "^${var_name}=" "$TEMP_ENV" | cut -d= -f2- | sed 's/^"//;s/"$//')
         
         if [ -z "$var_value" ]; then
-            echo -e "${RED}  ❌ $var_name is empty${NC}"
+            echo -e "${RED}  ❌ $var_name이 비어있습니다${NC}"
             return 1
         else
             if [ "$DEBUG" = true ]; then
@@ -118,7 +118,7 @@ check_variable() {
             return 0
         fi
     else
-        echo -e "${RED}  ❌ $var_name is not defined${NC}"
+        echo -e "${RED}  ❌ $var_name이 정의되지 않았습니다${NC}"
         return 1
     fi
 }
@@ -126,7 +126,7 @@ check_variable() {
 # Verify required variables if specified
 if [ -n "$REQUIRED_VARS" ]; then
     echo ""
-    echo "Checking required variables:"
+    echo "필수 변수들을 확인하는 중:"
     
     # Convert comma-separated list to array
     IFS=',' read -ra VARS_ARRAY <<< "$REQUIRED_VARS"
@@ -150,17 +150,17 @@ if [ -n "$REQUIRED_VARS" ]; then
     # Report results
     if [ ${#MISSING_VARS[@]} -gt 0 ] || [ ${#EMPTY_VARS[@]} -gt 0 ]; then
         echo ""
-        echo -e "${RED}Environment validation failed:${NC}"
+        echo -e "${RED}환경 변수 검증에 실패했습니다:${NC}"
         
         if [ ${#MISSING_VARS[@]} -gt 0 ]; then
-            echo "Missing variables:"
+            echo "누락된 변수들:"
             for var in "${MISSING_VARS[@]}"; do
                 echo "  - $var"
             done
         fi
         
         if [ ${#EMPTY_VARS[@]} -gt 0 ]; then
-            echo "Empty variables:"
+            echo "비어있는 변수들:"
             for var in "${EMPTY_VARS[@]}"; do
                 echo "  - $var"
             done
@@ -171,11 +171,11 @@ if [ -n "$REQUIRED_VARS" ]; then
     fi
     
     echo ""
-    echo -e "${GREEN}✅ All required variables are present${NC}"
+    echo -e "${GREEN}✅ 모든 필수 변수가 존재합니다${NC}"
 else
     # List all variables if no specific requirements
     echo ""
-    echo "Environment variables found:"
+    echo "발견된 환경 변수들:"
     
     while IFS= read -r line; do
         var_name=$(echo "$line" | cut -d= -f1)
@@ -203,12 +203,12 @@ fi
 # Show export status
 if [ "$EXPORT_VARS" = true ]; then
     echo ""
-    echo -e "${BLUE}ℹ️  Variables have been exported to the current shell${NC}"
+    echo -e "${BLUE}ℹ️  변수들이 현재 셸로 내보내졌습니다${NC}"
 fi
 
 # Clean up
 rm -f "$TEMP_ENV"
 
 echo ""
-echo -e "${GREEN}✅ Environment verification completed successfully${NC}"
+echo -e "${GREEN}✅ 환경 변수 검증이 성공적으로 완료되었습니다${NC}"
 exit 0

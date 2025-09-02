@@ -40,8 +40,8 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown option: $1"
-            echo "Usage: $0 --cert-dir <path> --backup-dir <path> [--domain <domain>] [--keep-count <count>] [--debug]"
+            echo "알 수 없는 옵션: $1"
+            echo "사용법: $0 --cert-dir <path> --backup-dir <path> [--domain <domain>] [--keep-count <count>] [--debug]"
             exit 1
             ;;
     esac
@@ -49,42 +49,42 @@ done
 
 # Validate required parameters
 if [ -z "$CERT_DIR" ]; then
-    echo -e "${RED}Error: --cert-dir is required${NC}"
+    echo -e "${RED}오류: --cert-dir 옵션이 필요합니다${NC}"
     exit 1
 fi
 
 if [ -z "$BACKUP_DIR" ]; then
-    echo -e "${RED}Error: --backup-dir is required${NC}"
+    echo -e "${RED}오류: --backup-dir 옵션이 필요합니다${NC}"
     exit 1
 fi
 
 # Debug output
 if [ "$DEBUG" = true ]; then
-    echo "Debug mode enabled"
-    echo "Certificate directory: $CERT_DIR"
-    echo "Backup directory: $BACKUP_DIR"
-    echo "Keep count: $KEEP_COUNT"
-    [ -n "$DOMAIN" ] && echo "Domain: $DOMAIN"
+    echo "디버그 모드 활성화"
+    echo "인증서 디렉토리: $CERT_DIR"
+    echo "백업 디렉토리: $BACKUP_DIR"
+    echo "보관 개수: $KEEP_COUNT"
+    [ -n "$DOMAIN" ] && echo "도메인: $DOMAIN"
 fi
 
-echo "=== SSL Certificate Backup ==="
+echo "=== SSL 인증서 백업 ==="
 
 # Create backup directory if it doesn't exist
 if [ ! -d "$BACKUP_DIR" ]; then
-    echo "Creating backup directory: $BACKUP_DIR"
+    echo "백업 디렉토리 생성 중: $BACKUP_DIR"
     mkdir -p "$BACKUP_DIR"
     chmod 755 "$BACKUP_DIR"
 fi
 
 # Check if certificate directory exists
 if [ ! -d "$CERT_DIR" ]; then
-    echo -e "${YELLOW}ℹ️  Certificate directory does not exist (initial deployment)${NC}"
+    echo -e "${YELLOW}ℹ️  인증서 디렉토리가 존재하지 않습니다 (초기 배포)${NC}"
     exit 0
 fi
 
 # Check if there are certificates to backup
 if [ ! -d "$CERT_DIR/letsencrypt/live" ] || [ -z "$(ls -A $CERT_DIR/letsencrypt/live 2>/dev/null)" ]; then
-    echo -e "${YELLOW}ℹ️  No certificates to backup (empty directory)${NC}"
+    echo -e "${YELLOW}ℹ️  백업할 인증서가 없습니다 (빈 디렉토리)${NC}"
     exit 0
 fi
 
@@ -96,7 +96,7 @@ else
     BACKUP_FILE="cert-backup-${TIMESTAMP}.tar.gz"
 fi
 
-echo -e "${BLUE}📦 Creating backup: $BACKUP_FILE${NC}"
+echo -e "${BLUE}📦 백업 생성 중: $BACKUP_FILE${NC}"
 
 # Create backup
 PARENT_DIR=$(dirname "$CERT_DIR")
@@ -104,9 +104,9 @@ CERT_BASENAME=$(basename "$CERT_DIR")
 
 cd "$PARENT_DIR"
 if sudo tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$CERT_BASENAME/" 2>/dev/null; then
-    echo -e "${GREEN}✅ Backup created successfully${NC}"
+    echo -e "${GREEN}✅ 백업이 성공적으로 생성되었습니다${NC}"
 else
-    echo -e "${RED}❌ Failed to create backup${NC}"
+    echo -e "${RED}❌ 백업 생성 실패${NC}"
     exit 1
 fi
 
@@ -116,14 +116,14 @@ chmod 644 "$BACKUP_DIR/$BACKUP_FILE"
 
 # Get backup file size
 BACKUP_SIZE=$(du -h "$BACKUP_DIR/$BACKUP_FILE" | cut -f1)
-echo "Backup size: $BACKUP_SIZE"
+echo "백업 크기: $BACKUP_SIZE"
 
 # Verify backup integrity
-echo "Verifying backup integrity..."
+echo "백업 무결성 검증 중..."
 if sudo tar -tzf "$BACKUP_DIR/$BACKUP_FILE" >/dev/null 2>&1; then
-    echo -e "${GREEN}✅ Backup integrity verified${NC}"
+    echo -e "${GREEN}✅ 백업 무결성 검증 완료${NC}"
 else
-    echo -e "${RED}❌ Backup verification failed${NC}"
+    echo -e "${RED}❌ 백업 검증 실패${NC}"
     rm -f "$BACKUP_DIR/$BACKUP_FILE"
     exit 1
 fi
@@ -131,14 +131,14 @@ fi
 # List contents if debug mode
 if [ "$DEBUG" = true ]; then
     echo ""
-    echo "Backup contents:"
+    echo "백업 내용:"
     sudo tar -tzf "$BACKUP_DIR/$BACKUP_FILE" | head -20
     echo "..."
 fi
 
 # Clean up old backups
 echo ""
-echo -e "${BLUE}🗑️  Cleaning up old backups (keeping last $KEEP_COUNT)${NC}"
+echo -e "${BLUE}🗑️  이전 백업 정리 중 (최근 $KEEP_COUNT개 보관)${NC}"
 
 cd "$BACKUP_DIR"
 
@@ -154,19 +154,19 @@ BACKUP_COUNT=$(ls -1 $PATTERN 2>/dev/null | wc -l)
 if [ $BACKUP_COUNT -gt $KEEP_COUNT ]; then
     # Remove old backups
     ls -t $PATTERN 2>/dev/null | tail -n +$((KEEP_COUNT + 1)) | while read -r old_backup; do
-        echo "Removing old backup: $old_backup"
+        echo "이전 백업 삭제 중: $old_backup"
         rm -f "$old_backup"
     done
-    echo -e "${GREEN}✅ Old backups cleaned${NC}"
+    echo -e "${GREEN}✅ 이전 백업 정리 완료${NC}"
 else
-    echo "No cleanup needed ($BACKUP_COUNT backups found)"
+    echo "정리할 백업이 없습니다 ($BACKUP_COUNT개 백업 발견)"
 fi
 
 # Show current backups
 echo ""
-echo "=== Current Backups ==="
-ls -lah $PATTERN 2>/dev/null | tail -$KEEP_COUNT || echo "No backup files found"
+echo "=== 현재 백업 목록 ==="
+ls -lah $PATTERN 2>/dev/null | tail -$KEEP_COUNT || echo "백업 파일을 찾을 수 없습니다"
 
 echo ""
-echo -e "${GREEN}✅ Backup completed successfully${NC}"
+echo -e "${GREEN}✅ 백업이 성공적으로 완료되었습니다${NC}"
 exit 0

@@ -45,8 +45,8 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown option: $1"
-            echo "Usage: $0 --domain <domain> --deployment-dir <path> --env-file <path> [--renew-threshold <days>] [--force-renew] [--debug]"
+            echo "알 수 없는 옵션: $1"
+            echo "사용법: $0 --domain <domain> --deployment-dir <path> --env-file <path> [--renew-threshold <days>] [--force-renew] [--debug]"
             exit 1
             ;;
     esac
@@ -54,37 +54,37 @@ done
 
 # Validate required parameters
 if [ -z "$DOMAIN" ]; then
-    echo -e "${RED}Error: --domain is required${NC}"
+    echo -e "${RED}오류: --domain 옵션이 필요합니다${NC}"
     exit 1
 fi
 
 if [ -z "$DEPLOYMENT_DIR" ]; then
-    echo -e "${RED}Error: --deployment-dir is required${NC}"
+    echo -e "${RED}오류: --deployment-dir 옵션이 필요합니다${NC}"
     exit 1
 fi
 
 if [ -z "$ENV_FILE" ]; then
-    echo -e "${RED}Error: --env-file is required${NC}"
+    echo -e "${RED}오류: --env-file 옵션이 필요합니다${NC}"
     exit 1
 fi
 
 # Check if env file exists
 if [ ! -f "$ENV_FILE" ]; then
-    echo -e "${RED}Error: Environment file not found: $ENV_FILE${NC}"
+    echo -e "${RED}오류: 환경 파일을 찾을 수 없습니다: $ENV_FILE${NC}"
     exit 1
 fi
 
 # Debug output
 if [ "$DEBUG" = true ]; then
-    echo "Debug mode enabled"
-    echo "Domain: $DOMAIN"
-    echo "Deployment directory: $DEPLOYMENT_DIR"
-    echo "Environment file: $ENV_FILE"
-    echo "Renewal threshold: $RENEW_THRESHOLD days"
-    echo "Force renewal: $FORCE_RENEW"
+    echo "디버그 모드 활성화"
+    echo "도메인: $DOMAIN"
+    echo "배포 디렉토리: $DEPLOYMENT_DIR"
+    echo "환경 파일: $ENV_FILE"
+    echo "갱신 임계값: $RENEW_THRESHOLD일"
+    echo "강제 갱신: $FORCE_RENEW"
 fi
 
-echo "=== SSL Auto-Detection Deployment ==="
+echo "=== SSL 자동 감지 배포 ==="
 
 # Change to deployment directory
 cd "$DEPLOYMENT_DIR"
@@ -96,16 +96,16 @@ CERT_FILE="${CERT_DIR}/letsencrypt/live/${DOMAIN}/cert.pem"
 # Function to check certificate validity
 check_certificate_validity() {
     if [ ! -f "$CERT_FILE" ]; then
-        echo -e "${YELLOW}⚠️  No certificate found${NC}"
+        echo -e "${YELLOW}⚠️  인증서를 찾을 수 없습니다${NC}"
         return 1
     fi
     
-    echo "Checking certificate validity..."
+    echo "인증서 유효성 확인 중..."
     
     # Get certificate expiry date
     CERT_EXPIRY=$(sudo openssl x509 -in "$CERT_FILE" -noout -enddate 2>/dev/null | cut -d= -f2)
     if [ -z "$CERT_EXPIRY" ]; then
-        echo -e "${RED}❌ Failed to read certificate${NC}"
+        echo -e "${RED}❌ 인증서 읽기 실패${NC}"
         return 1
     fi
     
@@ -114,49 +114,49 @@ check_certificate_validity() {
     CURRENT_EPOCH=$(date +%s)
     
     if [ "$CERT_EXPIRY_EPOCH" -le "$CURRENT_EPOCH" ]; then
-        echo -e "${RED}❌ Certificate has expired${NC}"
+        echo -e "${RED}❌ 인증서가 만료되었습니다${NC}"
         return 1
     fi
     
     # Calculate days until expiry
     DAYS_UNTIL_EXPIRY=$(( ($CERT_EXPIRY_EPOCH - $CURRENT_EPOCH) / 86400 ))
-    echo "Certificate valid for $DAYS_UNTIL_EXPIRY more days"
+    echo "인증서가 $DAYS_UNTIL_EXPIRY일 더 유효합니다"
     
     if [ $DAYS_UNTIL_EXPIRY -le $RENEW_THRESHOLD ]; then
-        echo -e "${YELLOW}⚠️  Certificate renewal recommended (expires in ${DAYS_UNTIL_EXPIRY} days)${NC}"
+        echo -e "${YELLOW}⚠️  인증서 갱신을 권장합니다 (${DAYS_UNTIL_EXPIRY}일 후 만료)${NC}"
         return 1
     fi
     
-    echo -e "${GREEN}✅ Certificate is valid${NC}"
+    echo -e "${GREEN}✅ 인증서가 유효합니다${NC}"
     return 0
 }
 
 # Function to stop running containers
 stop_containers() {
-    echo -e "${BLUE}Stopping existing containers...${NC}"
+    echo -e "${BLUE}기존 컨테이너 중지 중...${NC}"
     sudo docker-compose --env-file "$ENV_FILE" -f docker-compose-ssl.yml down || true
-    echo -e "${GREEN}✅ Containers stopped${NC}"
+    echo -e "${GREEN}✅ 컨테이너 중지 완료${NC}"
 }
 
 # Function to deploy with existing certificate
 deploy_with_existing_cert() {
-    echo -e "${BLUE}Deploying with existing SSL certificate...${NC}"
+    echo -e "${BLUE}기존 SSL 인증서로 배포 중...${NC}"
     
     stop_containers
     
-    echo "Starting services..."
+    echo "서비스 시작 중..."
     if sudo docker-compose --env-file "$ENV_FILE" -f docker-compose-ssl.yml up -d; then
-        echo -e "${GREEN}✅ Services started with existing certificate${NC}"
+        echo -e "${GREEN}✅ 기존 인증서로 서비스 시작 완료${NC}"
         return 0
     else
-        echo -e "${RED}❌ Failed to start services${NC}"
+        echo -e "${RED}❌ 서비스 시작 실패${NC}"
         return 1
     fi
 }
 
 # Function to deploy with new certificate
 deploy_with_new_cert() {
-    echo -e "${BLUE}Deploying with new SSL certificate...${NC}"
+    echo -e "${BLUE}새 SSL 인증서로 배포 중...${NC}"
     
     stop_containers
     
@@ -165,29 +165,29 @@ deploy_with_new_cert() {
     
     # Create certificate directories if they don't exist
     if [ ! -d "$CERT_DIR/webroot" ] || [ ! -d "$CERT_DIR/letsencrypt" ]; then
-        echo "Creating certificate directories..."
+        echo "인증서 디렉토리 생성 중..."
         sudo mkdir -p "$CERT_DIR/webroot" "$CERT_DIR/letsencrypt"
-        echo -e "${GREEN}✅ Directories created${NC}"
+        echo -e "${GREEN}✅ 디렉토리 생성 완료${NC}"
     fi
     
-    echo "Initiating SSL certificate generation..."
+    echo "SSL 인증서 생성 시작..."
     if sudo docker-compose --env-file "$ENV_FILE" -f docker-compose-certbot-init.yml up --abort-on-container-exit; then
-        echo -e "${GREEN}✅ Certificate generated successfully${NC}"
+        echo -e "${GREEN}✅ 인증서 생성 성공${NC}"
         
         # Clean up certbot containers
         sudo docker-compose --env-file "$ENV_FILE" -f docker-compose-certbot-init.yml down
         
         # Start services with new certificate
-        echo "Starting services with new certificate..."
+        echo "새 인증서로 서비스 시작 중..."
         if sudo docker-compose --env-file "$ENV_FILE" -f docker-compose-ssl.yml up -d; then
-            echo -e "${GREEN}✅ Services started with new certificate${NC}"
+            echo -e "${GREEN}✅ 새 인증서로 서비스 시작 완료${NC}"
             return 0
         else
-            echo -e "${RED}❌ Failed to start services${NC}"
+            echo -e "${RED}❌ 서비스 시작 실패${NC}"
             return 1
         fi
     else
-        echo -e "${RED}❌ Failed to generate certificate${NC}"
+        echo -e "${RED}❌ 인증서 생성 실패${NC}"
         return 1
     fi
 }
@@ -197,7 +197,7 @@ NEED_NEW_CERT=false
 
 # Check if force renewal is requested
 if [ "$FORCE_RENEW" = true ]; then
-    echo -e "${YELLOW}Force renewal requested${NC}"
+    echo -e "${YELLOW}강제 갱신이 요청되었습니다${NC}"
     NEED_NEW_CERT=true
 else
     # Check existing certificate
@@ -211,39 +211,39 @@ fi
 # Deploy based on certificate status
 if [ "$NEED_NEW_CERT" = true ]; then
     if ! deploy_with_new_cert; then
-        echo -e "${RED}Deployment failed${NC}"
+        echo -e "${RED}배포 실패${NC}"
         exit 1
     fi
 else
     if ! deploy_with_existing_cert; then
-        echo -e "${RED}Deployment failed${NC}"
+        echo -e "${RED}배포 실패${NC}"
         exit 1
     fi
 fi
 
 # Verify deployment
 echo ""
-echo "=== Deployment Verification ==="
+echo "=== 배포 검증 ==="
 
 # Check running containers
-echo "Running containers:"
+echo "실행 중인 컨테이너:"
 sudo docker-compose --env-file "$ENV_FILE" -f docker-compose-ssl.yml ps
 
 # Check SSL certificate status
 if [ -f "$CERT_FILE" ]; then
     echo ""
-    echo "SSL Certificate Status:"
-    sudo openssl x509 -in "$CERT_FILE" -text -noout | grep -E "(Subject:|Not After)" || echo "Failed to read certificate"
+    echo "SSL 인증서 상태:"
+    sudo openssl x509 -in "$CERT_FILE" -text -noout | grep -E "(Subject:|Not After)" || echo "인증서 읽기 실패"
     
     if [ "$DEBUG" = true ]; then
         echo ""
-        echo "Certificate details:"
+        echo "인증서 상세 정보:"
         sudo openssl x509 -in "$CERT_FILE" -noout -subject -issuer -dates
     fi
 else
-    echo -e "${YELLOW}⚠️  No SSL certificate found after deployment${NC}"
+    echo -e "${YELLOW}⚠️  배포 후 SSL 인증서를 찾을 수 없습니다${NC}"
 fi
 
 echo ""
-echo -e "${GREEN}✅ Deployment completed successfully${NC}"
+echo -e "${GREEN}✅ 배포가 성공적으로 완료되었습니다${NC}"
 exit 0
