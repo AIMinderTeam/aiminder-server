@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const infoDiv = document.getElementById('token-info');
   const logoutBtn = document.getElementById('logout-btn');
   const checkSessionBtn = document.getElementById('check-session-btn');
-  const API_BASE = 'http://localhost:8080';
+  const API_BASE = 'https://dev.aiminder.click';
 
   // OAuth URL 생성 유틸리티
   function buildOAuthUrl(provider, returnPath = '/login/success') {
