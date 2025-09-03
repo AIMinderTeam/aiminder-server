@@ -1,6 +1,7 @@
 package ai.aiminder.aiminderserver.auth.handler
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
+import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.entity.UserEntity
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.repository.RefreshTokenRepository
@@ -13,6 +14,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.web.server.WebFilterExchange
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
+import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -31,7 +33,15 @@ class TokenLogoutHandlerTest {
     val webExchange = WebFilterExchange(exchange, chain)
 
     val userId = UUID.fromString("00000000-0000-0000-0000-000000000000")
-    val principal = UserEntity(id = userId, provider = OAuth2Provider.GOOGLE, providerId = "pid")
+    val createdAt = Instant.now()
+    val principal =
+      User(
+        id = userId,
+        provider = OAuth2Provider.GOOGLE,
+        providerId = "pid",
+        createdAt = createdAt,
+        updatedAt = createdAt,
+      )
     val authentication = UsernamePasswordAuthenticationToken(principal, null)
 
     // when

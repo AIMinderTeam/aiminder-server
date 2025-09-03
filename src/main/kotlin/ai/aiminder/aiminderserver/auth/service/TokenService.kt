@@ -3,8 +3,8 @@ package ai.aiminder.aiminderserver.auth.service
 import ai.aiminder.aiminderserver.auth.domain.AccessToken
 import ai.aiminder.aiminderserver.auth.domain.RefreshToken
 import ai.aiminder.aiminderserver.auth.domain.TokenGroup
+import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.entity.RefreshTokenEntity
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
 import ai.aiminder.aiminderserver.auth.property.JwtProperties
 import ai.aiminder.aiminderserver.auth.repository.RefreshTokenRepository
 import ai.aiminder.aiminderserver.common.util.logger
@@ -26,7 +26,7 @@ class TokenService(
   private val refreshTokenKey = jwtProperties.refreshTokenSecretKey
   private val logger = logger()
 
-  fun createAccessToken(user: UserEntity): AccessToken {
+  fun createAccessToken(user: User): AccessToken {
     val now = Instant.now()
     val expireDate = jwtProperties.addAccessTokenExpiration(now)
     val key = accessTokenKey
@@ -34,13 +34,13 @@ class TokenService(
     return createToken(user = user, now = now, expireDate = expireDate, key = key)
   }
 
-  suspend fun createRefreshToken(user: UserEntity): RefreshToken {
+  suspend fun createRefreshToken(user: User): RefreshToken {
     val now = Instant.now()
     val expireDate = jwtProperties.addRefreshTokenExpiration(now)
     val key = refreshTokenKey
     val token = createToken(user, now, expireDate, key)
     refreshTokenRepository
-      .findByUserId(user.id!!)
+      .findByUserId(user.id)
       .let { refreshToken ->
         refreshToken
           ?.update(token)
@@ -50,7 +50,7 @@ class TokenService(
   }
 
   @Transactional
-  suspend fun createTokenGroup(user: UserEntity): TokenGroup {
+  suspend fun createTokenGroup(user: User): TokenGroup {
     val accessToken: AccessToken = createAccessToken(user)
     val refreshToken: RefreshToken = createRefreshToken(user)
     return TokenGroup(accessToken, refreshToken)
@@ -101,7 +101,7 @@ class TokenService(
     }
 
   private fun createToken(
-    user: UserEntity,
+    user: User,
     now: Instant?,
     expireDate: Instant,
     key: SecretKey,

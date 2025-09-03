@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.auth
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
+import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.property.JwtProperties
 import ai.aiminder.aiminderserver.auth.repository.RefreshTokenRepository
 import ai.aiminder.aiminderserver.auth.service.TokenService
@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
 import reactor.test.StepVerifier
+import java.time.Instant
 import java.util.UUID
 
 class TokenJwtDecoderTest {
@@ -27,7 +28,15 @@ class TokenJwtDecoderTest {
     val jwtProps = props()
     val repo: RefreshTokenRepository = mockk(relaxed = true)
     val svc = TokenService(jwtProps, repo)
-    val user = UserEntity(id = UUID.randomUUID(), provider = OAuth2Provider.GOOGLE, providerId = "pid-1")
+    val createdAt = Instant.now()
+    val user =
+      User(
+        id = UUID.randomUUID(),
+        provider = OAuth2Provider.GOOGLE,
+        providerId = "pid-1",
+        createdAt = createdAt,
+        updatedAt = createdAt,
+      )
 
     val access = svc.createAccessToken(user)
 
@@ -48,7 +57,15 @@ class TokenJwtDecoderTest {
     val jwtProps = props()
     val repo: RefreshTokenRepository = mockk(relaxed = true)
     val svc = TokenService(jwtProps, repo)
-    val user = UserEntity(id = UUID.randomUUID(), provider = OAuth2Provider.GOOGLE, providerId = "pid-2")
+    val createdAt = Instant.now()
+    val user =
+      User(
+        id = UUID.randomUUID(),
+        provider = OAuth2Provider.GOOGLE,
+        providerId = "pid-2",
+        createdAt = createdAt,
+        updatedAt = createdAt,
+      )
 
     val access = svc.createAccessToken(user)
 

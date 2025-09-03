@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.auth.handler
 
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
+import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.repository.RefreshTokenRepository
 import ai.aiminder.aiminderserver.common.util.logger
@@ -33,7 +33,7 @@ class TokenLogoutHandler(
     val deleteRefresh =
       mono {
         val principal = authentication.principal
-        if (principal is UserEntity && principal.id != null) {
+        if (principal is User) {
           runCatching { refreshTokenRepository.deleteByUserId(principal.id) }
             .onFailure {
               logger.warn(

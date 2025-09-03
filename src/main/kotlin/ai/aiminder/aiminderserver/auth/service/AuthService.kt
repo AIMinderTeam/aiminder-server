@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.auth.service
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.TokenGroup
+import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.dto.OAuth2UserInfo
 import ai.aiminder.aiminderserver.auth.entity.UserEntity
 import ai.aiminder.aiminderserver.auth.repository.UserRepository
@@ -39,7 +40,8 @@ class AuthService(
         .findByProviderAndProviderId(
           provider = provider,
           providerId = oauthInfo.id,
-        ) ?: createNewUser(userInfo = oauthInfo, provider = registrationId)
+        )?.let { User.from(it) }
+        ?: createNewUser(userInfo = oauthInfo, provider = registrationId)
     val tokenGroup: TokenGroup = tokenService.createTokenGroup(user)
     return tokenGroup
   }
@@ -47,14 +49,16 @@ class AuthService(
   private suspend fun createNewUser(
     userInfo: OAuth2UserInfo,
     provider: String,
-  ): UserEntity {
+  ): User {
     val newUserEntity =
       UserEntity(
         provider = OAuth2Provider.from(provider),
         providerId = userInfo.id,
       )
 
-    return userRepository.save(newUserEntity)
+    val savedUser = userRepository.save(newUserEntity)
+
+    return User.from(savedUser)
   }
 
   private fun extractUserInfo(

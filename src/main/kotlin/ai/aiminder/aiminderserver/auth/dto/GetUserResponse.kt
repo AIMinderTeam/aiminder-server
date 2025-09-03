@@ -1,15 +1,15 @@
 package ai.aiminder.aiminderserver.auth.dto
 
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
+import ai.aiminder.aiminderserver.auth.domain.User
 import java.util.UUID
 
 data class GetUserResponse(
   val id: UUID,
 ) {
   companion object {
-    fun from(userEntity: UserEntity): GetUserResponse =
+    fun from(user: User): GetUserResponse =
       GetUserResponse(
-        id = userEntity.id!!,
+        id = user.id,
       )
   }
 }

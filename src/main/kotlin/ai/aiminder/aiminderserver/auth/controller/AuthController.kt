@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.auth.controller
 
+import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.dto.GetUserResponse
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
 import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.common.error.Response
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.RestController
 class AuthController : AuthControllerDocs {
   @GetMapping("/user")
   override suspend fun getUser(
-    @AuthenticationPrincipal userEntity: UserEntity?,
+    @AuthenticationPrincipal user: User?,
   ): Response<GetUserResponse> =
-    userEntity
-      ?.let { Response.from(GetUserResponse.from(userEntity)) }
+    user
+      ?.let { Response.from(GetUserResponse.from(user)) }
       ?: run { Response.from(AuthError.UNAUTHORIZED) }
 }

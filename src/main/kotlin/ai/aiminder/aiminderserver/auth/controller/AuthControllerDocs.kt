@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.auth.controller
 
+import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.dto.GetUserResponse
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
 import ai.aiminder.aiminderserver.common.error.Response
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -73,6 +73,6 @@ interface AuthControllerDocs {
     ],
   )
   suspend fun getUser(
-    @Parameter(hidden = true) userEntity: UserEntity?,
+    @Parameter(hidden = true) user: User?,
   ): Response<GetUserResponse>
 }

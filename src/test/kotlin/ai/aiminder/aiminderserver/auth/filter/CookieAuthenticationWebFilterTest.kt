@@ -1,6 +1,7 @@
 package ai.aiminder.aiminderserver.auth.filter
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
+import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.entity.UserEntity
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.service.TokenService
@@ -17,6 +18,7 @@ import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
+import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -61,7 +63,14 @@ class CookieAuthenticationWebFilterTest {
           .then()
       }
 
-    val filter = CookieAuthenticationWebFilter(accessDecoder, refreshDecoder, tokenService, userService, cookieProps)
+    val filter =
+      CookieAuthenticationWebFilter(
+        accessDecoder = accessDecoder,
+        refreshDecoder = refreshDecoder,
+        tokenService = tokenService,
+        userService = userService,
+        cookieProperties = cookieProps,
+      )
 
     // when
     filter.filter(exchange, chain).block()
@@ -83,12 +92,27 @@ class CookieAuthenticationWebFilterTest {
     coEvery { tokenService.validateRefreshToken(refresh) } returns true
 
     val subjectId = UUID.fromString("00000000-0000-0000-0000-000000000000")
-    val user = UserEntity(id = subjectId, provider = OAuth2Provider.GOOGLE, providerId = "123")
+    val createdAt = Instant.now()
+    val user =
+      User(
+        id = subjectId,
+        provider = OAuth2Provider.GOOGLE,
+        providerId = "123",
+        createdAt = createdAt,
+        updatedAt = createdAt,
+      )
     coEvery { userService.getUser(refresh) } returns user
     every { tokenService.createAccessToken(user) } returns newAccess
     coEvery { tokenService.createRefreshToken(user) } returns newRefresh
     every { accessDecoder.decode(newAccess) } returns Mono.just(jwt(newAccess))
-    coEvery { userService.getUserById(subjectId) } returns user
+    coEvery { userService.getUserById(subjectId) } returns
+      UserEntity(
+        id = user.id,
+        provider = user.provider,
+        providerId = user.providerId,
+        createdAt = user.createdAt,
+        updatedAt = user.updatedAt,
+      )
 
     val request =
       MockServerHttpRequest
