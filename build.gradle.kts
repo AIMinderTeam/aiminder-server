@@ -30,6 +30,8 @@ repositories {
 
 extra["springAiVersion"] = "1.0.0"
 
+val testContainerVersion = "1.21.3"
+
 dependencies {
   val jwtVersion = "0.12.3"
   val flywayVersion = "11.10.4"
@@ -79,7 +81,14 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("io.mockk:mockk:1.13.12")
+    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // test container
+    testImplementation("org.testcontainers:testcontainers:$testContainerVersion")
+    testImplementation("org.testcontainers:r2dbc:$testContainerVersion")
+    testImplementation("org.testcontainers:postgresql:$testContainerVersion")
+    testImplementation("org.testcontainers:junit-jupiter:$testContainerVersion")
   }
 }
 
