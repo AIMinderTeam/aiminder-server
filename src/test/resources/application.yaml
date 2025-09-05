@@ -76,7 +76,9 @@ logging:
     root: warn
     ai.aiminder: debug
     org.springframework.security: debug
-    io.r2dbc: debug
+    io.r2dbc.postgresql.QUERY: debug
+    io.r2dbc.postgresql.PARAM: debug
+    org.flywaydb: info
 
 springdoc:
   api-docs:
