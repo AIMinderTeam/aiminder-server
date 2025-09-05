@@ -2,19 +2,15 @@ package ai.aiminder.aiminderserver.common
 
 import ai.aiminder.aiminderserver.config.PostgresqlInitializer
 import org.flywaydb.core.Flyway
-import org.flywaydb.test.annotation.FlywayTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.env.Environment
 import org.springframework.r2dbc.core.DatabaseClient
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.web.reactive.server.WebTestClient
 
-@FlywayTest
-@ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(initializers = [PostgresqlInitializer::class])
 abstract class BaseIntegrationTest {
@@ -45,7 +41,7 @@ abstract class BaseIntegrationTest {
         .configure()
         .dataSource(jdbcUrl, username, password)
         .locations("classpath:db/migration")
-        .cleanDisabled(true)
+        .cleanDisabled(false)
         .load()
 
     flyway.migrate()

@@ -36,13 +36,6 @@ aiminder:
     default-redirect-base-url: http://localhost:3000
 
 spring:
-  r2dbc:
-    url: r2dbc:postgresql://localhost/testdb
-    username: test
-    password: test
-
-  profiles:
-    active: test
   security:
     oauth2:
       client:
@@ -82,8 +75,8 @@ logging:
   level:
     root: warn
     ai.aiminder: debug
-    org.springframework.security: warn
-    io.r2dbc: warn
+    org.springframework.security: debug
+    io.r2dbc: debug
 
 springdoc:
   api-docs:
