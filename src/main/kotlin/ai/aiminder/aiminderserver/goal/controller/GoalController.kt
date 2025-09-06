@@ -39,7 +39,7 @@ class GoalController(
       ).let { goal -> ServiceResponse.from(goal) }
 
   @GetMapping
-  suspend fun getGoals(
+  override suspend fun getGoals(
     request: GetGoalsRequest,
     pageable: PageableRequest,
     @AuthenticationPrincipal

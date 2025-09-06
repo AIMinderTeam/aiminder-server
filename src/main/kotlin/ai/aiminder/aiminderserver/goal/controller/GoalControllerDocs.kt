@@ -1,8 +1,10 @@
 package ai.aiminder.aiminderserver.goal.controller
 
+import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
+import ai.aiminder.aiminderserver.goal.dto.GetGoalsRequest
 import ai.aiminder.aiminderserver.user.domain.User
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -127,4 +129,110 @@ interface GoalControllerDocs {
     request: CreateGoalRequest,
     @Parameter(hidden = true) user: User,
   ): ServiceResponse<Goal>
+
+  @Operation(
+    operationId = "getGoals",
+    summary = "목표 목록 조회",
+    description =
+      "사용자의 목표 목록을 조회합니다. " +
+        "OAuth2 로그인 성공 시 설정되는 `ACCESS_TOKEN`(필수) / `REFRESH_TOKEN`(선택) 쿠키 기반 인증을 사용합니다. " +
+        "인증 정보가 없거나 유효하지 않으면 401이 반환됩니다. " +
+        "status로 목표 상태를 필터링할 수 있으며, 페이지네이션을 지원합니다.",
+  )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "성공: 목표 목록 조회 완료",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 200,
+                  "message": null,
+                  "errorCode": null,
+                  "data": [
+                    {
+                      "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                      "userId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
+                      "title": "Learn Kotlin",
+                      "description": "Master Kotlin programming language by reading documentation and building projects",
+                      "targetDate": "2024-04-15T00:00:00Z",
+                      "isAiGenerated": false,
+                      "status": "ACTIVE",
+                      "createdAt": "2024-03-15T10:30:00Z",
+                      "updatedAt": "2024-03-15T10:30:00Z",
+                      "deletedAt": null
+                    },
+                    {
+                      "id": "a12bc34d-56ef-7890-abcd-ef1234567890",
+                      "userId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
+                      "title": "Complete Spring Boot Project",
+                      "description": "Build a complete REST API using Spring Boot with JWT authentication",
+                      "targetDate": "2024-05-01T00:00:00Z",
+                      "isAiGenerated": true,
+                      "status": "ACTIVE",
+                      "createdAt": "2024-03-16T14:20:00Z",
+                      "updatedAt": "2024-03-16T14:20:00Z",
+                      "deletedAt": null
+                    }
+                  ]
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "인증 실패: 토큰이 없거나 유효하지 않음",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 401,
+                  "message": "인증이 필요합니다. 로그인을 진행해주세요.",
+                  "errorCode": "AUTH:UNAUTHORIZED",
+                  "data": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 데이터베이스 연결 실패 등",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+    ],
+  )
+  suspend fun getGoals(
+    @Parameter(description = "목표 조회 필터 (status: 목표 상태 - ACTIVE, COMPLETED, ARCHIVED)")
+    request: GetGoalsRequest,
+    @Parameter(description = "페이지네이션 정보 (page: 페이지 번호, size: 페이지 크기, sort: 정렬 필드, direction: 정렬 방향)")
+    pageable: PageableRequest,
+    @Parameter(hidden = true) user: User,
+  ): ServiceResponse<List<Goal>>
 }
