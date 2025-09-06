@@ -1,12 +1,12 @@
 package ai.aiminder.aiminderserver.common.error
 
-import org.springframework.http.HttpStatusCode
+import org.springframework.http.HttpStatus
 
-interface ServiceError {
-  val mainCode: String
-  val subCode: String
-  val message: String
-  val statusCode: HttpStatusCode
+abstract class ServiceError : RuntimeException() {
+  abstract val mainCode: String
+  abstract val status: HttpStatus
+  abstract override val message: String
 
-  fun toCode() = "$mainCode:$subCode"
+  val code
+    get() = "$mainCode:${this::class.simpleName?.uppercase() ?: "UNKNOWN"}"
 }

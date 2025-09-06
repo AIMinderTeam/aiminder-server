@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.auth.entity
+package ai.aiminder.aiminderserver.user.entity
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import org.springframework.data.annotation.Id
@@ -17,7 +17,7 @@ data class UserEntity(
   val provider: OAuth2Provider,
   val providerId: String,
   val createdAt: Instant = Instant.now(),
-  val updatedAt: Instant = Instant.now(),
+  val updatedAt: Instant = createdAt,
 ) : Persistable<UUID> {
   override fun getId(): UUID? = id
 

@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.common.error
 
-data class Response<T>(
+data class ServiceResponse<T>(
   val statusCode: Int,
   val message: String? = null,
   val errorCode: String? = null,
@@ -8,21 +8,21 @@ data class Response<T>(
 ) {
   companion object {
     fun <T> from(
-      errorCode: ServiceError,
+      serviceError: ServiceError,
       data: T? = null,
-    ): Response<T> =
-      Response(
-        statusCode = errorCode.statusCode.value(),
-        errorCode = errorCode.toCode(),
-        message = errorCode.message,
+    ): ServiceResponse<T> =
+      ServiceResponse(
+        statusCode = serviceError.status.value(),
+        errorCode = serviceError.code,
+        message = serviceError.message,
         data = data,
       )
 
     fun <T> from(
       data: T? = null,
       message: String? = null,
-    ): Response<T> =
-      Response(
+    ): ServiceResponse<T> =
+      ServiceResponse(
         statusCode = 200,
         message = message,
         data = data,

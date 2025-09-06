@@ -2,11 +2,13 @@ package ai.aiminder.aiminderserver.auth.filter
 
 import ai.aiminder.aiminderserver.auth.domain.AccessToken
 import ai.aiminder.aiminderserver.auth.domain.RefreshToken
+import ai.aiminder.aiminderserver.auth.domain.Role
+import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.service.TokenService
-import ai.aiminder.aiminderserver.auth.service.UserService
 import ai.aiminder.aiminderserver.common.util.logger
 import ai.aiminder.aiminderserver.common.util.toUUID
+import ai.aiminder.aiminderserver.user.service.UserService
 import kotlinx.coroutines.reactor.mono
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.ResponseCookie
@@ -71,7 +73,7 @@ class CookieAuthenticationWebFilter(
         val token: AccessToken = accessToken
         if (!tokenService.validateAccessToken(token)) {
           logger.warn("CookieAuth access token invalid for sub=${jwt.subject} id=${request.id}")
-          return@flatMap Mono.error(IllegalAccessException("Invalid access token"))
+          return@flatMap Mono.error(AuthError.InvalidAccessToken())
         }
         logger.debug("CookieAuth access token valid for sub=${jwt.subject} id=${request.id}")
         processAuthentication(jwt, chain, exchange)
@@ -139,7 +141,7 @@ class CookieAuthenticationWebFilter(
 
     return mono { userService.getUserById(userId) }
       .flatMap { user ->
-        val authorities = listOf(SimpleGrantedAuthority("ROLE_USER"))
+        val authorities = listOf(SimpleGrantedAuthority(Role.USER.name))
         val authentication = UsernamePasswordAuthenticationToken(user, null, authorities).apply { details = jwt }
         val securityContext = SecurityContextImpl(authentication)
         logger.debug(

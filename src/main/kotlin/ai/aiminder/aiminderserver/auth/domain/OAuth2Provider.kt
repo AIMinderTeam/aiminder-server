@@ -1,5 +1,7 @@
 package ai.aiminder.aiminderserver.auth.domain
 
+import ai.aiminder.aiminderserver.auth.error.AuthError
+
 enum class OAuth2Provider {
   GOOGLE,
   KAKAO,
@@ -8,6 +10,6 @@ enum class OAuth2Provider {
   companion object {
     fun from(registrationId: String): OAuth2Provider =
       OAuth2Provider.entries.find { it.name == registrationId.uppercase() }
-        ?: throw IllegalArgumentException("Unsupported provider: $registrationId")
+        ?: throw AuthError.UnsupportedProvider("Unsupported provider: $registrationId")
   }
 }

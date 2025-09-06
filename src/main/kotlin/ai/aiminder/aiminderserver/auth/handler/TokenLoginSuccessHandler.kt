@@ -6,7 +6,7 @@ import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.property.SecurityProperties
 import ai.aiminder.aiminderserver.auth.security.AllowedRedirectValidator
 import ai.aiminder.aiminderserver.auth.service.AuthService
-import ai.aiminder.aiminderserver.common.error.Response
+import ai.aiminder.aiminderserver.common.error.ServiceResponse
 import ai.aiminder.aiminderserver.common.property.ClientProperties
 import ai.aiminder.aiminderserver.common.util.logger
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -42,7 +42,7 @@ class TokenLoginSuccessHandler(
     authentication: Authentication,
   ): Mono<Void> =
     mono {
-      val exchange: ServerWebExchange = webFilterExchange.exchange ?: throw IllegalAccessException("")
+      val exchange: ServerWebExchange = webFilterExchange.exchange
       val request: ServerHttpRequest = exchange.request
       val response: ServerHttpResponse = exchange.response
       runCatching {
@@ -51,7 +51,7 @@ class TokenLoginSuccessHandler(
         response.addCookie(cookieProperties.buildCookie("REFRESH_TOKEN", tokenGroup.refreshToken))
       }.getOrElse {
         logger.error("Authentication success handler error: ${it.message}", it)
-        val responseDto = Response.from<Unit>(AuthError.UNAUTHORIZED)
+        val responseDto = ServiceResponse.from<Unit>(AuthError.Unauthorized())
         writeResponse(exchange.response, responseDto).subscribe()
       }
     }.then(
@@ -91,7 +91,7 @@ class TokenLoginSuccessHandler(
 
   private fun <T> writeResponse(
     response: ServerHttpResponse,
-    responseDto: Response<T>,
+    responseDto: ServiceResponse<T>,
   ): Mono<Void> {
     response.statusCode = HttpStatusCode.valueOf(responseDto.statusCode)
     response.headers.contentType = MediaType.APPLICATION_JSON

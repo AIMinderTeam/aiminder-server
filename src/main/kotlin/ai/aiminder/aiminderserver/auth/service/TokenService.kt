@@ -4,11 +4,12 @@ import ai.aiminder.aiminderserver.auth.domain.AccessToken
 import ai.aiminder.aiminderserver.auth.domain.RefreshToken
 import ai.aiminder.aiminderserver.auth.domain.TokenGroup
 import ai.aiminder.aiminderserver.auth.entity.RefreshTokenEntity
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
+import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.property.JwtProperties
 import ai.aiminder.aiminderserver.auth.repository.RefreshTokenRepository
 import ai.aiminder.aiminderserver.common.util.logger
 import ai.aiminder.aiminderserver.common.util.toUUID
+import ai.aiminder.aiminderserver.user.domain.User
 import io.jsonwebtoken.Jwts
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -26,7 +27,7 @@ class TokenService(
   private val refreshTokenKey = jwtProperties.refreshTokenSecretKey
   private val logger = logger()
 
-  fun createAccessToken(user: UserEntity): AccessToken {
+  fun createAccessToken(user: User): AccessToken {
     val now = Instant.now()
     val expireDate = jwtProperties.addAccessTokenExpiration(now)
     val key = accessTokenKey
@@ -34,13 +35,13 @@ class TokenService(
     return createToken(user = user, now = now, expireDate = expireDate, key = key)
   }
 
-  suspend fun createRefreshToken(user: UserEntity): RefreshToken {
+  suspend fun createRefreshToken(user: User): RefreshToken {
     val now = Instant.now()
     val expireDate = jwtProperties.addRefreshTokenExpiration(now)
     val key = refreshTokenKey
     val token = createToken(user, now, expireDate, key)
     refreshTokenRepository
-      .findByUserId(user.id!!)
+      .findByUserId(user.id)
       .let { refreshToken ->
         refreshToken
           ?.update(token)
@@ -50,7 +51,7 @@ class TokenService(
   }
 
   @Transactional
-  suspend fun createTokenGroup(user: UserEntity): TokenGroup {
+  suspend fun createTokenGroup(user: User): TokenGroup {
     val accessToken: AccessToken = createAccessToken(user)
     val refreshToken: RefreshToken = createRefreshToken(user)
     return TokenGroup(accessToken, refreshToken)
@@ -75,10 +76,10 @@ class TokenService(
       val foundRefreshToken: RefreshTokenEntity =
         refreshTokenRepository
           .findByUserId(userId)
-          ?: throw IllegalAccessException("Not found refresh token: $token")
+          ?: throw AuthError.InvalidRefreshToken()
       foundRefreshToken
         .takeIf { it.token == token }
-        ?: throw IllegalAccessException("Invalid refresh token: $token")
+        ?: throw AuthError.InvalidRefreshToken()
       true
     }.getOrElse {
       logger.error("Invalid JWT refreshToken: ${it.message}", it)
@@ -97,11 +98,11 @@ class TokenService(
         .toUUID()
     }.getOrElse {
       logger.error("Error getting user ID from token: ${it.message}", it)
-      throw IllegalAccessException("Error getting user ID from token: $token")
+      throw AuthError.InvalidAccessToken()
     }
 
   private fun createToken(
-    user: UserEntity,
+    user: User,
     now: Instant?,
     expireDate: Instant,
     key: SecretKey,

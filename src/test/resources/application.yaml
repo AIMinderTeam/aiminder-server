@@ -1,16 +1,15 @@
-# Test Configuration
 aiminder:
   jwt:
     access-token-secret: test-access-token-secret-key-for-testing-only-must-be-at-least-256-bits
-    access-token-expiration: 900000  # 15 minutes
+    access-token-expiration: 900000
     refresh-token-secret: test-refresh-token-secret-key-for-testing-only-must-be-at-least-256-bits
-    refresh-token-expiration: 604800000  # 7 days
+    refresh-token-expiration: 604800000
   
   cookie:
     domain: ""
     same-site: Lax
     http-only: true
-    secure: false  # Test environment doesn't require HTTPS
+    secure: false
   
   server:
     url: http://localhost:8080
@@ -37,21 +36,6 @@ aiminder:
     default-redirect-base-url: http://localhost:3000
 
 spring:
-  # Test Profile
-  profiles:
-    active: test
-  
-  # Database Configuration - Using H2 for tests
-  r2dbc:
-    url: r2dbc:h2:mem:///testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password: 
-  
-  # Disable Flyway for tests (H2 doesn't need migrations)
-  flyway:
-    enabled: false
-  
-  # OAuth2 Configuration - Test values
   security:
     oauth2:
       client:
@@ -79,7 +63,6 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
   
-  # AI Configuration - Mock values for testing
   ai:
     openai:
       api-key: test-api-key-not-real
@@ -88,21 +71,17 @@ spring:
           model: gpt-3.5-turbo
           temperature: 0.5
 
-# Logging Configuration - Minimize logs during tests
 logging:
   level:
     root: warn
-    ai.aiminder: debug  # Application logic at debug level
-    org.springframework.security: warn
-    io.r2dbc: warn
+    ai.aiminder: debug
+    org.springframework.security: debug
+    io.r2dbc.postgresql.QUERY: debug
+    io.r2dbc.postgresql.PARAM: debug
+    org.flywaydb: info
 
-# API Documentation - Disabled for tests
 springdoc:
   api-docs:
     enabled: false
   swagger-ui:
     enabled: false
-
-# Server Configuration
-server:
-  forward-headers-strategy: framework

@@ -7,7 +7,7 @@ import ai.aiminder.aiminderserver.auth.handler.TokenLoginSuccessHandler
 import ai.aiminder.aiminderserver.auth.handler.TokenLogoutHandler
 import ai.aiminder.aiminderserver.auth.handler.TokenLogoutSuccessHandler
 import ai.aiminder.aiminderserver.auth.property.SecurityProperties
-import ai.aiminder.aiminderserver.common.error.Response
+import ai.aiminder.aiminderserver.common.error.ServiceResponse
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactor.mono
 import org.springframework.context.annotation.Bean
@@ -83,13 +83,13 @@ class SecurityConfig(
   @Bean
   fun unauthorizedEntryPoint(): ServerAuthenticationEntryPoint =
     ServerAuthenticationEntryPoint { exchange: ServerWebExchange, _: AuthenticationException ->
-      val responseDto = Response.from<Unit>(AuthError.UNAUTHORIZED)
+      val responseDto = ServiceResponse.from<Unit>(AuthError.Unauthorized())
       writeResponse(exchange.response, responseDto)
     }
 
   private fun <T> writeResponse(
     response: ServerHttpResponse,
-    responseDto: Response<T>,
+    responseDto: ServiceResponse<T>,
   ): Mono<Void> {
     response.statusCode = HttpStatusCode.valueOf(responseDto.statusCode)
     response.headers.contentType = MediaType.APPLICATION_JSON
