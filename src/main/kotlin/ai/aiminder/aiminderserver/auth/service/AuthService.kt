@@ -2,10 +2,9 @@ package ai.aiminder.aiminderserver.auth.service
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.TokenGroup
-import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.dto.OAuth2UserInfo
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
-import ai.aiminder.aiminderserver.auth.repository.UserRepository
+import ai.aiminder.aiminderserver.auth.error.AuthError
+import ai.aiminder.aiminderserver.user.service.UserService
 import org.springframework.http.server.RequestPath
 import org.springframework.security.core.Authentication
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
@@ -15,7 +14,7 @@ import org.springframework.stereotype.Service
 @Service
 class AuthService(
   private val tokenService: TokenService,
-  private val userRepository: UserRepository,
+  private val userService: UserService,
 ) {
   suspend fun processOAuth2User(
     authentication: Authentication,
@@ -36,29 +35,10 @@ class AuthService(
     val oauthInfo: OAuth2UserInfo = extractUserInfo(oauth2User, registrationId)
     val provider: OAuth2Provider = OAuth2Provider.from(registrationId)
     val user =
-      userRepository
-        .findByProviderAndProviderId(
-          provider = provider,
-          providerId = oauthInfo.id,
-        )?.let { User.from(it) }
-        ?: createNewUser(userInfo = oauthInfo, provider = registrationId)
+      userService.getUser(provider, oauthInfo.id)
+        ?: userService.createUser(oauthInfo, provider.name)
     val tokenGroup: TokenGroup = tokenService.createTokenGroup(user)
     return tokenGroup
-  }
-
-  private suspend fun createNewUser(
-    userInfo: OAuth2UserInfo,
-    provider: String,
-  ): User {
-    val newUserEntity =
-      UserEntity(
-        provider = OAuth2Provider.from(provider),
-        providerId = userInfo.id,
-      )
-
-    val savedUser = userRepository.save(newUserEntity)
-
-    return User.from(savedUser)
   }
 
   private fun extractUserInfo(
@@ -68,16 +48,16 @@ class AuthService(
     when (registrationId.uppercase()) {
       OAuth2Provider.GOOGLE.name -> extractGoogleUserInfo(oauth2User)
       OAuth2Provider.KAKAO.name -> extractKakaoUserInfo(oauth2User)
-      else -> throw IllegalArgumentException("Unsupported provider: $registrationId")
+      else -> throw AuthError.UnsupportedProvider("Unsupported provider: $registrationId")
     }
 
   private fun extractGoogleUserInfo(oauth2User: OAuth2User): OAuth2UserInfo =
     OAuth2UserInfo(
-      id = oauth2User.getAttribute("sub") ?: "",
+      id = oauth2User.getAttribute("sub") ?: throw AuthError.NotFoundOAuthId(),
     )
 
   private fun extractKakaoUserInfo(oauth2User: OAuth2User): OAuth2UserInfo =
     OAuth2UserInfo(
-      id = oauth2User.getAttribute<Long>("id")?.toString() ?: "",
+      id = oauth2User.getAttribute<Long>("id")?.toString() ?: throw AuthError.NotFoundOAuthId(),
     )
 }

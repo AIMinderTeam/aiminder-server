@@ -1,11 +1,11 @@
 package ai.aiminder.aiminderserver.auth.filter
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
-import ai.aiminder.aiminderserver.auth.domain.User
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.service.TokenService
-import ai.aiminder.aiminderserver.auth.service.UserService
+import ai.aiminder.aiminderserver.user.domain.User
+import ai.aiminder.aiminderserver.user.entity.UserEntity
+import ai.aiminder.aiminderserver.user.service.UserService
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk

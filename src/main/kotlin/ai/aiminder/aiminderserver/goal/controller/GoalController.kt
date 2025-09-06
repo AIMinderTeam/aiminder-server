@@ -1,11 +1,11 @@
 package ai.aiminder.aiminderserver.goal.controller
 
-import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.common.error.ServiceResponse
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
 import ai.aiminder.aiminderserver.goal.service.GoalService
+import ai.aiminder.aiminderserver.user.domain.User
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody

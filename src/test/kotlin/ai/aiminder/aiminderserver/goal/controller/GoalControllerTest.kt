@@ -2,13 +2,13 @@ package ai.aiminder.aiminderserver.goal.controller
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.Role
-import ai.aiminder.aiminderserver.auth.domain.User
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
-import ai.aiminder.aiminderserver.auth.repository.UserRepository
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
 import ai.aiminder.aiminderserver.common.error.ServiceResponse
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
+import ai.aiminder.aiminderserver.user.domain.User
+import ai.aiminder.aiminderserver.user.entity.UserEntity
+import ai.aiminder.aiminderserver.user.repository.UserRepository
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach

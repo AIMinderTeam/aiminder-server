@@ -1,6 +1,7 @@
-package ai.aiminder.aiminderserver.auth.domain
+package ai.aiminder.aiminderserver.user.domain
 
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
+import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
+import ai.aiminder.aiminderserver.user.entity.UserEntity
 import java.time.Instant
 import java.util.UUID
 

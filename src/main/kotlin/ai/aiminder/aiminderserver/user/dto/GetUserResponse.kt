@@ -1,6 +1,6 @@
-package ai.aiminder.aiminderserver.auth.dto
+package ai.aiminder.aiminderserver.user.dto
 
-import ai.aiminder.aiminderserver.auth.domain.User
+import ai.aiminder.aiminderserver.user.domain.User
 import java.util.UUID
 
 data class GetUserResponse(

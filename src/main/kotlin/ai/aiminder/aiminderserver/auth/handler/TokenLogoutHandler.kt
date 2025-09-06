@@ -1,9 +1,9 @@
 package ai.aiminder.aiminderserver.auth.handler
 
-import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.repository.RefreshTokenRepository
 import ai.aiminder.aiminderserver.common.util.logger
+import ai.aiminder.aiminderserver.user.domain.User
 import kotlinx.coroutines.reactor.mono
 import org.springframework.http.ResponseCookie
 import org.springframework.security.core.Authentication

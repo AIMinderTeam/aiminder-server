@@ -1,10 +1,10 @@
 package ai.aiminder.aiminderserver.auth
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
-import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.property.JwtProperties
 import ai.aiminder.aiminderserver.auth.repository.RefreshTokenRepository
 import ai.aiminder.aiminderserver.auth.service.TokenService
+import ai.aiminder.aiminderserver.user.domain.User
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

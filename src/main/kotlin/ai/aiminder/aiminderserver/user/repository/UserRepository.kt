@@ -1,7 +1,7 @@
-package ai.aiminder.aiminderserver.auth.repository
+package ai.aiminder.aiminderserver.user.repository
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
+import ai.aiminder.aiminderserver.user.entity.UserEntity
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Repository
 import java.util.UUID

@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.auth.entity
+package ai.aiminder.aiminderserver.user.entity
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import org.springframework.data.annotation.Id

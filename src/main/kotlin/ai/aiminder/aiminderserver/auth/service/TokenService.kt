@@ -3,12 +3,13 @@ package ai.aiminder.aiminderserver.auth.service
 import ai.aiminder.aiminderserver.auth.domain.AccessToken
 import ai.aiminder.aiminderserver.auth.domain.RefreshToken
 import ai.aiminder.aiminderserver.auth.domain.TokenGroup
-import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.entity.RefreshTokenEntity
+import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.property.JwtProperties
 import ai.aiminder.aiminderserver.auth.repository.RefreshTokenRepository
 import ai.aiminder.aiminderserver.common.util.logger
 import ai.aiminder.aiminderserver.common.util.toUUID
+import ai.aiminder.aiminderserver.user.domain.User
 import io.jsonwebtoken.Jwts
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -75,10 +76,10 @@ class TokenService(
       val foundRefreshToken: RefreshTokenEntity =
         refreshTokenRepository
           .findByUserId(userId)
-          ?: throw IllegalAccessException("Not found refresh token: $token")
+          ?: throw AuthError.InvalidRefreshToken()
       foundRefreshToken
         .takeIf { it.token == token }
-        ?: throw IllegalAccessException("Invalid refresh token: $token")
+        ?: throw AuthError.InvalidRefreshToken()
       true
     }.getOrElse {
       logger.error("Invalid JWT refreshToken: ${it.message}", it)
@@ -97,7 +98,7 @@ class TokenService(
         .toUUID()
     }.getOrElse {
       logger.error("Error getting user ID from token: ${it.message}", it)
-      throw IllegalAccessException("Error getting user ID from token: $token")
+      throw AuthError.InvalidAccessToken()
     }
 
   private fun createToken(

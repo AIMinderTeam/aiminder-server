@@ -42,7 +42,7 @@ class TokenLoginSuccessHandler(
     authentication: Authentication,
   ): Mono<Void> =
     mono {
-      val exchange: ServerWebExchange = webFilterExchange.exchange ?: throw IllegalAccessException("")
+      val exchange: ServerWebExchange = webFilterExchange.exchange
       val request: ServerHttpRequest = exchange.request
       val response: ServerHttpResponse = exchange.response
       runCatching {

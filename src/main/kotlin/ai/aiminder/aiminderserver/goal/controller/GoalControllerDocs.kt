@@ -1,9 +1,9 @@
 package ai.aiminder.aiminderserver.goal.controller
 
-import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.common.error.ServiceResponse
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
+import ai.aiminder.aiminderserver.user.domain.User
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content

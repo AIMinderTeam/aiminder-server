@@ -1,10 +1,10 @@
 package ai.aiminder.aiminderserver.auth.handler
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
-import ai.aiminder.aiminderserver.auth.domain.User
-import ai.aiminder.aiminderserver.auth.entity.UserEntity
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.repository.RefreshTokenRepository
+import ai.aiminder.aiminderserver.user.domain.User
+import ai.aiminder.aiminderserver.user.entity.UserEntity
 import io.mockk.coVerify
 import io.mockk.mockk
 import org.junit.jupiter.api.Test

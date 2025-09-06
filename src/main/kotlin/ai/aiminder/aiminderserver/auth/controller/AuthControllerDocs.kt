@@ -1,8 +1,8 @@
 package ai.aiminder.aiminderserver.auth.controller
 
-import ai.aiminder.aiminderserver.auth.domain.User
-import ai.aiminder.aiminderserver.auth.dto.GetUserResponse
 import ai.aiminder.aiminderserver.common.error.ServiceResponse
+import ai.aiminder.aiminderserver.user.domain.User
+import ai.aiminder.aiminderserver.user.dto.GetUserResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -36,7 +36,6 @@ interface AuthControllerDocs {
             mediaType = MediaType.APPLICATION_JSON_VALUE,
             schema =
               Schema(
-                // Response<GetUserResponse> 형태를 예시로 명시
                 example = """
                 {
                   "statusCode": 200,
@@ -61,7 +60,7 @@ interface AuthControllerDocs {
                 {
                   "statusCode": 401,
                   "message": "인증이 필요합니다. 로그인을 진행해주세요.",
-                  "errorCode": "AUTH.UNAUTHORIZED",
+                  "errorCode": "AUTH:UNAUTHORIZED",
                   "data": null
                 }
               """,
@@ -73,6 +72,6 @@ interface AuthControllerDocs {
     ],
   )
   suspend fun getUser(
-    @Parameter(hidden = true) user: User?,
+    @Parameter(hidden = true) user: User,
   ): ServiceResponse<GetUserResponse>
 }
