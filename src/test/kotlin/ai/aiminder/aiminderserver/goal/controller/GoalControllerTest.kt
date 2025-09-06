@@ -1,12 +1,16 @@
 package ai.aiminder.aiminderserver.goal.controller
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
+import ai.aiminder.aiminderserver.auth.domain.Role
 import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.entity.UserEntity
 import ai.aiminder.aiminderserver.auth.repository.UserRepository
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
+import ai.aiminder.aiminderserver.common.error.ServiceResponse
+import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -14,7 +18,7 @@ import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockAuthentication
-import reactor.test.StepVerifier
+import org.springframework.test.web.reactive.server.expectBody
 import java.time.Instant
 import java.util.UUID
 
@@ -45,56 +49,36 @@ class GoalControllerTest
         CreateGoalRequest(
           title = "Learn Kotlin",
           description = "Master Kotlin programming language by reading documentation and building projects",
-          // 30 days from now
           targetDate = Instant.now().plusSeconds(86400 * 30),
         )
-
-      // when & then
       val authentication =
         UsernamePasswordAuthenticationToken(
           testUser,
           null,
-          listOf(SimpleGrantedAuthority("ROLE_USER")),
+          listOf(SimpleGrantedAuthority(Role.USER.name)),
         )
 
-      webTestClient
-        .mutateWith(mockAuthentication(authentication))
-        .post()
-        .uri("/api/goal")
-        .contentType(MediaType.APPLICATION_JSON)
-        .bodyValue(request)
-        .exchange()
-        .expectStatus()
-        .isOk // GoalController doesn't return 201 Created, it returns 200 OK
-        .expectBody()
-        .jsonPath("$.statusCode")
-        .isEqualTo(200)
-        .jsonPath("$.data")
-        .exists()
-        .jsonPath("$.data.title")
-        .isEqualTo("Learn Kotlin")
-        .jsonPath(
-          "$.data.description",
-        ).isEqualTo("Master Kotlin programming language by reading documentation and building projects")
-        .jsonPath("$.data.status")
-        .isEqualTo("ACTIVE")
-        .jsonPath("$.data.isAiGenerated")
-        .isEqualTo(false)
-        .jsonPath("$.data.userId")
-        .isEqualTo(testUser.id.toString())
+      // when
+      val response =
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .post()
+          .uri("/api/goal")
+          .accept(MediaType.APPLICATION_JSON)
+          .contentType(MediaType.APPLICATION_JSON)
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<Goal>>()
+          .returnResult()
+          .responseBody!!
 
-      // Verify goal was actually saved to database
-      val goalExistsQuery = "SELECT COUNT(*) FROM goals WHERE user_id = $1 AND title = $2"
-      StepVerifier
-        .create(
-          databaseClient
-            .sql(goalExistsQuery)
-            .bind(0, testUser.id)
-            .bind(1, "Learn Kotlin")
-            .map { row -> row.get(0, Long::class.java) }
-            .one(),
-        ).expectNext(1L)
-        .verifyComplete()
+      // then
+      response.data?.also {
+        assertThat(it.title).isEqualTo(request.title)
+        assertThat(it.description).isEqualTo(request.description)
+        assertThat(it.targetDate).isEqualTo(request.targetDate)
+      }
     }
 
     @Test

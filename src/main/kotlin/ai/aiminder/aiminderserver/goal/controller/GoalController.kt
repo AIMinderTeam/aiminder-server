@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.goal.controller
 
 import ai.aiminder.aiminderserver.auth.domain.User
-import ai.aiminder.aiminderserver.common.error.Response
+import ai.aiminder.aiminderserver.common.error.ServiceResponse
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
@@ -23,7 +23,7 @@ class GoalController(
     request: CreateGoalRequest,
     @AuthenticationPrincipal
     user: User,
-  ): Response<Goal> =
+  ): ServiceResponse<Goal> =
     goalService
       .create(
         CreateGoalRequestDto(
@@ -32,5 +32,5 @@ class GoalController(
           description = request.description,
           targetDate = request.targetDate,
         ),
-      ).let { goal -> Response.from(goal) }
+      ).let { goal -> ServiceResponse.from(goal) }
 }

@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.auth.handler
 
-import ai.aiminder.aiminderserver.common.error.Response
+import ai.aiminder.aiminderserver.common.error.ServiceResponse
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactor.mono
 import org.springframework.core.io.buffer.DataBuffer
@@ -20,7 +20,7 @@ class TokenLogoutSuccessHandler(
     authentication: org.springframework.security.core.Authentication?,
   ): Mono<Void> {
     val response = webFilterExchange.exchange.response
-    val responseDto = Response.from<Unit>(message = "Logged out")
+    val responseDto = ServiceResponse.from<Unit>(message = "Logged out")
     response.statusCode = HttpStatusCode.valueOf(responseDto.statusCode)
     response.headers.contentType = MediaType.APPLICATION_JSON
     val responseBody = objectMapper.writeValueAsString(responseDto)

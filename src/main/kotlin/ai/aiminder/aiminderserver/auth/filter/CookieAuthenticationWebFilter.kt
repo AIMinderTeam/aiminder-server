@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.auth.filter
 
 import ai.aiminder.aiminderserver.auth.domain.AccessToken
 import ai.aiminder.aiminderserver.auth.domain.RefreshToken
+import ai.aiminder.aiminderserver.auth.domain.Role
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.service.TokenService
 import ai.aiminder.aiminderserver.auth.service.UserService
@@ -139,7 +140,7 @@ class CookieAuthenticationWebFilter(
 
     return mono { userService.getUserById(userId) }
       .flatMap { user ->
-        val authorities = listOf(SimpleGrantedAuthority("ROLE_USER"))
+        val authorities = listOf(SimpleGrantedAuthority(Role.USER.name))
         val authentication = UsernamePasswordAuthenticationToken(user, null, authorities).apply { details = jwt }
         val securityContext = SecurityContextImpl(authentication)
         logger.debug(

@@ -2,7 +2,7 @@ package ai.aiminder.aiminderserver.auth.controller
 
 import ai.aiminder.aiminderserver.auth.domain.User
 import ai.aiminder.aiminderserver.auth.dto.GetUserResponse
-import ai.aiminder.aiminderserver.common.error.Response
+import ai.aiminder.aiminderserver.common.error.ServiceResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -74,5 +74,5 @@ interface AuthControllerDocs {
   )
   suspend fun getUser(
     @Parameter(hidden = true) user: User?,
-  ): Response<GetUserResponse>
+  ): ServiceResponse<GetUserResponse>
 }
