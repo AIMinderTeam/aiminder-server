@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.auth.handler
 
-import ai.aiminder.aiminderserver.common.error.ServiceResponse
+import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactor.mono
 import org.springframework.core.io.buffer.DataBuffer

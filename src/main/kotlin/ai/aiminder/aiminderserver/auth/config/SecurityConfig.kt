@@ -7,7 +7,7 @@ import ai.aiminder.aiminderserver.auth.handler.TokenLoginSuccessHandler
 import ai.aiminder.aiminderserver.auth.handler.TokenLogoutHandler
 import ai.aiminder.aiminderserver.auth.handler.TokenLogoutSuccessHandler
 import ai.aiminder.aiminderserver.auth.property.SecurityProperties
-import ai.aiminder.aiminderserver.common.error.ServiceResponse
+import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactor.mono
 import org.springframework.context.annotation.Bean

@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.goal.controller
 
-import ai.aiminder.aiminderserver.common.error.ServiceResponse
+import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
 import ai.aiminder.aiminderserver.user.domain.User

@@ -6,7 +6,7 @@ import ai.aiminder.aiminderserver.common.error.CommonError.InvalidMethod
 import ai.aiminder.aiminderserver.common.error.CommonError.InvalidRequest
 import ai.aiminder.aiminderserver.common.error.CommonError.NoResourceFound
 import ai.aiminder.aiminderserver.common.error.ServiceError
-import ai.aiminder.aiminderserver.common.error.ServiceResponse
+import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.common.util.logger
 import org.springframework.boot.autoconfigure.web.WebProperties
 import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler
