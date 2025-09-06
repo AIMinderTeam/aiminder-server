@@ -234,9 +234,9 @@ class GoalControllerTest
           val foundGoal1 = it[0]
           val foundGoal2 = it[1]
           val foundGoal3 = it[2]
-          assertThat(foundGoal1).isEqualTo(createdGoalData3)
-          assertThat(foundGoal2).isEqualTo(createdGoalData2)
-          assertThat(foundGoal3).isEqualTo(createdGoalData1)
+          verifyGoalConsistency(foundGoal1, createdGoalData3)
+          verifyGoalConsistency(foundGoal2, createdGoalData2)
+          verifyGoalConsistency(foundGoal3, createdGoalData1)
         }
         response.pageable!!.also {
           assertThat(it.page).isEqualTo(0)
@@ -316,7 +316,7 @@ class GoalControllerTest
         assertThat(it).hasSize(1)
         val createdGoalData = createdGoal.data!!
         val foundGoal = it[0]
-        assertThat(foundGoal).isEqualTo(createdGoalData)
+        verifyGoalConsistency(foundGoal, createdGoalData)
       }
       response.pageable!!.also {
         assertThat(it.page).isEqualTo(page)
@@ -332,8 +332,9 @@ class GoalControllerTest
     ) {
       response.also {
         it.data!!.also { goals ->
+          val savedEntity = Goal.from(goalEntity)
           assertThat(goals).hasSize(1)
-          assertThat(goals[0]).isEqualTo(Goal.from(goalEntity))
+          verifyGoalConsistency(goals[0], savedEntity)
         }
         it.pageable!!.also { pageable ->
           assertThat(pageable.page).isEqualTo(0)
@@ -342,6 +343,17 @@ class GoalControllerTest
           assertThat(pageable.totalElements).isEqualTo(1)
         }
       }
+    }
+
+    private fun verifyGoalConsistency(
+      actual: Goal,
+      expected: Goal,
+    ) {
+      assertThat(actual.id).isEqualTo(expected.id)
+      assertThat(actual.title).isEqualTo(expected.title)
+      assertThat(actual.userId).isEqualTo(expected.userId)
+      assertThat(actual.status).isEqualTo(expected.status)
+      assertThat(actual.targetDate).isEqualTo(expected.targetDate)
     }
 
     private fun getGoals(uri: String): ServiceResponse<List<Goal>> =
