@@ -56,7 +56,8 @@ interface GoalControllerDocs {
                     "createdAt": "2024-03-15T10:30:00Z",
                     "updatedAt": "2024-03-15T10:30:00Z",
                     "deletedAt": null
-                  }
+                  },
+                  "pageable": null
                 }
               """,
               ),
@@ -76,7 +77,8 @@ interface GoalControllerDocs {
                   "statusCode": 400,
                   "message": "잘못된 요청 데이터입니다. 필수 필드를 확인해주세요.",
                   "errorCode": "COMMON:INVALIDREQUEST",
-                  "data": null
+                  "data": null,
+                  "pageable": null
                 }
               """,
               ),
@@ -96,7 +98,8 @@ interface GoalControllerDocs {
                   "statusCode": 401,
                   "message": "인증이 필요합니다. 로그인을 진행해주세요.",
                   "errorCode": "AUTH:UNAUTHORIZED",
-                  "data": null
+                  "data": null,
+                  "pageable": null
                 }
               """,
               ),
@@ -116,7 +119,8 @@ interface GoalControllerDocs {
                   "statusCode": 500,
                   "message": "서버 내부 오류가 발생했습니다.",
                   "errorCode": "COMMON:INTERNALSERVERERROR",
-                  "data": null
+                  "data": null,
+                  "pageable": null
                 }
               """,
               ),

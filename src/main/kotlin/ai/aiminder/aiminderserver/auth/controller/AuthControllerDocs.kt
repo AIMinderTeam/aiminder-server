@@ -41,7 +41,8 @@ interface AuthControllerDocs {
                   "statusCode": 200,
                   "message": null,
                   "errorCode": null,
-                  "data": { "id": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f" }
+                  "data": { "id": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f" },
+                  "pageable": null
                 }
               """,
               ),
@@ -61,7 +62,8 @@ interface AuthControllerDocs {
                   "statusCode": 401,
                   "message": "인증이 필요합니다. 로그인을 진행해주세요.",
                   "errorCode": "AUTH:UNAUTHORIZED",
-                  "data": null
+                  "data": null,
+                  "pageable": null
                 }
               """,
               ),
@@ -81,7 +83,8 @@ interface AuthControllerDocs {
                   "statusCode": 500,
                   "message": "서버 내부 오류가 발생했습니다.",
                   "errorCode": "COMMON:INTERNALSERVERERROR",
-                  "data": null
+                  "data": null,
+                  "pageable": null
                 }
               """,
               ),
