@@ -52,37 +52,37 @@ class GlobalErrorWebExceptionHandler(
     val response: Mono<ServerResponse> =
       when (val error = getError(request)) {
         is ServiceError -> {
-          logger.debug("ServiceError occurred: ${error.code} - ${error.message}")
+          logger.debug("ServiceError occurred: ${error.code} - ${error.message}", error)
           createServerResponse(error)
         }
 
         is WebExchangeBindException -> {
-          logger.debug("Binding error occurred: ${handleBindingErrors(error)}")
+          logger.debug("Binding error occurred: ${handleBindingErrors(error)}", error)
           createServerResponse(InvalidRequest(handleBindingErrors(error)))
         }
 
         is MissingRequestValueException -> {
-          logger.debug("Missing request value: ${error.reason}")
+          logger.debug("Missing request value: ${error.reason}", error)
           createServerResponse(InvalidRequest(error.reason))
         }
 
         is ServerWebInputException -> {
-          logger.debug("Invalid input: ${error.cause?.message}")
+          logger.debug("Invalid input: ${error.cause?.message}", error)
           createServerResponse(InvalidRequest(error.cause?.message))
         }
 
         is NoResourceFoundException -> {
-          logger.debug("Resource not found")
+          logger.debug("Resource not found", error)
           createServerResponse(NoResourceFound())
         }
 
         is MethodNotAllowedException -> {
-          logger.debug("Method not allowed: ${error.cause?.message}")
+          logger.debug("Method not allowed: ${error.cause?.message}", error)
           createServerResponse(InvalidMethod(error.cause?.message))
         }
 
         is UnsupportedMediaTypeStatusException -> {
-          logger.debug("Unsupported media type: ${error.cause?.message}")
+          logger.debug("Unsupported media type: ${error.cause?.message}", error)
           createServerResponse(InvalidMediaType(error.cause?.message))
         }
 

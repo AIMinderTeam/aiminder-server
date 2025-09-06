@@ -7,5 +7,6 @@ abstract class ServiceError : RuntimeException() {
   abstract val status: HttpStatus
   abstract override val message: String
 
-  val code = "$mainCode:${this::class.simpleName?.uppercase() ?: "UNKNOWN"}"
+  val code
+    get() = "$mainCode:${this::class.simpleName?.uppercase() ?: "UNKNOWN"}"
 }
