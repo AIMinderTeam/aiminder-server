@@ -27,6 +27,7 @@ class GoalService(
         .findByStatusAndDeletedAtIsNullAndUserId(
           status = dto.status,
           userId = dto.userId,
+          pageable = dto.pageable,
         ).map { Goal.from(it) }
 
     val totalCount =

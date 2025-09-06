@@ -1,5 +1,6 @@
 package ai.aiminder.aiminderserver.goal.controller
 
+import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
@@ -8,9 +9,6 @@ import ai.aiminder.aiminderserver.goal.dto.GetGoalsRequest
 import ai.aiminder.aiminderserver.goal.dto.GetGoalsRequestDto
 import ai.aiminder.aiminderserver.goal.service.GoalService
 import ai.aiminder.aiminderserver.user.domain.User
-import org.springframework.data.domain.Pageable
-import org.springframework.data.domain.Sort
-import org.springframework.data.web.PageableDefault
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -19,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/v1/goal")
+@RequestMapping("/api/v1/goals")
 class GoalController(
   private val goalService: GoalService,
 ) : GoalControllerDocs {
@@ -43,8 +41,7 @@ class GoalController(
   @GetMapping
   suspend fun getGoals(
     request: GetGoalsRequest,
-    @PageableDefault(page = 0, size = 10, sort = ["createdAt"], direction = Sort.Direction.DESC)
-    pageable: Pageable,
+    pageable: PageableRequest,
     @AuthenticationPrincipal
     user: User,
   ): ServiceResponse<List<Goal>> =

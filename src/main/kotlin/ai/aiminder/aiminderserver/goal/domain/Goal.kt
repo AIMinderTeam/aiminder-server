@@ -4,7 +4,7 @@ import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import java.time.Instant
 import java.util.UUID
 
-class Goal(
+data class Goal(
   val id: UUID,
   val userId: UUID,
   val title: String,
