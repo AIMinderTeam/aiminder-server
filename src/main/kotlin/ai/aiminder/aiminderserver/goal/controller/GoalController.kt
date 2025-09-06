@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/goal")
 class GoalController(
   private val goalService: GoalService,
-) {
+) : GoalControllerDocs {
   @PostMapping
-  suspend fun createGoal(
+  override suspend fun createGoal(
     @RequestBody
     request: CreateGoalRequest,
     @AuthenticationPrincipal

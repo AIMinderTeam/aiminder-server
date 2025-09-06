@@ -92,15 +92,25 @@ class GoalControllerTest
           targetDate = Instant.now().plusSeconds(86400),
         )
 
-      // when & then
-      webTestClient
-        .post()
-        .uri("/api/goal")
-        .contentType(MediaType.APPLICATION_JSON)
-        .bodyValue(request)
-        .exchange()
-        .expectStatus()
-        .isUnauthorized
+      // when
+      val response =
+        webTestClient
+          .post()
+          .uri("/api/goal")
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(request)
+          .exchange()
+          .expectStatus()
+          .isUnauthorized
+          .expectBody<ServiceResponse<Unit>>()
+          .returnResult()
+          .responseBody!!
+
+      // then
+      assertThat(response.statusCode).isEqualTo(401)
+      assertThat(response.message).isEqualTo("인증이 필요합니다. 로그인을 진행해주세요.")
+      assertThat(response.errorCode).isEqualTo("AUTH:UNAUTHORIZED")
+      assertThat(response.data).isNull()
     }
 
     @Test
@@ -111,8 +121,6 @@ class GoalControllerTest
           "description" to "Valid description",
           "targetDate" to Instant.now().plusSeconds(86400).toString(),
         )
-
-      // when & then
       val authentication =
         UsernamePasswordAuthenticationToken(
           testUser,
@@ -120,15 +128,26 @@ class GoalControllerTest
           listOf(SimpleGrantedAuthority(Role.USER.name)),
         )
 
-      webTestClient
-        .mutateWith(mockAuthentication(authentication))
-        .post()
-        .uri("/api/goal")
-        .contentType(MediaType.APPLICATION_JSON)
-        .bodyValue(requestMissingTitle)
-        .exchange()
-        .expectStatus()
-        .isBadRequest
+      // when
+      val response =
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .post()
+          .uri("/api/goal")
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(requestMissingTitle)
+          .exchange()
+          .expectStatus()
+          .isBadRequest
+          .expectBody<ServiceResponse<Unit>>()
+          .returnResult()
+          .responseBody!!
+
+      // then
+      response.also {
+        assertThat(it.statusCode).isEqualTo(400)
+        assertThat(it.errorCode).isEqualTo("COMMON:INVALIDREQUEST")
+      }
     }
 
     @Test
@@ -178,8 +197,6 @@ class GoalControllerTest
           description = "Test Description",
           targetDate = Instant.now().plusSeconds(86400),
         )
-
-      // when & then
       val authentication =
         UsernamePasswordAuthenticationToken(
           nonExistentUser,
@@ -187,14 +204,25 @@ class GoalControllerTest
           listOf(SimpleGrantedAuthority(Role.USER.name)),
         )
 
-      webTestClient
-        .mutateWith(mockAuthentication(authentication))
-        .post()
-        .uri("/api/goal")
-        .contentType(MediaType.APPLICATION_JSON)
-        .bodyValue(request)
-        .exchange()
-        .expectStatus()
-        .is5xxServerError // This might be 500 or another error depending on implementation
+      // when
+      val response =
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .post()
+          .uri("/api/goal")
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(request)
+          .exchange()
+          .expectStatus()
+          .is5xxServerError
+          .expectBody<ServiceResponse<Unit>>()
+          .returnResult()
+          .responseBody!!
+
+      // then
+      response.also {
+        assertThat(it.statusCode).isEqualTo(500)
+        assertThat(it.errorCode).isEqualTo("COMMON:INTERNALSERVERERROR")
+      }
     }
   }
