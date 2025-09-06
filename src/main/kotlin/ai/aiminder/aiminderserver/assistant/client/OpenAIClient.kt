@@ -1,5 +1,6 @@
 package ai.aiminder.aiminderserver.assistant.client
 
+import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.assistant.tool.GoalTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,7 +17,6 @@ import org.springframework.core.io.Resource
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime.now
 import java.util.UUID
-import kotlin.jvm.java
 
 @Component
 class OpenAIClient(
@@ -54,19 +54,19 @@ class OpenAIClient(
               .chatResponse()
           val text =
             chatResponse?.result?.output?.text
-              ?: throw IllegalAccessException("결과가 존재하지 않습니다.")
+              ?: throw AssistantError.InferenceError("결과가 존재하지 않습니다.")
           response = outputConverter.convert(text)
-            ?: throw IllegalAccessException("변환을 실패했습니다.")
+            ?: throw AssistantError.InferenceError("변환을 실패했습니다.")
           return@withContext response
         } catch (exception: Exception) {
           retryCount++
           if (retryCount == 5) {
             logger.error("AI 요청을 실패했습니다.", exception)
-            throw IllegalAccessException("AI 요청을 실패했습니다.")
+            throw AssistantError.InferenceError("AI 요청을 실패했습니다.")
           }
           logger.error("AI 재요청을 수행합니다.", exception)
         }
       }
-      return@withContext response ?: throw IllegalAccessException("AI 요청을 실패했습니다")
+      return@withContext response ?: throw AssistantError.InferenceError("AI 요청을 실패했습니다")
     }
 }
