@@ -1,5 +1,3 @@
-CREATE TYPE goal_status AS ENUM ('ACTIVE', 'COMPLETED', 'ARCHIVED');
-
 CREATE TABLE goals
 (
   goal_id         UUID PRIMARY KEY      DEFAULT uuid_generate_v4(),
@@ -8,7 +6,7 @@ CREATE TABLE goals
   description     TEXT,
   target_date     TIMESTAMP    NOT NULL,
   is_ai_generated BOOLEAN      NOT NULL DEFAULT false,
-  status          goal_status  NOT NULL DEFAULT 'ACTIVE',
+  status          VARCHAR      NOT NULL DEFAULT 'ACTIVE',
   created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at      TIMESTAMP,

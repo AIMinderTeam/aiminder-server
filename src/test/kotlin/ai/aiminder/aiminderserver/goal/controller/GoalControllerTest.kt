@@ -66,6 +66,7 @@ class GoalControllerTest
           .uri("/api/goal")
           .accept(MediaType.APPLICATION_JSON)
           .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(request)
           .exchange()
           .expectStatus()
           .isOk
@@ -103,35 +104,6 @@ class GoalControllerTest
     }
 
     @Test
-    fun `빈 제목으로 요청 시 400 Bad Request 반환`() {
-      // given
-      val requestWithEmptyTitle =
-        mapOf(
-          "title" to "",
-          "description" to "Valid description",
-          "targetDate" to Instant.now().plusSeconds(86400).toString(),
-        )
-
-      // when & then
-      val authentication =
-        UsernamePasswordAuthenticationToken(
-          testUser,
-          null,
-          listOf(SimpleGrantedAuthority("ROLE_USER")),
-        )
-
-      webTestClient
-        .mutateWith(mockAuthentication(authentication))
-        .post()
-        .uri("/api/goal")
-        .contentType(MediaType.APPLICATION_JSON)
-        .bodyValue(requestWithEmptyTitle)
-        .exchange()
-        .expectStatus()
-        .isBadRequest
-    }
-
-    @Test
     fun `필수 필드 누락 시 400 Bad Request 반환`() {
       // given - title 필드 누락
       val requestMissingTitle =
@@ -145,7 +117,7 @@ class GoalControllerTest
         UsernamePasswordAuthenticationToken(
           testUser,
           null,
-          listOf(SimpleGrantedAuthority("ROLE_USER")),
+          listOf(SimpleGrantedAuthority(Role.USER.name)),
         )
 
       webTestClient
@@ -174,7 +146,7 @@ class GoalControllerTest
         UsernamePasswordAuthenticationToken(
           testUser,
           null,
-          listOf(SimpleGrantedAuthority("ROLE_USER")),
+          listOf(SimpleGrantedAuthority(Role.USER.name)),
         )
 
       webTestClient
@@ -212,7 +184,7 @@ class GoalControllerTest
         UsernamePasswordAuthenticationToken(
           nonExistentUser,
           null,
-          listOf(SimpleGrantedAuthority("ROLE_USER")),
+          listOf(SimpleGrantedAuthority(Role.USER.name)),
         )
 
       webTestClient

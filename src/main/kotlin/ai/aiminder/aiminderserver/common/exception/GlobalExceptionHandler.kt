@@ -33,7 +33,7 @@ import reactor.core.publisher.Mono
 
 @Component
 @Order(-2)
-class GlobalErrorWebExceptionHandler(
+class GlobalExceptionHandler(
   globalErrorAttributes: DefaultErrorAttributes,
   applicationContext: ApplicationContext,
   serverCodecConfigurer: ServerCodecConfigurer,
