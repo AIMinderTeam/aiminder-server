@@ -68,7 +68,26 @@ interface AuthControllerDocs {
           ),
         ],
       ),
-      ApiResponse(responseCode = "500", description = "서버 오류"),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 존재하지 않는 사용자로 요청 시 등",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
     ],
   )
   suspend fun getUser(

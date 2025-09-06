@@ -113,7 +113,7 @@ interface GoalControllerDocs {
                 {
                   "statusCode": 500,
                   "message": "서버 내부 오류가 발생했습니다.",
-                  "errorCode": "SERVER.INTERNAL_ERROR",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
                   "data": null
                 }
               """,
