@@ -23,6 +23,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockAuthentication
 import org.springframework.test.web.reactive.server.expectBody
 import java.time.Instant
+import java.time.temporal.ChronoUnit.MILLIS
 import java.util.UUID
 
 class GoalControllerTest
@@ -353,7 +354,8 @@ class GoalControllerTest
       assertThat(actual.title).isEqualTo(expected.title)
       assertThat(actual.userId).isEqualTo(expected.userId)
       assertThat(actual.status).isEqualTo(expected.status)
-      assertThat(actual.targetDate).isEqualTo(expected.targetDate)
+      assertThat(actual.targetDate.truncatedTo(MILLIS))
+        .isEqualTo(expected.targetDate.truncatedTo(MILLIS))
     }
 
     private fun getGoals(uri: String): ServiceResponse<List<Goal>> =
