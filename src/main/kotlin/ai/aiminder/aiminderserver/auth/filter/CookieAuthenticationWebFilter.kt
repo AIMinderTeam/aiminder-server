@@ -8,6 +8,7 @@ import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.service.TokenService
 import ai.aiminder.aiminderserver.common.util.logger
 import ai.aiminder.aiminderserver.common.util.toUUID
+import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.service.UserService
 import kotlinx.coroutines.reactor.mono
 import org.springframework.beans.factory.annotation.Qualifier
@@ -139,7 +140,7 @@ class CookieAuthenticationWebFilter(
           return chain.filter(exchange)
         }
 
-    return mono { userService.getUserById(userId) }
+    return mono { User.from(userService.getUserById(userId)) }
       .flatMap { user ->
         val authorities = listOf(SimpleGrantedAuthority(Role.USER.name))
         val authentication = UsernamePasswordAuthenticationToken(user, null, authorities).apply { details = jwt }

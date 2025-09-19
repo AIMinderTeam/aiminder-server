@@ -16,7 +16,7 @@ class UserService(
   private val userRepository: UserRepository,
 ) {
   suspend fun getUser(token: RefreshToken): User {
-    val userId = tokenService.getUserIdFromToken(token)
+    val userId = tokenService.getUserIdFromRefreshToken(token)
     val userEntity: UserEntity =
       userRepository.findById(userId) ?: throw IllegalAccessException("Not found user $userId")
     return User.from(userEntity)
