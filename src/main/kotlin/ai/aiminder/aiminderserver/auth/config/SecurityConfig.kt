@@ -1,6 +1,7 @@
 package ai.aiminder.aiminderserver.auth.config
 
 import ai.aiminder.aiminderserver.auth.error.AuthError
+import ai.aiminder.aiminderserver.auth.filter.BearerTokenAuthenticationWebFilter
 import ai.aiminder.aiminderserver.auth.filter.CookieAuthenticationWebFilter
 import ai.aiminder.aiminderserver.auth.filter.ReturnToCaptureWebFilter
 import ai.aiminder.aiminderserver.auth.handler.TokenLoginSuccessHandler
@@ -34,6 +35,7 @@ class SecurityConfig(
   private val securityProperties: SecurityProperties,
   private val objectMapper: ObjectMapper,
   private val tokenLoginSuccessHandler: TokenLoginSuccessHandler,
+  private val bearerTokenAuthenticationWebFilter: BearerTokenAuthenticationWebFilter,
   private val cookieAuthenticationWebFilter: CookieAuthenticationWebFilter,
   private val returnToCaptureWebFilter: ReturnToCaptureWebFilter,
   private val tokenLogoutHandler: TokenLogoutHandler,
@@ -61,6 +63,7 @@ class SecurityConfig(
       }.exceptionHandling { exceptions ->
         exceptions.authenticationEntryPoint(unauthorizedEntryPoint())
       }.addFilterAt(returnToCaptureWebFilter, SecurityWebFiltersOrder.FIRST)
+      .addFilterBefore(bearerTokenAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
       .addFilterAt(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
       .build()
 

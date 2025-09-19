@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.MediaType
 
@@ -26,9 +27,11 @@ interface GoalControllerDocs {
     summary = "새로운 목표 생성",
     description =
       "새로운 목표를 생성합니다. " +
-        "OAuth2 로그인 성공 시 설정되는 `ACCESS_TOKEN`(필수) / `REFRESH_TOKEN`(선택) 쿠키 기반 인증을 사용합니다. " +
+        "OAuth2 로그인 성공 시 설정되는 `ACCESS_TOKEN`(필수) / `REFRESH_TOKEN`(선택) 쿠키 기반 인증 또는 " +
+        "Authorization 헤더의 Bearer 토큰 인증을 사용합니다. " +
         "인증 정보가 없거나 유효하지 않으면 401이 반환됩니다. " +
         "targetDate는 ISO 8601 형식(예: 2024-03-15T10:30:00Z)으로 입력해야 합니다.",
+    security = [SecurityRequirement(name = "bearerAuth")],
   )
   @ApiResponses(
     value = [
@@ -139,9 +142,11 @@ interface GoalControllerDocs {
     summary = "목표 목록 조회",
     description =
       "사용자의 목표 목록을 조회합니다. " +
-        "OAuth2 로그인 성공 시 설정되는 `ACCESS_TOKEN`(필수) / `REFRESH_TOKEN`(선택) 쿠키 기반 인증을 사용합니다. " +
+        "OAuth2 로그인 성공 시 설정되는 `ACCESS_TOKEN`(필수) / `REFRESH_TOKEN`(선택) 쿠키 기반 인증 또는 " +
+        "Authorization 헤더의 Bearer 토큰 인증을 사용합니다. " +
         "인증 정보가 없거나 유효하지 않으면 401이 반환됩니다. " +
         "status로 목표 상태를 필터링할 수 있으며, 페이지네이션을 지원합니다.",
+    security = [SecurityRequirement(name = "bearerAuth")],
   )
   @ApiResponses(
     value = [
