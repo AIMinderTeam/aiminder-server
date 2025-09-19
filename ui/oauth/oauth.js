@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const infoDiv = document.getElementById('token-info');
   const logoutBtn = document.getElementById('logout-btn');
   const checkSessionBtn = document.getElementById('check-session-btn');
-  const API_BASE = 'https://dev.aiminder.click';
+  const API_BASE = 'http://localhost:8080';
 
   // OAuth URL 생성 유틸리티
   function buildOAuthUrl(provider, returnPath = '/login/success') {
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   async function checkSession(showEmpty = false) {
     try {
-      const response = await fetch(`${API_BASE}/api/auth/user`, {
+      const response = await fetch(`${API_BASE}/api/auth/me`, {
         method: 'GET',
         credentials: 'include',
         headers: { 'Accept': 'application/json' }
