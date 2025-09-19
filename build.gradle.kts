@@ -71,7 +71,7 @@ dependencies {
   implementation("org.flywaydb:flyway-database-postgresql:$flywayVersion")
 
   // swagger
-  implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
+  implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.13")
 
   // test
   run {
@@ -95,6 +95,15 @@ dependencies {
 dependencyManagement {
   imports {
     mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
+  }
+}
+
+configurations.all {
+  resolutionStrategy {
+    force("io.swagger.core.v3:swagger-annotations:2.2.36")
+    force("io.swagger.core.v3:swagger-annotations-jakarta:2.2.36")
+    force("io.swagger.core.v3:swagger-core-jakarta:2.2.36")
+    force("io.swagger.core.v3:swagger-models-jakarta:2.2.36")
   }
 }
 
