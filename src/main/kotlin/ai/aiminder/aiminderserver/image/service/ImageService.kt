@@ -4,26 +4,20 @@ import ai.aiminder.aiminderserver.image.domain.Image
 import ai.aiminder.aiminderserver.image.dto.UploadImageRequestDto
 import ai.aiminder.aiminderserver.image.entity.ImageEntity
 import ai.aiminder.aiminderserver.image.error.ImageError
+import ai.aiminder.aiminderserver.image.property.ImageProperties
 import ai.aiminder.aiminderserver.image.repository.ImageRepository
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.codec.multipart.FilePart
 import org.springframework.stereotype.Service
 import java.io.File
-import java.nio.file.Paths
 import java.util.UUID
 
 @Service
 class ImageService(
   private val repository: ImageRepository,
-  @param:Value("\${app.file.upload-dir:./uploads/images}")
-  private val uploadDir: String,
-  @param:Value("\${app.file.max-file-size:5242880}")
-  private val maxFileSize: Long,
-  @param:Value("\${app.file.allowed-types:image/jpeg,image/png,image/gif,image/webp}")
-  private val allowedTypes: String,
+  private val imageProperties: ImageProperties,
 ) {
   init {
-    File(uploadDir).mkdirs()
+    imageProperties.createUploadDirectory()
   }
 
   suspend fun uploadImage(
@@ -37,13 +31,13 @@ class ImageService(
     val storedFileName = "${UUID.randomUUID()}$fileExtension"
     val filePath = "/uploads/images/$storedFileName"
 
-    val targetPath = Paths.get(uploadDir, storedFileName)
+    val targetPath = imageProperties.uploadDirPath.resolve(storedFileName)
     filePart.transferTo(targetPath).block()
 
     val fileSize = File(targetPath.toString()).length()
-    if (fileSize > maxFileSize) {
+    if (!imageProperties.isValidFileSize(fileSize)) {
       File(targetPath.toString()).delete()
-      throw ImageError.FileSizeExceeded(maxFileSize, fileSize)
+      throw ImageError.FileSizeExceeded(imageProperties.getMaxFileSize(), fileSize)
     }
 
     return ImageEntity
@@ -62,10 +56,9 @@ class ImageService(
 
   private fun validateFileType(filePart: FilePart) {
     val contentType = filePart.headers().contentType?.toString()
-    val allowedTypesList = allowedTypes.split(",").map { it.trim() }
 
-    if (contentType == null || !allowedTypesList.contains(contentType)) {
-      throw ImageError.UnsupportedFileType(allowedTypesList.joinToString(", "))
+    if (!imageProperties.isValidFileType(contentType)) {
+      throw ImageError.UnsupportedFileType(imageProperties.getFormattedAllowedTypes())
     }
   }
 

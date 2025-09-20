@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.image.service
 
 import ai.aiminder.aiminderserver.image.entity.ImageEntity
 import ai.aiminder.aiminderserver.image.error.ImageError
+import ai.aiminder.aiminderserver.image.property.ImageProperties
 import ai.aiminder.aiminderserver.image.repository.ImageRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -17,7 +18,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.codec.multipart.FilePart
 import reactor.core.publisher.Mono
-import java.io.File
 import java.nio.file.Path
 import java.time.Instant
 import java.util.UUID
@@ -29,9 +29,6 @@ class ImageServiceTest {
   private lateinit var mockHeaders: HttpHeaders
 
   private val testUserId = UUID.randomUUID()
-  private val uploadDir = "./test-uploads"
-  private val maxFileSize = 5242880L
-  private val allowedTypes = "image/jpeg,image/png,image/gif,image/webp"
 
   @BeforeEach
   fun setUp() {
@@ -39,15 +36,14 @@ class ImageServiceTest {
     mockFilePart = mockk()
     mockHeaders = mockk()
 
+    val imageProperties = ImageProperties()
     imageService =
       ImageService(
         repository = imageRepository,
-        uploadDir = uploadDir,
-        maxFileSize = maxFileSize,
-        allowedTypes = allowedTypes,
+        imageProperties = imageProperties,
       )
 
-    File(uploadDir).deleteRecursively()
+    imageProperties.uploadDirPath.toFile().deleteRecursively()
   }
 
   @Test
