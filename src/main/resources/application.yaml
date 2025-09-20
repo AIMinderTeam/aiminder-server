@@ -15,6 +15,15 @@ aiminder:
     allowed-types: image/jpeg,image/png,image/gif,image/webp
 
 spring:
+  r2dbc:
+    protocol: r2dbc
+    driver: postgresql
+    host: ${DATABASE_HOST:localhost}
+    port: ${DATABASE_PORT:5432}
+    database: ${DATABASE_NAME:aiminderdb}
+    username: ${DATABASE_USERNAME:aiminder}
+    password: ${DATABASE_PASSWORD:aiminder}
+    url: ${DATABASE_URL:r2dbc:postgresql://localhost:5432/aiminderdb}
   ai:
     openai:
       api-key: ${OPEN_API_KEY}
