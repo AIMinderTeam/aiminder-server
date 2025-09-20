@@ -94,6 +94,44 @@ interface ScheduleControllerDocs {
       ApiResponse(
         responseCode = "401",
         description = "인증 실패: 토큰이 없거나 유효하지 않음",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 401,
+                  "message": "인증이 필요합니다. 로그인을 진행해주세요.",
+                  "errorCode": "AUTH:UNAUTHORIZED",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 데이터베이스 연결 실패 등",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
       ),
     ],
   )
@@ -110,6 +148,107 @@ interface ScheduleControllerDocs {
         "goalId, status, 날짜 범위로 필터링할 수 있으며, 페이지네이션을 지원합니다.",
     security = [SecurityRequirement(name = "bearerAuth")],
   )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "성공: 일정 목록 조회 완료",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 200,
+                  "message": null,
+                  "errorCode": null,
+                  "data": [
+                    {
+                      "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                      "goalId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
+                      "userId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
+                      "title": "Kotlin 학습 계획",
+                      "content": "Kotlin 기초 문법을 익히고 간단한 프로젝트를 진행한다",
+                      "status": "READY",
+                      "startDate": "2024-03-15",
+                      "endDate": "2024-03-22",
+                      "createdAt": "2024-03-15T10:30:00Z",
+                      "updatedAt": "2024-03-15T10:30:00Z",
+                      "deletedAt": null
+                    },
+                    {
+                      "id": "a12bc34d-56ef-7890-abcd-ef1234567890",
+                      "goalId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
+                      "userId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
+                      "title": "프로젝트 구현",
+                      "content": "학습한 내용을 바탕으로 실제 프로젝트를 구현한다",
+                      "status": "IN_PROGRESS",
+                      "startDate": "2024-03-23",
+                      "endDate": "2024-03-30",
+                      "createdAt": "2024-03-16T14:20:00Z",
+                      "updatedAt": "2024-03-16T14:20:00Z",
+                      "deletedAt": null
+                    }
+                  ],
+                  "pageable": {
+                    "page": 0,
+                    "size": 10,
+                    "sort": "createdAt",
+                    "direction": "DESC",
+                    "totalElements": 2,
+                    "totalPages": 1
+                  }
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "인증 실패: 토큰이 없거나 유효하지 않음",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 401,
+                  "message": "인증이 필요합니다. 로그인을 진행해주세요.",
+                  "errorCode": "AUTH:UNAUTHORIZED",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 데이터베이스 연결 실패 등",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+    ],
+  )
   suspend fun getSchedules(
     request: GetSchedulesRequest,
     pageable: PageableRequest,
@@ -121,6 +260,148 @@ interface ScheduleControllerDocs {
     summary = "일정 수정",
     description = "기존 일정을 수정합니다. 소유자만 수정할 수 있습니다.",
     security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "성공: 일정 수정 완료",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 200,
+                  "message": null,
+                  "errorCode": null,
+                  "data": {
+                    "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                    "goalId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
+                    "userId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
+                    "title": "Kotlin 고급 학습 계획",
+                    "content": "Kotlin 고급 문법과 Spring Boot 연동을 학습한다",
+                    "status": "IN_PROGRESS",
+                    "startDate": "2024-03-15",
+                    "endDate": "2024-03-25",
+                    "createdAt": "2024-03-15T10:30:00Z",
+                    "updatedAt": "2024-03-16T15:45:00Z",
+                    "deletedAt": null
+                  },
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "요청 데이터 검증 실패: 필수 필드 누락 또는 잘못된 날짜",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 400,
+                  "message": "시작 날짜는 종료 날짜보다 늦을 수 없습니다.",
+                  "errorCode": "COMMON:INVALIDREQUEST",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "인증 실패: 토큰이 없거나 유효하지 않음",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 401,
+                  "message": "인증이 필요합니다. 로그인을 진행해주세요.",
+                  "errorCode": "AUTH:UNAUTHORIZED",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "권한 없음: 일정의 소유자가 아닌 경우",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 403,
+                  "message": "해당 일정을 수정할 권한이 없습니다.",
+                  "errorCode": "AUTH:FORBIDDEN",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "일정을 찾을 수 없음: 존재하지 않는 일정 ID",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 404,
+                  "message": "요청한 일정을 찾을 수 없습니다.",
+                  "errorCode": "SCHEDULE:NOTFOUND",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 데이터베이스 연결 실패 등",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+    ],
   )
   suspend fun updateSchedule(
     @Parameter(description = "수정할 일정 ID") scheduleId: UUID,
@@ -134,6 +415,115 @@ interface ScheduleControllerDocs {
     description = "일정을 삭제합니다(소프트 삭제). 소유자만 삭제할 수 있습니다.",
     security = [SecurityRequirement(name = "bearerAuth")],
   )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "성공: 일정 삭제 완료",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 200,
+                  "message": null,
+                  "errorCode": null,
+                  "data": "일정이 성공적으로 삭제되었습니다.",
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "인증 실패: 토큰이 없거나 유효하지 않음",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 401,
+                  "message": "인증이 필요합니다. 로그인을 진행해주세요.",
+                  "errorCode": "AUTH:UNAUTHORIZED",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "권한 없음: 일정의 소유자가 아닌 경우",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 403,
+                  "message": "해당 일정을 삭제할 권한이 없습니다.",
+                  "errorCode": "AUTH:FORBIDDEN",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "일정을 찾을 수 없음: 존재하지 않는 일정 ID",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 404,
+                  "message": "요청한 일정을 찾을 수 없습니다.",
+                  "errorCode": "SCHEDULE:NOTFOUND",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 데이터베이스 연결 실패 등",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+    ],
+  )
   suspend fun deleteSchedule(
     @Parameter(description = "삭제할 일정 ID") scheduleId: UUID,
     @Parameter(hidden = true) user: User,
@@ -144,6 +534,127 @@ interface ScheduleControllerDocs {
     summary = "일정 상세 조회",
     description = "특정 일정의 상세 정보를 조회합니다. 소유자만 조회할 수 있습니다.",
     security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "성공: 일정 상세 정보 조회 완료",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 200,
+                  "message": null,
+                  "errorCode": null,
+                  "data": {
+                    "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                    "goalId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
+                    "userId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
+                    "title": "Kotlin 학습 계획",
+                    "content": "Kotlin 기초 문법을 익히고 간단한 프로젝트를 진행한다",
+                    "status": "READY",
+                    "startDate": "2024-03-15",
+                    "endDate": "2024-03-22",
+                    "createdAt": "2024-03-15T10:30:00Z",
+                    "updatedAt": "2024-03-15T10:30:00Z",
+                    "deletedAt": null
+                  },
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "인증 실패: 토큰이 없거나 유효하지 않음",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 401,
+                  "message": "인증이 필요합니다. 로그인을 진행해주세요.",
+                  "errorCode": "AUTH:UNAUTHORIZED",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "권한 없음: 일정의 소유자가 아닌 경우",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 403,
+                  "message": "해당 일정을 조회할 권한이 없습니다.",
+                  "errorCode": "AUTH:FORBIDDEN",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "일정을 찾을 수 없음: 존재하지 않는 일정 ID",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 404,
+                  "message": "요청한 일정을 찾을 수 없습니다.",
+                  "errorCode": "SCHEDULE:NOTFOUND",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 데이터베이스 연결 실패 등",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+              ),
+          ),
+        ],
+      ),
+    ],
   )
   suspend fun getScheduleById(
     @Parameter(description = "조회할 일정 ID") scheduleId: UUID,
