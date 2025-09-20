@@ -1,6 +1,5 @@
 package ai.aiminder.aiminderserver.schedule.service
 
-import ai.aiminder.aiminderserver.common.util.logger
 import ai.aiminder.aiminderserver.schedule.domain.Schedule
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequestDto
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequestDto
@@ -21,8 +20,6 @@ import java.util.UUID
 class ScheduleService(
   private val scheduleRepository: ScheduleRepository,
 ) {
-  private val logger = logger()
-
   suspend fun create(dto: CreateScheduleRequestDto): ScheduleResponse {
     validateDateRange(dto.startDate, dto.endDate)
 
