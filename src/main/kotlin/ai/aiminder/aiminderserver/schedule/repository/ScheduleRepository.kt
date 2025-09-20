@@ -16,11 +16,6 @@ interface ScheduleRepository : CoroutineCrudRepository<ScheduleEntity, UUID> {
     pageable: Pageable,
   ): Flow<ScheduleEntity>
 
-  suspend fun findByGoalIdAndDeletedAtIsNull(
-    goalId: UUID,
-    pageable: Pageable,
-  ): Flow<ScheduleEntity>
-
   suspend fun findByUserIdAndGoalIdAndDeletedAtIsNull(
     userId: UUID,
     goalId: UUID,
@@ -41,11 +36,4 @@ interface ScheduleRepository : CoroutineCrudRepository<ScheduleEntity, UUID> {
   ): Flow<ScheduleEntity>
 
   suspend fun countByUserIdAndDeletedAtIsNull(userId: UUID): Long
-
-  suspend fun countByGoalIdAndDeletedAtIsNull(goalId: UUID): Long
-
-  suspend fun findByIdAndUserIdAndDeletedAtIsNull(
-    scheduleId: UUID,
-    userId: UUID,
-  ): ScheduleEntity?
 }
