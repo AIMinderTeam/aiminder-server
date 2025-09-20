@@ -36,8 +36,9 @@ class OpenAIClient(
           .builder()
           .responseFormat(ResponseFormat(ResponseFormat.Type.JSON_SCHEMA, outputConverter.jsonSchema))
           .build()
-      val systemMessage = SystemMessage(systemMessage)
-      val userMessage = UserMessage("Current Time: ${now()}\n$userMessage")
+      val now = "현재 시간: ${now()}\n"
+      val systemMessage = SystemMessage(now + systemMessage.getContentAsString(Charsets.UTF_8))
+      val userMessage = UserMessage(userMessage)
       val prompt = Prompt(listOf(systemMessage, userMessage), chatOptions)
       var retryCount = 0
       var response: T? = null
