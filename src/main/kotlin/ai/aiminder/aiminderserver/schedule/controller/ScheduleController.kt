@@ -77,7 +77,7 @@ class ScheduleController(
           id = scheduleId,
           userId = user.id,
           title = request.title,
-          content = request.content,
+          description = request.description,
           status = request.status,
           startDate = request.startDate,
           endDate = request.endDate,

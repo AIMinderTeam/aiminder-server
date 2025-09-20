@@ -97,7 +97,7 @@ class ScheduleControllerTest
           .expectBody<ServiceResponse<ScheduleResponse>>()
           .value { response ->
             assertThat(response.data?.title).isEqualTo("Test Schedule")
-            assertThat(response.data?.content).isEqualTo("Test Schedule Content")
+            assertThat(response.data?.description).isEqualTo("Test Schedule Content")
             assertThat(response.data?.goalId).isEqualTo(testGoal.id)
             assertThat(response.data?.userId).isEqualTo(testUser.id)
             assertThat(response.data?.status).isEqualTo(ScheduleStatus.READY)
@@ -169,7 +169,7 @@ class ScheduleControllerTest
         val updateRequest =
           UpdateScheduleRequest(
             title = "Updated Title",
-            content = "Updated Content",
+            description = "Updated Content",
             status = ScheduleStatus.INPROGRESS,
           )
 
@@ -186,7 +186,7 @@ class ScheduleControllerTest
           .expectBody<ServiceResponse<ScheduleResponse>>()
           .value { response ->
             assertThat(response.data?.title).isEqualTo("Updated Title")
-            assertThat(response.data?.content).isEqualTo("Updated Content")
+            assertThat(response.data?.description).isEqualTo("Updated Content")
             assertThat(response.data?.status).isEqualTo(ScheduleStatus.INPROGRESS)
           }
       }
@@ -250,7 +250,7 @@ class ScheduleControllerTest
           .expectBody<ServiceResponse<ScheduleResponse>>()
           .value { response ->
             assertThat(response.data?.title).isEqualTo("Schedule Detail")
-            assertThat(response.data?.content).isEqualTo("Detail Content")
+            assertThat(response.data?.description).isEqualTo("Detail Content")
             assertThat(response.data?.id).isEqualTo(schedule.id)
           }
       }

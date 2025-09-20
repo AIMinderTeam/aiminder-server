@@ -96,7 +96,7 @@ class ScheduleService(
     val updatedSchedule =
       existingSchedule.copy(
         title = dto.title ?: existingSchedule.title,
-        description = dto.content ?: existingSchedule.description,
+        description = dto.description ?: existingSchedule.description,
         status = dto.status ?: existingSchedule.status,
         startDate = dto.startDate ?: existingSchedule.startDate,
         endDate = dto.endDate ?: existingSchedule.endDate,
