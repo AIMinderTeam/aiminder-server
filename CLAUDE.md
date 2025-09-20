@@ -58,6 +58,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `auth/`: OAuth2 + JWT authentication with cookie-based sessions  
 - `goal/`: Goal management system
 - `user/`: User profile management
+- `image/`: Image upload and management functionality
+- `schedule/`: Schedule management system
 - `common/`: Shared utilities and configuration
 
 **Configuration Management**: Environment-driven configuration using `.env` files loaded via dotenv-java, with profile-specific YAML files.
@@ -65,7 +67,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Database & Migrations
 - **Migration Tool**: Flyway for database schema versioning
 - **Location**: `src/main/resources/db/migration/V*__*.sql`
-- **Entities**: User, RefreshToken, Goal, AiGoal, AiSchedule
+- **Entities**: User, RefreshToken, Goal, AiGoal, AiSchedule, Image, Schedule
 - **Testing**: Uses TestContainers for integration tests with PostgreSQL
 
 ### Authentication Flow
@@ -111,3 +113,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - PostgreSQL 14+ running on localhost:5432
 - `.env` file with required environment variables (see README.md for template)
 - Docker for TestContainers and OpenAPI generation
+
+### Domain-Specific Notes
+
+**Assistant Module**: Uses Spring AI framework with function calling capabilities. The AI assistant can execute goals and schedules management through predefined tools (`GoalTool`). Prompts are managed in `src/main/resources/prompts/` with versioned templates.
+
+**Authentication**: Implements dual authentication support (Bearer token and Cookie-based) through custom WebFlux filters. OAuth2 integration supports Google and Kakao providers with custom success/failure handlers for token management.
+
+**Goal Management**: Supports SMART goal creation with AI-powered refinement. Goals can have associated images and are linked to schedules for progress tracking.
+
+**Image Handling**: Supports file uploads with validation for image types (JPEG, PNG, GIF, WebP) and size limits. Upload directory is configurable via application properties.
+
+**Schedule Management**: Provides weekly schedule generation linked to goals. Schedules have status tracking (READY, IN_PROGRESS, COMPLETED, CANCELLED) for progress monitoring.
