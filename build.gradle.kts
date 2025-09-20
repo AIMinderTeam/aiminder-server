@@ -45,6 +45,7 @@ dependencies {
 
   // spring
   implementation("org.springframework.ai:spring-ai-starter-model-openai")
+  implementation("org.springframework.ai:spring-ai-starter-model-chat-memory-repository-jdbc")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   if (osdetector.arch.equals("aarch_64")) {
     implementation("io.netty:netty-resolver-dns-native-macos:4.2.2.Final:osx-aarch_64")
