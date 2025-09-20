@@ -19,7 +19,7 @@ data class Schedule(
   val deletedAt: Instant?,
 ) {
   companion object {
-    fun from(scheduleEntity: ScheduleEntity): Schedule =
+    fun fromEntity(scheduleEntity: ScheduleEntity): Schedule =
       Schedule(
         id = scheduleEntity.id!!,
         goalId = scheduleEntity.goalId,
@@ -34,7 +34,7 @@ data class Schedule(
         deletedAt = scheduleEntity.deletedAt,
       )
 
-    fun from(scheduleRow: ScheduleRow): Schedule =
+    fun fromRow(scheduleRow: ScheduleRow): Schedule =
       Schedule(
         id = scheduleRow.scheduleId,
         goalId = scheduleRow.goalId,

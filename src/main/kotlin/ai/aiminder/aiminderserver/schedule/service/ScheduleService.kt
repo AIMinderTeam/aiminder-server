@@ -29,7 +29,7 @@ class ScheduleService(
       ScheduleEntity
         .from(dto)
         .let { scheduleRepository.save(it) }
-        .let { Schedule.from(it) }
+        .let { Schedule.fromEntity(it) }
 
     return ScheduleResponse.from(schedule)
   }
@@ -38,7 +38,7 @@ class ScheduleService(
     val schedules =
       scheduleQueryRepository
         .findSchedulesBy(dto)
-        .map { ScheduleResponse.from(Schedule.from(it)) }
+        .map { ScheduleResponse.from(Schedule.fromRow(it)) }
         .toList()
 
     val totalCount = scheduleQueryRepository.countBy(dto)
@@ -70,7 +70,7 @@ class ScheduleService(
     val savedSchedule =
       scheduleRepository
         .save(updatedSchedule)
-        .let { Schedule.from(it) }
+        .let { Schedule.fromEntity(it) }
 
     return ScheduleResponse.from(savedSchedule)
   }
@@ -105,7 +105,7 @@ class ScheduleService(
       throw ScheduleError.AccessDenied()
     }
 
-    return ScheduleResponse.from(Schedule.from(schedule))
+    return ScheduleResponse.from(Schedule.fromEntity(schedule))
   }
 
   private fun validateDateRange(

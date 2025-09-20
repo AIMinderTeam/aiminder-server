@@ -1,9 +1,9 @@
 package ai.aiminder.aiminderserver.schedule.repository.row
 
+import ai.aiminder.aiminderserver.common.util.toUtcInstant
 import ai.aiminder.aiminderserver.schedule.domain.ScheduleStatus
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneOffset
 import java.util.UUID
 
 data class ScheduleRow(
@@ -21,13 +21,13 @@ data class ScheduleRow(
 ) {
   fun toScheduleStatus(): ScheduleStatus = ScheduleStatus.valueOf(status)
 
-  fun startDateToInstant(): Instant = startDate.toInstant(ZoneOffset.UTC)
+  fun startDateToInstant(): Instant = startDate.toUtcInstant()
 
-  fun endDateToInstant(): Instant = endDate.toInstant(ZoneOffset.UTC)
+  fun endDateToInstant(): Instant = endDate.toUtcInstant()
 
-  fun createdAtToInstant(): Instant = createdAt.toInstant(ZoneOffset.UTC)
+  fun createdAtToInstant(): Instant = createdAt.toUtcInstant()
 
-  fun updatedAtToInstant(): Instant = updatedAt.toInstant(ZoneOffset.UTC)
+  fun updatedAtToInstant(): Instant = updatedAt.toUtcInstant()
 
-  fun deletedAtToInstant(): Instant? = deletedAt?.toInstant(ZoneOffset.UTC)
+  fun deletedAtToInstant(): Instant? = deletedAt?.toUtcInstant()
 }
