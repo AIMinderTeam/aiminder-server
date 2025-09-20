@@ -191,7 +191,13 @@ interface GoalControllerDocs {
                       "updatedAt": "2024-03-16T14:20:00Z",
                       "deletedAt": null
                     }
-                  ]
+                  ],
+                  "pageable": {
+                    "page": 0,
+                    "count": 2,
+                    "totalPages": 1,
+                    "totalElements": 2
+                  }
                 }
               """,
               ),

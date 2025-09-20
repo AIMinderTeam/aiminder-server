@@ -193,11 +193,9 @@ interface ScheduleControllerDocs {
                   ],
                   "pageable": {
                     "page": 0,
-                    "size": 10,
-                    "sort": "createdAt",
-                    "direction": "DESC",
-                    "totalElements": 2,
-                    "totalPages": 1
+                    "count": 2,
+                    "totalPages": 1,
+                    "totalElements": 2
                   }
                 }
               """,
