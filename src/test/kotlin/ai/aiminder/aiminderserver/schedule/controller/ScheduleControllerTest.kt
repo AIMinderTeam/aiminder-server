@@ -282,4 +282,728 @@ class ScheduleControllerTest
           .expectStatus()
           .isUnauthorized
       }
+
+    @Test
+    fun `goalId로 스케줄 필터링 성공`() =
+      runTest {
+        // given
+        val anotherGoal =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Another Goal",
+              description = "Another Goal Description",
+              targetDate = Instant.parse("2024-05-15T00:00:00Z"),
+              status = GoalStatus.READY,
+            ),
+          )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "Schedule for Test Goal",
+            description = "Content 1",
+            startDate = Instant.parse("2024-03-15T00:00:00Z"),
+            endDate = Instant.parse("2024-03-20T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = anotherGoal.id!!,
+            userId = testUser.id,
+            title = "Schedule for Another Goal",
+            description = "Content 2",
+            startDate = Instant.parse("2024-03-21T00:00:00Z"),
+            endDate = Instant.parse("2024-03-25T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // when & then - Filter by testGoal
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?goalId=${testGoal.id}")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(1)
+            assertThat(response.data?.first()?.title).isEqualTo("Schedule for Test Goal")
+            assertThat(response.data?.first()?.goalId).isEqualTo(testGoal.id)
+          }
+
+        // when & then - Filter by anotherGoal
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?goalId=${anotherGoal.id}")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(1)
+            assertThat(response.data?.first()?.title).isEqualTo("Schedule for Another Goal")
+            assertThat(response.data?.first()?.goalId).isEqualTo(anotherGoal.id)
+          }
+      }
+
+    @Test
+    fun `status로 스케줄 필터링 성공`() =
+      runTest {
+        // given
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "Ready Schedule",
+            description = "Ready Content",
+            startDate = Instant.parse("2024-03-15T00:00:00Z"),
+            endDate = Instant.parse("2024-03-20T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "Completed Schedule",
+            description = "Completed Content",
+            startDate = Instant.parse("2024-03-21T00:00:00Z"),
+            endDate = Instant.parse("2024-03-25T00:00:00Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        // when & then - Filter by READY status
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?status=READY")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(1)
+            assertThat(response.data?.first()?.title).isEqualTo("Ready Schedule")
+            assertThat(response.data?.first()?.status).isEqualTo(ScheduleStatus.READY)
+          }
+
+        // when & then - Filter by COMPLETED status
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?status=COMPLETED")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(1)
+            assertThat(response.data?.first()?.title).isEqualTo("Completed Schedule")
+            assertThat(response.data?.first()?.status).isEqualTo(ScheduleStatus.COMPLETED)
+          }
+      }
+
+    @Test
+    fun `날짜 범위로 스케줄 필터링 성공`() =
+      runTest {
+        // given
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "March Schedule",
+            description = "March Content",
+            startDate = Instant.parse("2024-03-15T00:00:00Z"),
+            endDate = Instant.parse("2024-03-20T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "April Schedule",
+            description = "April Content",
+            startDate = Instant.parse("2024-04-10T00:00:00Z"),
+            endDate = Instant.parse("2024-04-15T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "May Schedule",
+            description = "May Content",
+            startDate = Instant.parse("2024-05-10T00:00:00Z"),
+            endDate = Instant.parse("2024-05-15T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // when & then - Filter by March to April range
+        val startDate = Instant.parse("2024-03-01T00:00:00Z")
+        val endDate = Instant.parse("2024-04-30T23:59:59Z")
+
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?startDate=$startDate&endDate=$endDate")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(2)
+            val titles = response.data?.map { it.title }
+            assertThat(titles).containsExactlyInAnyOrder("March Schedule", "April Schedule")
+          }
+      }
+
+    @Test
+    fun `goalId와 status 조합 필터링 성공`() =
+      runTest {
+        // given
+        val goalA =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Goal A",
+              description = "Goal A Description",
+              targetDate = Instant.parse("2024-04-15T00:00:00Z"),
+              status = GoalStatus.READY,
+            ),
+          )
+
+        val goalB =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Goal B",
+              description = "Goal B Description",
+              targetDate = Instant.parse("2024-05-15T00:00:00Z"),
+              status = GoalStatus.READY,
+            ),
+          )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalA.id!!,
+            userId = testUser.id,
+            title = "Goal A - Ready Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-15T00:00:00Z"),
+            endDate = Instant.parse("2024-03-20T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalA.id!!,
+            userId = testUser.id,
+            title = "Goal A - Completed Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-21T00:00:00Z"),
+            endDate = Instant.parse("2024-03-25T00:00:00Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalB.id!!,
+            userId = testUser.id,
+            title = "Goal B - Ready Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-04-01T00:00:00Z"),
+            endDate = Instant.parse("2024-04-05T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalB.id!!,
+            userId = testUser.id,
+            title = "Goal B - Completed Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-04-06T00:00:00Z"),
+            endDate = Instant.parse("2024-04-10T00:00:00Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        // when & then - Filter by Goal A + READY status
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?goalId=${goalA.id}&status=READY")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(1)
+            assertThat(response.data?.first()?.title).isEqualTo("Goal A - Ready Schedule")
+            assertThat(response.data?.first()?.goalId).isEqualTo(goalA.id)
+            assertThat(response.data?.first()?.status).isEqualTo(ScheduleStatus.READY)
+          }
+      }
+
+    @Test
+    fun `goalId와 날짜 범위 조합 필터링 성공`() =
+      runTest {
+        // given
+        val goalA =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Goal A",
+              description = "Goal A Description",
+              targetDate = Instant.parse("2024-04-15T00:00:00Z"),
+              status = GoalStatus.READY,
+            ),
+          )
+
+        val goalB =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Goal B",
+              description = "Goal B Description",
+              targetDate = Instant.parse("2024-05-15T00:00:00Z"),
+              status = GoalStatus.READY,
+            ),
+          )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalA.id!!,
+            userId = testUser.id,
+            title = "Goal A - March Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-15T00:00:00Z"),
+            endDate = Instant.parse("2024-03-20T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalA.id!!,
+            userId = testUser.id,
+            title = "Goal A - April Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-04-10T00:00:00Z"),
+            endDate = Instant.parse("2024-04-15T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalB.id!!,
+            userId = testUser.id,
+            title = "Goal B - March Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-10T00:00:00Z"),
+            endDate = Instant.parse("2024-03-15T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalB.id!!,
+            userId = testUser.id,
+            title = "Goal B - April Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-04-05T00:00:00Z"),
+            endDate = Instant.parse("2024-04-10T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // when & then - Filter by Goal A + March date range
+        val startDate = Instant.parse("2024-03-01T00:00:00Z")
+        val endDate = Instant.parse("2024-03-31T23:59:59Z")
+
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?goalId=${goalA.id}&startDate=$startDate&endDate=$endDate")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(1)
+            assertThat(response.data?.first()?.title).isEqualTo("Goal A - March Schedule")
+            assertThat(response.data?.first()?.goalId).isEqualTo(goalA.id)
+          }
+      }
+
+    @Test
+    fun `status와 날짜 범위 조합 필터링 성공`() =
+      runTest {
+        // given
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "March Ready Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-15T00:00:00Z"),
+            endDate = Instant.parse("2024-03-20T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "March Completed Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-21T00:00:00Z"),
+            endDate = Instant.parse("2024-03-25T00:00:00Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "April Ready Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-04-10T00:00:00Z"),
+            endDate = Instant.parse("2024-04-15T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "April Completed Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-04-20T00:00:00Z"),
+            endDate = Instant.parse("2024-04-25T00:00:00Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        // when & then - Filter by READY status + March date range
+        val startDate = Instant.parse("2024-03-01T00:00:00Z")
+        val endDate = Instant.parse("2024-03-31T23:59:59Z")
+
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?status=READY&startDate=$startDate&endDate=$endDate")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(1)
+            assertThat(response.data?.first()?.title).isEqualTo("March Ready Schedule")
+            assertThat(response.data?.first()?.status).isEqualTo(ScheduleStatus.READY)
+          }
+      }
+
+    @Test
+    fun `모든 필터 조건 조합 테스트`() =
+      runTest {
+        // given
+        val goalA =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Goal A",
+              description = "Goal A Description",
+              targetDate = Instant.parse("2024-04-15T00:00:00Z"),
+              status = GoalStatus.READY,
+            ),
+          )
+
+        val goalB =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Goal B",
+              description = "Goal B Description",
+              targetDate = Instant.parse("2024-05-15T00:00:00Z"),
+              status = GoalStatus.READY,
+            ),
+          )
+
+        // Target schedule (Goal A, READY, March)
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalA.id!!,
+            userId = testUser.id,
+            title = "Target Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-15T00:00:00Z"),
+            endDate = Instant.parse("2024-03-20T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // Other schedules that should not match
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalA.id!!,
+            userId = testUser.id,
+            title = "Goal A - Completed March",
+            description = "Content",
+            startDate = Instant.parse("2024-03-21T00:00:00Z"),
+            endDate = Instant.parse("2024-03-25T00:00:00Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalA.id!!,
+            userId = testUser.id,
+            title = "Goal A - Ready April",
+            description = "Content",
+            startDate = Instant.parse("2024-04-10T00:00:00Z"),
+            endDate = Instant.parse("2024-04-15T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalB.id!!,
+            userId = testUser.id,
+            title = "Goal B - Ready March",
+            description = "Content",
+            startDate = Instant.parse("2024-03-10T00:00:00Z"),
+            endDate = Instant.parse("2024-03-15T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // when & then - Filter by all conditions: Goal A + READY + March
+        val startDate = Instant.parse("2024-03-01T00:00:00Z")
+        val endDate = Instant.parse("2024-03-31T23:59:59Z")
+
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?goalId=${goalA.id}&status=READY&startDate=$startDate&endDate=$endDate")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(1)
+            assertThat(response.data?.first()?.title).isEqualTo("Target Schedule")
+            assertThat(response.data?.first()?.goalId).isEqualTo(goalA.id)
+            assertThat(response.data?.first()?.status).isEqualTo(ScheduleStatus.READY)
+          }
+      }
+
+    @Test
+    fun `필터링 조건에 맞는 스케줄이 없을 때 빈 배열 반환`() =
+      runTest {
+        // given
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "Existing Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-15T00:00:00Z"),
+            endDate = Instant.parse("2024-03-20T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // when & then - Filter by non-existent goalId
+        val nonExistentGoalId = UUID.randomUUID()
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?goalId=$nonExistentGoalId")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).isEmpty()
+          }
+
+        // when & then - Filter by date range with no matching schedules
+        val futureStartDate = Instant.parse("2025-01-01T00:00:00Z")
+        val futureEndDate = Instant.parse("2025-01-31T23:59:59Z")
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?startDate=$futureStartDate&endDate=$futureEndDate")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).isEmpty()
+          }
+      }
+
+    @Test
+    fun `날짜 범위 경계값 테스트`() =
+      runTest {
+        // given - Schedules on exact boundary dates
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "Boundary Start Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-01T00:00:00Z"),
+            endDate = Instant.parse("2024-03-05T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "Boundary End Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-30T00:00:00Z"),
+            endDate = Instant.parse("2024-03-31T23:59:59Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "Outside Boundary Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-04-01T00:00:00Z"),
+            endDate = Instant.parse("2024-04-05T00:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // when & then - Filter by exact March boundaries
+        val startDate = Instant.parse("2024-03-01T00:00:00Z")
+        val endDate = Instant.parse("2024-03-31T23:59:59Z")
+
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?startDate=$startDate&endDate=$endDate")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(2)
+            val titles = response.data?.map { it.title }
+            assertThat(titles).containsExactlyInAnyOrder("Boundary Start Schedule", "Boundary End Schedule")
+          }
+      }
+
+    @Test
+    fun `필터링과 페이징 조합 테스트`() =
+      runTest {
+        // given - Create 5 schedules that match the filter condition
+        repeat(5) { index ->
+          scheduleRepository.save(
+            ScheduleEntity(
+              goalId = testGoal.id!!,
+              userId = testUser.id,
+              title = "Schedule ${index + 1}",
+              description = "Content ${index + 1}",
+              startDate = Instant.parse("2024-03-${(index + 1).toString().padStart(2, '0')}T00:00:00Z"),
+              endDate = Instant.parse("2024-03-${(index + 1).toString().padStart(2, '0')}T23:59:59Z"),
+              status = ScheduleStatus.READY,
+            ),
+          )
+        }
+
+        // Create a schedule that doesn't match the filter (different status)
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "Completed Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-10T00:00:00Z"),
+            endDate = Instant.parse("2024-03-10T23:59:59Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        // when & then - First page with filter
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?status=READY&page=0&size=2")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(2)
+            response.data?.forEach { schedule ->
+              assertThat(schedule.status).isEqualTo(ScheduleStatus.READY)
+            }
+          }
+
+        // when & then - Second page with filter
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?status=READY&page=1&size=2")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(2)
+            response.data?.forEach { schedule ->
+              assertThat(schedule.status).isEqualTo(ScheduleStatus.READY)
+            }
+          }
+
+        // when & then - Third page with filter
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/schedules?status=READY&page=2&size=2")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(1)
+            response.data?.forEach { schedule ->
+              assertThat(schedule.status).isEqualTo(ScheduleStatus.READY)
+            }
+          }
+      }
   }
