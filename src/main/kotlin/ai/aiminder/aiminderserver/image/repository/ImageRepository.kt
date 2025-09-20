@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
-interface ImageRepository : CoroutineCrudRepository<ImageEntity, UUID>
+interface ImageRepository : CoroutineCrudRepository<ImageEntity, UUID> {
+  suspend fun findByIdAndDeletedAtIsNull(id: UUID): ImageEntity?
+}

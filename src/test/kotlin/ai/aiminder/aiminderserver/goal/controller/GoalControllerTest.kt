@@ -7,6 +7,7 @@ import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.domain.GoalStatus
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
+import ai.aiminder.aiminderserver.goal.dto.GoalResponse
 import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import ai.aiminder.aiminderserver.goal.repository.GoalRepository
 import ai.aiminder.aiminderserver.user.domain.User
@@ -309,8 +310,8 @@ class GoalControllerTest
       }
 
     private fun assertResponseGoalsAndPagination(
-      response: ServiceResponse<List<Goal>>,
-      createdGoal: ServiceResponse<Goal>,
+      response: ServiceResponse<List<GoalResponse>>,
+      createdGoal: ServiceResponse<GoalResponse>,
       page: Int,
     ) {
       response.data!!.also {
@@ -328,12 +329,12 @@ class GoalControllerTest
     }
 
     private fun assertGoalsAndPagination(
-      response: ServiceResponse<List<Goal>>,
+      response: ServiceResponse<List<GoalResponse>>,
       goalEntity: GoalEntity,
     ) {
       response.also {
         it.data!!.also { goals ->
-          val savedEntity = Goal.from(goalEntity)
+          val savedEntity = GoalResponse.from(Goal.from(goalEntity))
           assertThat(goals).hasSize(1)
           verifyGoalConsistency(goals[0], savedEntity)
         }
@@ -347,8 +348,8 @@ class GoalControllerTest
     }
 
     private fun verifyGoalConsistency(
-      actual: Goal,
-      expected: Goal,
+      actual: GoalResponse,
+      expected: GoalResponse,
     ) {
       assertThat(actual.id).isEqualTo(expected.id)
       assertThat(actual.title).isEqualTo(expected.title)
@@ -356,9 +357,10 @@ class GoalControllerTest
       assertThat(actual.status).isEqualTo(expected.status)
       assertThat(actual.targetDate.truncatedTo(MILLIS))
         .isEqualTo(expected.targetDate.truncatedTo(MILLIS))
+      assertThat(actual.imagePath).isEqualTo(expected.imagePath)
     }
 
-    private fun getGoals(uri: String): ServiceResponse<List<Goal>> =
+    private fun getGoals(uri: String): ServiceResponse<List<GoalResponse>> =
       webTestClient
         .mutateWith(mockAuthentication(authentication))
         .get()
@@ -367,11 +369,11 @@ class GoalControllerTest
         .exchange()
         .expectStatus()
         .isOk
-        .expectBody<ServiceResponse<List<Goal>>>()
+        .expectBody<ServiceResponse<List<GoalResponse>>>()
         .returnResult()
         .responseBody!!
 
-    private fun postCreateGoal(): Pair<CreateGoalRequest, ServiceResponse<Goal>> {
+    private fun postCreateGoal(): Pair<CreateGoalRequest, ServiceResponse<GoalResponse>> {
       val request =
         CreateGoalRequest(
           title = "Learn Kotlin",
@@ -391,7 +393,7 @@ class GoalControllerTest
           .exchange()
           .expectStatus()
           .isOk
-          .expectBody<ServiceResponse<Goal>>()
+          .expectBody<ServiceResponse<GoalResponse>>()
           .returnResult()
           .responseBody!!
       return Pair(request, response)

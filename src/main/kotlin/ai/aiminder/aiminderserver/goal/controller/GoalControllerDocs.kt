@@ -2,9 +2,9 @@ package ai.aiminder.aiminderserver.goal.controller
 
 import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
-import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
 import ai.aiminder.aiminderserver.goal.dto.GetGoalsRequest
+import ai.aiminder.aiminderserver.goal.dto.GoalResponse
 import ai.aiminder.aiminderserver.user.domain.User
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -56,6 +56,7 @@ interface GoalControllerDocs {
                     "targetDate": "2024-04-15T00:00:00Z",
                     "isAiGenerated": false,
                     "status": "ACTIVE",
+                    "imagePath": "/uploads/images/kotlin-learning-image.jpg",
                     "createdAt": "2024-03-15T10:30:00Z",
                     "updatedAt": "2024-03-15T10:30:00Z",
                     "deletedAt": null
@@ -135,7 +136,7 @@ interface GoalControllerDocs {
   suspend fun createGoal(
     request: CreateGoalRequest,
     @Parameter(hidden = true) user: User,
-  ): ServiceResponse<Goal>
+  ): ServiceResponse<GoalResponse>
 
   @Operation(
     operationId = "getGoals",
@@ -172,6 +173,7 @@ interface GoalControllerDocs {
                       "targetDate": "2024-04-15T00:00:00Z",
                       "isAiGenerated": false,
                       "status": "ACTIVE",
+                      "imagePath": "/uploads/images/kotlin-learning-image.jpg",
                       "createdAt": "2024-03-15T10:30:00Z",
                       "updatedAt": "2024-03-15T10:30:00Z",
                       "deletedAt": null
@@ -184,6 +186,7 @@ interface GoalControllerDocs {
                       "targetDate": "2024-05-01T00:00:00Z",
                       "isAiGenerated": true,
                       "status": "ACTIVE",
+                      "imagePath": null,
                       "createdAt": "2024-03-16T14:20:00Z",
                       "updatedAt": "2024-03-16T14:20:00Z",
                       "deletedAt": null
@@ -243,5 +246,5 @@ interface GoalControllerDocs {
     @Parameter(description = "페이지네이션 정보 (page: 페이지 번호, size: 페이지 크기, sort: 정렬 필드, direction: 정렬 방향)")
     pageable: PageableRequest,
     @Parameter(hidden = true) user: User,
-  ): ServiceResponse<List<Goal>>
+  ): ServiceResponse<List<GoalResponse>>
 }

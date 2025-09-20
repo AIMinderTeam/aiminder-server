@@ -2,11 +2,11 @@ package ai.aiminder.aiminderserver.goal.controller
 
 import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
-import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GetGoalsRequest
 import ai.aiminder.aiminderserver.goal.dto.GetGoalsRequestDto
+import ai.aiminder.aiminderserver.goal.dto.GoalResponse
 import ai.aiminder.aiminderserver.goal.service.GoalService
 import ai.aiminder.aiminderserver.user.domain.User
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -27,7 +27,7 @@ class GoalController(
     request: CreateGoalRequest,
     @AuthenticationPrincipal
     user: User,
-  ): ServiceResponse<Goal> =
+  ): ServiceResponse<GoalResponse> =
     goalService
       .create(
         CreateGoalRequestDto(
@@ -35,6 +35,7 @@ class GoalController(
           title = request.title,
           description = request.description,
           targetDate = request.targetDate,
+          imageId = request.imageId,
         ),
       ).let { goal -> ServiceResponse.from(goal) }
 
@@ -44,7 +45,7 @@ class GoalController(
     pageable: PageableRequest,
     @AuthenticationPrincipal
     user: User,
-  ): ServiceResponse<List<Goal>> =
+  ): ServiceResponse<List<GoalResponse>> =
     goalService
       .get(
         GetGoalsRequestDto.from(
