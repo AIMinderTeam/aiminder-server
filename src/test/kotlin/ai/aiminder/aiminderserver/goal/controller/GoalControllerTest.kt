@@ -212,7 +212,7 @@ class GoalControllerTest
             userId = testUser.id,
             title = "title1",
             targetDate = Instant.now(),
-            status = GoalStatus.ARCHIVED,
+            status = GoalStatus.INPROGRESS,
           ),
         )
         goalRepository.save(
@@ -260,13 +260,13 @@ class GoalControllerTest
               targetDate = Instant.now(),
             ),
           )
-        val archivedGoal =
+        val inProgressGoal =
           goalRepository.save(
             GoalEntity(
               userId = testUser.id,
               title = "title1",
               targetDate = Instant.now(),
-              status = GoalStatus.ARCHIVED,
+              status = GoalStatus.INPROGRESS,
             ),
           )
         val completedGoal =
@@ -281,12 +281,12 @@ class GoalControllerTest
 
         // when
         val response1 = getGoals("/api/v1/goals?status=ACTIVE")
-        val response2 = getGoals("/api/v1/goals?status=ARCHIVED")
+        val response2 = getGoals("/api/v1/goals?status=INPROGRESS")
         val response3 = getGoals("/api/v1/goals?status=COMPLETED")
 
         // then
         assertGoalsAndPagination(response1, activeGoal)
-        assertGoalsAndPagination(response2, archivedGoal)
+        assertGoalsAndPagination(response2, inProgressGoal)
         assertGoalsAndPagination(response3, completedGoal)
       }
 
