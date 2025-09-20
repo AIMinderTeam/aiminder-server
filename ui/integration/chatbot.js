@@ -382,7 +382,7 @@ class ChatBot {
         }
 
         const response = await authManager.makeAuthenticatedRequest(
-            `${CONFIG.API_BASE_URL}/chat/${this.conversationId}`,
+            `${CONFIG.API_BASE_URL}/api/v1/chat/${this.conversationId}`,
             {
                 method: 'POST',
                 headers: {
