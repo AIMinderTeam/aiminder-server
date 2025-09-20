@@ -190,6 +190,10 @@ tasks.named("runKtlintFormatOverMainSourceSet") {
   dependsOn("jooqCodegenMain")
 }
 
+tasks.named("runKtlintCheckOverMainSourceSet") {
+  dependsOn("jooqCodegenMain")
+}
+
 tasks.named<Test>("test") {
   dependsOn("ktlintFormat")
 }
