@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.auth.controller
 
-import ai.aiminder.aiminderserver.common.error.ServiceResponse
+import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.dto.GetUserResponse
 import org.springframework.security.core.annotation.AuthenticationPrincipal

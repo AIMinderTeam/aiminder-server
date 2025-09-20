@@ -7,6 +7,7 @@ data class CreateGoalRequest(
   val title: String,
   val description: String,
   val targetDate: Instant,
+  val imageId: UUID? = null,
 )
 
 data class CreateGoalRequestDto(
@@ -14,4 +15,5 @@ data class CreateGoalRequestDto(
   val title: String,
   val description: String,
   val targetDate: Instant,
+  val imageId: UUID? = null,
 )

@@ -6,8 +6,8 @@ import ai.aiminder.aiminderserver.auth.property.CookieProperties
 import ai.aiminder.aiminderserver.auth.property.SecurityProperties
 import ai.aiminder.aiminderserver.auth.security.AllowedRedirectValidator
 import ai.aiminder.aiminderserver.auth.service.AuthService
-import ai.aiminder.aiminderserver.common.error.ServiceResponse
 import ai.aiminder.aiminderserver.common.property.ClientProperties
+import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.common.util.logger
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.reactor.mono

@@ -9,12 +9,22 @@ aiminder:
     same-site: ${COOKIE_SAME_SITE}
     http-only: ${COOKIE_HTTP_ONLY}
     secure: ${COOKIE_SECURE}
+  image:
+    upload-dir: ./uploads/images
+    max-file-size: 5242880
+    allowed-types: image/jpeg,image/png,image/gif,image/webp
+
 spring:
   ai:
     openai:
       api-key: ${OPEN_API_KEY}
   profiles:
     default: openai, local
+  webflux:
+    multipart:
+      max-in-memory-size: 1MB
+      max-disk-usage-per-part: 5MB
+      max-parts: 1
   security:
     oauth2:
       client:

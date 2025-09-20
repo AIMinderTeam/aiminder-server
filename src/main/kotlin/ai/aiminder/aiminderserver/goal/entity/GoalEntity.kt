@@ -20,7 +20,8 @@ data class GoalEntity(
   val targetDate: Instant,
   val description: String? = null,
   val isAiGenerated: Boolean = false,
-  val status: GoalStatus = GoalStatus.ACTIVE,
+  val status: GoalStatus = GoalStatus.READY,
+  val imageId: UUID? = null,
   val createdAt: Instant = Instant.now(),
   val updatedAt: Instant = createdAt,
   val deletedAt: Instant? = null,
@@ -36,6 +37,7 @@ data class GoalEntity(
         title = dto.title,
         description = dto.description,
         targetDate = dto.targetDate,
+        imageId = dto.imageId,
       )
   }
 }

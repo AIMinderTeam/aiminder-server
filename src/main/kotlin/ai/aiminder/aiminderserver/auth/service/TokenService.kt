@@ -70,9 +70,9 @@ class TokenService(
       false
     }
 
-  suspend fun validateRefreshToken(token: String): Boolean =
+  suspend fun validateRefreshToken(token: RefreshToken): Boolean =
     runCatching {
-      val userId: UUID = getUserIdFromToken(token)
+      val userId: UUID = getUserIdFromRefreshToken(token)
       val foundRefreshToken: RefreshTokenEntity =
         refreshTokenRepository
           .findByUserId(userId)
@@ -86,11 +86,11 @@ class TokenService(
       false
     }
 
-  fun getUserIdFromToken(token: String): UUID =
+  fun getUserIdFromRefreshToken(token: RefreshToken): UUID =
     runCatching {
       Jwts
         .parser()
-        .verifyWith(accessTokenKey)
+        .verifyWith(refreshTokenKey)
         .build()
         .parseSignedClaims(token)
         .payload

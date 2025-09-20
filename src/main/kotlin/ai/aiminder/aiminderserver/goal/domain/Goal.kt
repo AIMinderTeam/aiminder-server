@@ -4,7 +4,7 @@ import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import java.time.Instant
 import java.util.UUID
 
-class Goal(
+data class Goal(
   val id: UUID,
   val userId: UUID,
   val title: String,
@@ -12,6 +12,7 @@ class Goal(
   val targetDate: Instant,
   val isAiGenerated: Boolean,
   val status: GoalStatus,
+  val imageId: UUID?,
   val createdAt: Instant,
   val updatedAt: Instant,
   val deletedAt: Instant?,
@@ -26,6 +27,7 @@ class Goal(
         targetDate = goalEntity.targetDate,
         isAiGenerated = goalEntity.isAiGenerated,
         status = goalEntity.status,
+        imageId = goalEntity.imageId,
         createdAt = goalEntity.createdAt,
         updatedAt = goalEntity.updatedAt,
         deletedAt = goalEntity.deletedAt,
