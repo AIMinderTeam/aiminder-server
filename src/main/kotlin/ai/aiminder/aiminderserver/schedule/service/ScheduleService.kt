@@ -7,6 +7,7 @@ import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequestDto
 import ai.aiminder.aiminderserver.schedule.dto.ScheduleResponse
 import ai.aiminder.aiminderserver.schedule.dto.UpdateScheduleRequestDto
 import ai.aiminder.aiminderserver.schedule.entity.ScheduleEntity
+import ai.aiminder.aiminderserver.schedule.error.ScheduleError
 import ai.aiminder.aiminderserver.schedule.repository.ScheduleRepository
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -81,82 +82,66 @@ class ScheduleService(
     return PageImpl(schedules, dto.pageable, totalCount)
   }
 
-  suspend fun update(dto: UpdateScheduleRequestDto): ScheduleResponse? {
-    try {
-      val existingSchedule = scheduleRepository.findById(dto.id) ?: return null
+  suspend fun update(dto: UpdateScheduleRequestDto): ScheduleResponse {
+    val existingSchedule = scheduleRepository.findById(dto.id) ?: throw ScheduleError.NotFound()
 
-      if (existingSchedule.userId != dto.userId || existingSchedule.deletedAt != null) {
-        return null
-      }
-
-      if (dto.startDate != null && dto.endDate != null) {
-        validateDateRange(dto.startDate, dto.endDate)
-      }
-
-      val updatedSchedule =
-        existingSchedule.copy(
-          title = dto.title ?: existingSchedule.title,
-          description = dto.content ?: existingSchedule.description,
-          status = dto.status ?: existingSchedule.status,
-          startDate = dto.startDate ?: existingSchedule.startDate,
-          endDate = dto.endDate ?: existingSchedule.endDate,
-          updatedAt = Instant.now(),
-        )
-
-      val savedSchedule =
-        scheduleRepository
-          .save(updatedSchedule)
-          .let { Schedule.from(it) }
-
-      return ScheduleResponse.from(savedSchedule)
-    } catch (e: Exception) {
-      logger.warn("Error updating schedule: ${dto.id}", e)
-      return null
+    if (existingSchedule.userId != dto.userId || existingSchedule.deletedAt != null) {
+      throw ScheduleError.AccessDenied()
     }
+
+    if (dto.startDate != null && dto.endDate != null) {
+      validateDateRange(dto.startDate, dto.endDate)
+    }
+
+    val updatedSchedule =
+      existingSchedule.copy(
+        title = dto.title ?: existingSchedule.title,
+        description = dto.content ?: existingSchedule.description,
+        status = dto.status ?: existingSchedule.status,
+        startDate = dto.startDate ?: existingSchedule.startDate,
+        endDate = dto.endDate ?: existingSchedule.endDate,
+        updatedAt = Instant.now(),
+      )
+
+    val savedSchedule =
+      scheduleRepository
+        .save(updatedSchedule)
+        .let { Schedule.from(it) }
+
+    return ScheduleResponse.from(savedSchedule)
   }
 
   suspend fun delete(
     scheduleId: UUID,
     userId: UUID,
-  ): Boolean {
-    try {
-      val existingSchedule = scheduleRepository.findById(scheduleId) ?: return false
+  ) {
+    val existingSchedule = scheduleRepository.findById(scheduleId) ?: throw ScheduleError.NotFound()
 
-      if (existingSchedule.userId != userId || existingSchedule.deletedAt != null) {
-        return false
-      }
-      val now = Instant.now()
-
-      val deletedSchedule =
-        existingSchedule.copy(
-          deletedAt = now,
-          updatedAt = now,
-        )
-
-      scheduleRepository.save(deletedSchedule)
-      return true
-    } catch (e: Exception) {
-      logger.warn("Error deleting schedule: $scheduleId", e)
-      return false
+    if (existingSchedule.userId != userId || existingSchedule.deletedAt != null) {
+      throw ScheduleError.AccessDenied()
     }
+    val now = Instant.now()
+
+    val deletedSchedule =
+      existingSchedule.copy(
+        deletedAt = now,
+        updatedAt = now,
+      )
+
+    scheduleRepository.save(deletedSchedule)
   }
 
   suspend fun findById(
     scheduleId: UUID,
     userId: UUID,
-  ): ScheduleResponse? {
-    try {
-      val schedule = scheduleRepository.findById(scheduleId) ?: return null
+  ): ScheduleResponse {
+    val schedule = scheduleRepository.findById(scheduleId) ?: throw ScheduleError.NotFound()
 
-      if (schedule.userId != userId || schedule.deletedAt != null) {
-        return null
-      }
-
-      return ScheduleResponse.from(Schedule.from(schedule))
-    } catch (e: Exception) {
-      logger.warn("Error finding schedule by id: $scheduleId", e)
-      return null
+    if (schedule.userId != userId || schedule.deletedAt != null) {
+      throw ScheduleError.AccessDenied()
     }
+
+    return ScheduleResponse.from(Schedule.from(schedule))
   }
 
   private fun validateDateRange(
@@ -164,7 +149,7 @@ class ScheduleService(
     endDate: Instant,
   ) {
     if (startDate.isAfter(endDate)) {
-      throw IllegalArgumentException("Start date must be before or equal to end date")
+      throw ScheduleError.InvalidDateRange()
     }
   }
 }

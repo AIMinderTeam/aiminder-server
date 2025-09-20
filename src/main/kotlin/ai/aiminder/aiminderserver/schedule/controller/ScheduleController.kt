@@ -11,7 +11,6 @@ import ai.aiminder.aiminderserver.schedule.dto.UpdateScheduleRequest
 import ai.aiminder.aiminderserver.schedule.dto.UpdateScheduleRequestDto
 import ai.aiminder.aiminderserver.schedule.service.ScheduleService
 import ai.aiminder.aiminderserver.user.domain.User
-import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
 @RestController
@@ -84,7 +82,7 @@ class ScheduleController(
           startDate = request.startDate,
           endDate = request.endDate,
         ),
-      ) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Schedule not found or access denied")
+      )
 
     return ServiceResponse.from(updatedSchedule)
   }
@@ -96,10 +94,7 @@ class ScheduleController(
     @AuthenticationPrincipal
     user: User,
   ): ServiceResponse<String> {
-    val deleted = scheduleService.delete(scheduleId, user.id)
-    if (!deleted) {
-      throw ResponseStatusException(HttpStatus.NOT_FOUND, "Schedule not found or access denied")
-    }
+    scheduleService.delete(scheduleId, user.id)
     return ServiceResponse.from("Schedule deleted successfully")
   }
 
@@ -110,10 +105,7 @@ class ScheduleController(
     @AuthenticationPrincipal
     user: User,
   ): ServiceResponse<ScheduleResponse> {
-    val schedule =
-      scheduleService.findById(scheduleId, user.id)
-        ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Schedule not found or access denied")
-
+    val schedule = scheduleService.findById(scheduleId, user.id)
     return ServiceResponse.from(schedule)
   }
 }
