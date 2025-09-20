@@ -1,6 +1,7 @@
 package ai.aiminder.aiminderserver.schedule.domain
 
 import ai.aiminder.aiminderserver.schedule.entity.ScheduleEntity
+import ai.aiminder.aiminderserver.schedule.repository.row.ScheduleRow
 import java.time.Instant
 import java.util.UUID
 
@@ -31,6 +32,21 @@ data class Schedule(
         createdAt = scheduleEntity.createdAt,
         updatedAt = scheduleEntity.updatedAt,
         deletedAt = scheduleEntity.deletedAt,
+      )
+
+    fun from(scheduleRow: ScheduleRow): Schedule =
+      Schedule(
+        id = scheduleRow.scheduleId,
+        goalId = scheduleRow.goalId,
+        userId = scheduleRow.userId,
+        title = scheduleRow.title,
+        description = scheduleRow.description,
+        status = scheduleRow.toScheduleStatus(),
+        startDate = scheduleRow.startDateToInstant(),
+        endDate = scheduleRow.endDateToInstant(),
+        createdAt = scheduleRow.createdAtToInstant(),
+        updatedAt = scheduleRow.updatedAtToInstant(),
+        deletedAt = scheduleRow.deletedAtToInstant(),
       )
   }
 }

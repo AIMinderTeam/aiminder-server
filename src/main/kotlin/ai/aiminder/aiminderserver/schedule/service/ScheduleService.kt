@@ -7,6 +7,7 @@ import ai.aiminder.aiminderserver.schedule.dto.ScheduleResponse
 import ai.aiminder.aiminderserver.schedule.dto.UpdateScheduleRequestDto
 import ai.aiminder.aiminderserver.schedule.entity.ScheduleEntity
 import ai.aiminder.aiminderserver.schedule.error.ScheduleError
+import ai.aiminder.aiminderserver.schedule.repository.ScheduleQueryRepository
 import ai.aiminder.aiminderserver.schedule.repository.ScheduleRepository
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -19,6 +20,7 @@ import java.util.UUID
 @Service
 class ScheduleService(
   private val scheduleRepository: ScheduleRepository,
+  private val scheduleQueryRepository: ScheduleQueryRepository,
 ) {
   suspend fun create(dto: CreateScheduleRequestDto): ScheduleResponse {
     validateDateRange(dto.startDate, dto.endDate)
@@ -34,47 +36,12 @@ class ScheduleService(
 
   suspend fun get(dto: GetSchedulesRequestDto): Page<ScheduleResponse> {
     val schedules =
-      when {
-        dto.goalId != null -> {
-          scheduleRepository
-            .findByUserIdAndGoalIdAndDeletedAtIsNull(
-              userId = dto.userId,
-              goalId = dto.goalId,
-              pageable = dto.pageable,
-            )
-        }
-
-        dto.status != null -> {
-          scheduleRepository
-            .findByUserIdAndStatusAndDeletedAtIsNull(
-              userId = dto.userId,
-              status = dto.status,
-              pageable = dto.pageable,
-            )
-        }
-
-        dto.startDate != null && dto.endDate != null -> {
-          scheduleRepository
-            .findByUserIdAndStartDateBetweenAndDeletedAtIsNull(
-              userId = dto.userId,
-              startDate = dto.startDate,
-              endDate = dto.endDate,
-              pageable = dto.pageable,
-            )
-        }
-
-        else -> {
-          scheduleRepository
-            .findByUserIdAndDeletedAtIsNull(
-              userId = dto.userId,
-              pageable = dto.pageable,
-            )
-        }
-      }.map { Schedule.from(it) }
-        .map { ScheduleResponse.from(it) }
+      scheduleQueryRepository
+        .findSchedulesBy(dto)
+        .map { ScheduleResponse.from(Schedule.from(it)) }
         .toList()
 
-    val totalCount = scheduleRepository.countByUserIdAndDeletedAtIsNull(dto.userId)
+    val totalCount = scheduleQueryRepository.countBy(dto)
 
     return PageImpl(schedules, dto.pageable, totalCount)
   }
