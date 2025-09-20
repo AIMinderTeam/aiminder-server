@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Repository
-import java.time.LocalDate
+import java.time.Instant
 import java.util.UUID
 
 @Repository
@@ -30,8 +30,8 @@ interface ScheduleRepository : CoroutineCrudRepository<ScheduleEntity, UUID> {
 
   suspend fun findByUserIdAndStartDateBetweenAndDeletedAtIsNull(
     userId: UUID,
-    startDate: LocalDate,
-    endDate: LocalDate,
+    startDate: Instant,
+    endDate: Instant,
     pageable: Pageable,
   ): Flow<ScheduleEntity>
 
