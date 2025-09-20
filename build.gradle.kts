@@ -1,3 +1,6 @@
+
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
   kotlin("jvm") version "1.9.25"
   kotlin("plugin.spring") version "1.9.25"
@@ -7,6 +10,7 @@ plugins {
   id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
   id("pl.allegro.tech.build.axion-release") version "1.18.17"
   id("org.jlleitschuh.gradle.ktlint") version "12.2.0"
+  id("org.jooq.jooq-codegen-gradle") version "3.19.14"
 }
 
 scmVersion {
@@ -31,11 +35,11 @@ repositories {
 extra["springAiVersion"] = "1.0.0"
 
 val testContainerVersion = "1.21.3"
+val jooqVersion = "3.19.4"
+val jwtVersion = "0.12.3"
+val flywayVersion = "11.10.4"
 
 dependencies {
-  val jwtVersion = "0.12.3"
-  val flywayVersion = "11.10.4"
-
   // env
   implementation("io.github.cdimascio:dotenv-java:3.0.0")
 
@@ -65,6 +69,14 @@ dependencies {
   implementation("io.jsonwebtoken:jjwt-api:$jwtVersion")
   implementation("io.jsonwebtoken:jjwt-impl:$jwtVersion")
   implementation("io.jsonwebtoken:jjwt-jackson:$jwtVersion")
+
+  // jooq
+  implementation("org.jooq:jooq:$jooqVersion")
+  implementation("org.jooq:jooq-kotlin:$jooqVersion")
+  jooqCodegen("jakarta.xml.bind:jakarta.xml.bind-api:4.0.2")
+  jooqCodegen("org.jooq:jooq-meta-extensions:$jooqVersion")
+  jooqCodegen("org.jooq:jooq-meta-kotlin:$jooqVersion")
+  jooqCodegen("com.h2database:h2:2.3.232")
 
   // flyway
   implementation("org.flywaydb:flyway-core:$flywayVersion")
@@ -98,6 +110,55 @@ dependencyManagement {
   }
 }
 
+jooq {
+  version = jooqVersion
+  configuration { }
+
+  executions {
+    create("main") {
+      configuration {
+        logging = org.jooq.meta.jaxb.Logging.DEBUG
+        jdbc = null
+        generator {
+          name = "org.jooq.codegen.KotlinGenerator"
+          database {
+            name = "org.jooq.meta.extensions.ddl.DDLDatabase"
+            properties {
+              property {
+                key = "scripts"
+                value = "src/main/resources/db/jooq/schema.sql"
+              }
+              property {
+                key = "sort"
+                value = "semantic"
+              }
+              property {
+                key = "unqualifiedSchema"
+                value = "none"
+              }
+              property {
+                key = "defaultNameCase"
+                value = "lower"
+              }
+            }
+          }
+          generate {
+            isPojosAsKotlinDataClasses = true
+            isImplicitJoinPathsToMany = false
+          }
+          target {
+            packageName = "com.devooks.backend.jooq"
+            directory = "$projectDir/build/generated/jooq"
+          }
+          strategy {
+            name = "org.jooq.codegen.DefaultGeneratorStrategy"
+          }
+        }
+      }
+    }
+  }
+}
+
 configurations.all {
   resolutionStrategy {
     force("io.swagger.core.v3:swagger-annotations:2.2.36")
@@ -107,9 +168,11 @@ configurations.all {
   }
 }
 
-kotlin {
-  compilerOptions {
-    freeCompilerArgs.addAll("-Xjsr305=strict")
+tasks.withType<KotlinCompile> {
+  dependsOn("jooqCodegenMain")
+  kotlinOptions {
+    freeCompilerArgs += "-Xjsr305=strict"
+    jvmTarget = "21"
   }
 }
 
