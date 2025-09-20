@@ -11,6 +11,8 @@ import org.springframework.ai.chat.memory.repository.jdbc.PostgresChatMemoryRepo
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.transaction.ReactiveTransactionManager
+import org.springframework.transaction.annotation.TransactionManagementConfigurer
 import javax.sql.DataSource
 
 @Configuration
@@ -46,4 +48,9 @@ class ChatMemoryConfig(
       .chatMemoryRepository(chatMemoryRepository)
       .maxMessages(20)
       .build()
+
+  @Bean
+  fun transactionManagementConfigurer(
+    reactiveTransactionManager: ReactiveTransactionManager,
+  ): TransactionManagementConfigurer = TransactionManagementConfigurer { reactiveTransactionManager }
 }
