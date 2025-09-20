@@ -1,4 +1,6 @@
-create table public.flyway_schema_history
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+create table flyway_schema_history
 (
   installed_rank integer                 not null
     constraint flyway_schema_history_pk
@@ -14,13 +16,7 @@ create table public.flyway_schema_history
   success        boolean                 not null
 );
 
-alter table public.flyway_schema_history
-  owner to aiminder;
-
-create index flyway_schema_history_s_idx
-  on public.flyway_schema_history (success);
-
-create table public.users
+create table users
 (
   user_id     uuid      default uuid_generate_v4() not null
     primary key,
@@ -31,40 +27,28 @@ create table public.users
   unique (provider, provider_id)
 );
 
-alter table public.users
-  owner to aiminder;
-
-create index idx_users_provider_id
-  on public.users (provider, provider_id);
-
-create table public.refresh_token
+create table refresh_token
 (
   refresh_token_id uuid      default uuid_generate_v4() not null
     primary key,
   user_id          uuid                                 not null
     constraint fk_refresh_token_user
-      references public.users
+      references users
       on delete cascade,
-  token            text                                 not null
+  token            varchar(1000)                        not null
     constraint uq_refresh_token_token
       unique,
   created_at       timestamp default CURRENT_TIMESTAMP,
   updated_at       timestamp default CURRENT_TIMESTAMP
 );
 
-alter table public.refresh_token
-  owner to aiminder;
-
-create index idx_refresh_token_user_id
-  on public.refresh_token (user_id);
-
-create table public.images
+create table images
 (
   image_id           uuid      default uuid_generate_v4() not null
     primary key,
   user_id            uuid                                 not null
     constraint fk_images_user
-      references public.users
+      references users
       on delete cascade,
   original_file_name varchar(255)                         not null,
   stored_file_name   varchar(255)                         not null,
@@ -76,16 +60,13 @@ create table public.images
   deleted_at         timestamp
 );
 
-alter table public.images
-  owner to aiminder;
-
-create table public.goals
+create table goals
 (
   goal_id         uuid      default uuid_generate_v4()          not null
     primary key,
   user_id         uuid                                          not null
     constraint fk_goals_user
-      references public.users
+      references users
       on delete cascade,
   title           varchar(500)                                  not null,
   description     text,
@@ -97,51 +78,21 @@ create table public.goals
   deleted_at      timestamp,
   image_id        uuid
     constraint fk_goals_image
-      references public.images
+      references images
       on delete set null
 );
 
-alter table public.goals
-  owner to aiminder;
-
-create index idx_goals_user_id
-  on public.goals (user_id);
-
-create index idx_goals_status
-  on public.goals (status);
-
-create index idx_goals_deleted_at
-  on public.goals (deleted_at)
-  where (deleted_at IS NULL);
-
-create index idx_goals_image_id
-  on public.goals (image_id);
-
-create index idx_images_user_id
-  on public.images (user_id);
-
-create index idx_images_created_at
-  on public.images (created_at);
-
-create index idx_images_deleted_at
-  on public.images (deleted_at)
-  where (deleted_at IS NULL);
-
-create unique index idx_images_stored_file_name
-  on public.images (stored_file_name)
-  where (deleted_at IS NULL);
-
-create table public.schedules
+create table schedules
 (
   schedule_id uuid        default uuid_generate_v4()         not null
     primary key,
   goal_id     uuid                                           not null
     constraint fk_schedules_goal
-      references public.goals
+      references goals
       on delete cascade,
   user_id     uuid                                           not null
     constraint fk_schedules_user
-      references public.users
+      references users
       on delete cascade,
   title       varchar(255)                                   not null,
   description text,
@@ -154,23 +105,3 @@ create table public.schedules
   constraint chk_schedule_dates
     check (start_date <= end_date)
 );
-
-alter table public.schedules
-  owner to aiminder;
-
-create index idx_schedules_user_id
-  on public.schedules (user_id);
-
-create index idx_schedules_goal_id
-  on public.schedules (goal_id);
-
-create index idx_schedules_status
-  on public.schedules (status);
-
-create index idx_schedules_dates
-  on public.schedules (start_date, end_date);
-
-create index idx_schedules_deleted_at
-  on public.schedules (deleted_at)
-  where (deleted_at IS NULL);
-
