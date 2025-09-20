@@ -24,7 +24,6 @@ class JwtDecoderConfig {
       .macAlgorithm(MacAlgorithm.HS256)
       .build()
 
-  // Backward-compatible composite (optional usage)
   @Bean("reactiveJwtDecoder")
   fun reactiveJwtDecoder(
     @Qualifier("accessJwtDecoder") accessDecoder: ReactiveJwtDecoder,

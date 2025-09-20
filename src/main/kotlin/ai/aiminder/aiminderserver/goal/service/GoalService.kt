@@ -58,7 +58,6 @@ class GoalService(
     return PageImpl(goalResponses, dto.pageable, totalCount)
   }
 
-  // 에러 처리 개선
   private suspend fun getImagePath(imageId: UUID?): String? =
     imageId?.let { id ->
       try {

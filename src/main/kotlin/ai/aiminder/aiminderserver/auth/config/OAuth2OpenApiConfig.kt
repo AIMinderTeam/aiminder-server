@@ -24,8 +24,7 @@ class OAuth2OpenApiConfig {
             .description(
               "로그인 성공 후 리다이렉트될 클라이언트 URL. 허용된 호스트에 한해 " +
                 "최대 180초 동안 임시 쿠키(`OAUTH2_RETURN_TO`)로 저장됩니다.",
-            )
-            .required(false)
+            ).required(false)
             .`in`("query")
             .schema(StringSchema())
 
@@ -54,7 +53,7 @@ class OAuth2OpenApiConfig {
                 "이 엔드포인트는 Google 인증 페이지로 리다이렉트됩니다.",
             ).addParametersItem(returnToParam)
             .responses(responses)
-            .security(listOf()) // permitAll
+            .security(listOf())
 
         val pathItem = PathItem().get(op)
         openApi.path("/oauth2/authorization/google", pathItem)
@@ -67,8 +66,7 @@ class OAuth2OpenApiConfig {
             .description(
               "로그인 성공 후 리다이렉트될 클라이언트 URL. 허용된 호스트에 한해 " +
                 "최대 180초 동안 임시 쿠키(`OAUTH2_RETURN_TO`)로 저장됩니다.",
-            )
-            .required(false)
+            ).required(false)
             .`in`("query")
             .schema(StringSchema())
 
@@ -97,7 +95,7 @@ class OAuth2OpenApiConfig {
                 "이 엔드포인트는 Kakao 인증 페이지로 리다이렉트됩니다.",
             ).addParametersItem(returnToParam)
             .responses(responses)
-            .security(listOf()) // permitAll
+            .security(listOf())
 
         val pathItem = PathItem().get(op)
         openApi.path("/oauth2/authorization/kakao", pathItem)
@@ -131,9 +129,8 @@ class OAuth2OpenApiConfig {
                 "로그인 성공 시 `ACCESS_TOKEN`, `REFRESH_TOKEN` 쿠키가 설정되며, " +
                 "유효한 `return_to`가 제공된 경우 해당 URL로, 없거나 허용되지 않은 경우 기본 리다이렉트 베이스 URL로 이동합니다.",
             ).responses(responses)
-            .security(listOf()) // permitAll
+            .security(listOf())
 
-        // 스펙 유효성 오류 해결: 경로 변수 `{provider}` 정의 추가
         val providerParam =
           Parameter()
             .name("provider")
