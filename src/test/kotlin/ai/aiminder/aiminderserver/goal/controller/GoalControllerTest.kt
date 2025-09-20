@@ -280,7 +280,7 @@ class GoalControllerTest
           )
 
         // when
-        val response1 = getGoals("/api/v1/goals?status=ACTIVE")
+        val response1 = getGoals("/api/v1/goals?status=READY")
         val response2 = getGoals("/api/v1/goals?status=INPROGRESS")
         val response3 = getGoals("/api/v1/goals?status=COMPLETED")
 

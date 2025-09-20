@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable
 import java.util.UUID
 
 data class GetGoalsRequest(
-  val status: GoalStatus = GoalStatus.ACTIVE,
+  val status: GoalStatus = GoalStatus.READY,
 )
 
 data class GetGoalsRequestDto(
