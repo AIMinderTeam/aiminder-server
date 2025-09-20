@@ -130,7 +130,7 @@ class ScheduleControllerTest
             description = "Content 2",
             startDate = Instant.parse("2024-03-21T00:00:00Z"),
             endDate = Instant.parse("2024-03-25T00:00:00Z"),
-            status = ScheduleStatus.INPROGRESS,
+            status = ScheduleStatus.COMPLETED,
           ),
         )
 
@@ -170,7 +170,7 @@ class ScheduleControllerTest
           UpdateScheduleRequest(
             title = "Updated Title",
             description = "Updated Content",
-            status = ScheduleStatus.INPROGRESS,
+            status = ScheduleStatus.COMPLETED,
           )
 
         // when & then
@@ -187,7 +187,7 @@ class ScheduleControllerTest
           .value { response ->
             assertThat(response.data?.title).isEqualTo("Updated Title")
             assertThat(response.data?.description).isEqualTo("Updated Content")
-            assertThat(response.data?.status).isEqualTo(ScheduleStatus.INPROGRESS)
+            assertThat(response.data?.status).isEqualTo(ScheduleStatus.COMPLETED)
           }
       }
 
