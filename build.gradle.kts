@@ -104,6 +104,12 @@ dependencies {
   }
 }
 
+ktlint {
+  filter {
+    exclude("**/jooq/**")
+  }
+}
+
 dependencyManagement {
   imports {
     mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
@@ -147,7 +153,7 @@ jooq {
             isImplicitJoinPathsToMany = false
           }
           target {
-            packageName = "com.devooks.backend.jooq"
+            packageName = "ai.aiminder.aiminderserver.jooq"
             directory = "$projectDir/build/generated/jooq"
           }
           strategy {
@@ -178,6 +184,10 @@ tasks.withType<KotlinCompile> {
 
 tasks.withType<Test> {
   useJUnitPlatform()
+}
+
+tasks.named("runKtlintFormatOverMainSourceSet") {
+  dependsOn("jooqCodegenMain")
 }
 
 tasks.named<Test>("test") {
