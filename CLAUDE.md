@@ -28,6 +28,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Run all tests (includes integration tests with TestContainers)
 ./gradlew test
 
+# Run single test class
+./gradlew test --tests "ClassName"
+
+# Run single test method
+./gradlew test --tests "ClassName.methodName"
+
 # API testing via HTTP files
 # See src/test/api/test.http
 ```
@@ -98,3 +104,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Integration tests require Docker for TestContainers
 - Environment variables must be set via `.env` file for local development
 - Database container auto-started by openapi-generate.sh script when needed
+- Java 21 is required (configured in build.gradle.kts)
+- Uses Gradle Kotlin DSL for build configuration
+
+### Local Development Requirements
+- PostgreSQL 14+ running on localhost:5432
+- `.env` file with required environment variables (see README.md for template)
+- Docker for TestContainers and OpenAPI generation
