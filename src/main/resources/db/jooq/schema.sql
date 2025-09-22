@@ -99,3 +99,16 @@ create table spring_ai_chat_memory
   timestamp       timestamp default CURRENT_TIMESTAMP,
   primary key (conversation_id, message_index)
 );
+
+
+create table conversations
+(
+  conversation_id uuid      default uuid_generate_v4() not null
+    primary key,
+  user_id         uuid                                 not null
+    constraint fk_conversations_user
+      references users
+      on delete cascade,
+  created_at      timestamp default CURRENT_TIMESTAMP  not null,
+  deleted_at      timestamp
+);

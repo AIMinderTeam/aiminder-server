@@ -1,4 +1,4 @@
-CREATE TABLE conversations
+CREATE TABLE IF NOT EXISTS conversations
 (
   conversation_id UUID PRIMARY KEY      DEFAULT uuid_generate_v4(),
   user_id         UUID         NOT NULL,
@@ -9,5 +9,5 @@ CREATE TABLE conversations
     REFERENCES users (user_id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_conversations_user_id ON conversations (user_id);
-CREATE INDEX idx_conversations_deleted_at ON conversations (deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations (user_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_deleted_at ON conversations (deleted_at) WHERE deleted_at IS NULL;
