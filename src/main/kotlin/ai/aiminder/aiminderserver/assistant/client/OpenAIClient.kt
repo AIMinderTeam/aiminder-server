@@ -40,34 +40,26 @@ class OpenAIClient(
       val systemMessage = SystemMessage(now + systemMessage.getContentAsString(Charsets.UTF_8))
       val userMessage = UserMessage(userMessage)
       val prompt = Prompt(listOf(systemMessage, userMessage), chatOptions)
-      var retryCount = 0
-      var response: T? = null
+      var response: T?
 
-      while (retryCount < 5) {
-        try {
-          val chatResponse =
-            chatClient
-              .prompt(
-                prompt,
-              ).advisors { it.param(ChatMemory.CONVERSATION_ID, conversationId) }
-              .tools(goalTool)
-              .call()
-              .chatResponse()
-          val text =
-            chatResponse?.result?.output?.text
-              ?: throw AssistantError.InferenceError("결과가 존재하지 않습니다.")
-          response = outputConverter.convert(text)
-            ?: throw AssistantError.InferenceError("변환을 실패했습니다.")
-          return@withContext response
-        } catch (exception: Exception) {
-          retryCount++
-          if (retryCount == 5) {
-            logger.error("AI 요청을 실패했습니다.", exception)
-            throw AssistantError.InferenceError("AI 요청을 실패했습니다.")
-          }
-          logger.error("AI 재요청을 수행합니다.", exception)
-        }
+      try {
+        val chatResponse =
+          chatClient
+            .prompt(
+              prompt,
+            ).advisors { it.param(ChatMemory.CONVERSATION_ID, conversationId) }
+            .tools(goalTool)
+            .call()
+            .chatResponse()
+        val text =
+          chatResponse?.result?.output?.text
+            ?: throw AssistantError.InferenceError("AI 결과가 존재하지 않습니다.")
+        response = outputConverter.convert(text)
+          ?: throw AssistantError.InferenceError("AI 변환을 실패했습니다.")
+        return@withContext response
+      } catch (exception: Exception) {
+        logger.error("AI 요청을 실패했습니다.", exception)
+        throw AssistantError.InferenceError("AI 요청을 실패했습니다.")
       }
-      return@withContext response ?: throw AssistantError.InferenceError("AI 요청을 실패했습니다")
     }
 }
