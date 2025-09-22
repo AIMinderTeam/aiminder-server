@@ -5,6 +5,7 @@ import ai.aiminder.aiminderserver.assistant.domain.Conversation
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.service.AssistantService
 import ai.aiminder.aiminderserver.assistant.service.ConversationService
+import ai.aiminder.aiminderserver.common.error.CommonError
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.user.domain.User
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -40,6 +41,9 @@ class AssistantController(
     @RequestBody
     request: AssistantRequest,
   ): ServiceResponse<AssistantResponse> {
+    if (request.text.isBlank()) {
+      throw CommonError.InvalidRequest("메시지 내용이 비어있습니다.")
+    }
     conversationService.findById(conversationId)
     val assistantResponse: AssistantResponse = assistantService.sendMessage(conversationId, request)
     return ServiceResponse.from(assistantResponse)

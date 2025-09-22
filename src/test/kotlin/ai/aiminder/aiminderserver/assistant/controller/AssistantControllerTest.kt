@@ -289,7 +289,7 @@ class AssistantControllerTest
       }
 
     @Test
-    fun `빈 메시지 전송 시 AI 서비스 에러 처리`() =
+    fun `빈 메시지 전송 시 400 Bad Request 반환`() =
       runTest {
         // given
         val conversation =
@@ -298,9 +298,7 @@ class AssistantControllerTest
           )
         val emptyTextRequest = AssistantRequest(text = "")
 
-        mockAssistantChatResponse(conversation, emptyTextRequest)
-
-        // when - 현재 구현에서는 빈 문자열도 AI 서비스로 전달되어 정상 처리됨
+        // when
         val response =
           webTestClient
             .mutateWith(mockAuthentication(authentication))
@@ -310,20 +308,21 @@ class AssistantControllerTest
             .bodyValue(emptyTextRequest)
             .exchange()
             .expectStatus()
-            .isOk
-            .expectBody<ServiceResponse<AssistantResponse>>()
+            .isBadRequest
+            .expectBody<ServiceResponse<Unit>>()
             .returnResult()
             .responseBody!!
 
         // then
         response.also {
-          assertThat(it.statusCode).isEqualTo(200)
-          assertThat(it.data).isNotNull
+          assertThat(it.statusCode).isEqualTo(400)
+          assertThat(it.errorCode).isEqualTo("COMMON:INVALIDREQUEST")
+          assertThat(it.message).isEqualTo("메시지 내용이 비어있습니다.")
         }
       }
 
     @Test
-    fun `공백만 포함된 메시지 전송 시 AI 서비스 에러 처리`() =
+    fun `공백만 포함된 메시지 전송 시 400 Bad Request 반환`() =
       runTest {
         // given
         val conversation =
@@ -332,9 +331,7 @@ class AssistantControllerTest
           )
         val whitespaceOnlyRequest = AssistantRequest(text = "   ")
 
-        mockAssistantChatResponse(conversation, whitespaceOnlyRequest)
-
-        // when - 현재 구현에서는 공백만 포함된 문자열도 AI 서비스로 전달되어 정상 처리됨
+        // when
         val response =
           webTestClient
             .mutateWith(mockAuthentication(authentication))
@@ -344,15 +341,16 @@ class AssistantControllerTest
             .bodyValue(whitespaceOnlyRequest)
             .exchange()
             .expectStatus()
-            .isOk
-            .expectBody<ServiceResponse<AssistantResponse>>()
+            .isBadRequest
+            .expectBody<ServiceResponse<Unit>>()
             .returnResult()
             .responseBody!!
 
         // then
         response.also {
-          assertThat(it.statusCode).isEqualTo(200)
-          assertThat(it.data).isNotNull
+          assertThat(it.statusCode).isEqualTo(400)
+          assertThat(it.errorCode).isEqualTo("COMMON:INVALIDREQUEST")
+          assertThat(it.message).isEqualTo("메시지 내용이 비어있습니다.")
         }
       }
 
