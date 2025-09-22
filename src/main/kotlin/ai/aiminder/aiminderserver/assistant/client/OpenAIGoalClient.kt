@@ -9,7 +9,7 @@ import java.util.UUID
 
 @Component
 class OpenAIGoalClient(
-  @Value("classpath:/prompts/goal_prompt.txt")
+  @param:Value("classpath:/prompts/goal_prompt.txt")
   private val systemPrompt: Resource,
   private val openAIClient: OpenAIClient,
 ) : AssistantClient {
