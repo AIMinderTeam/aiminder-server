@@ -386,7 +386,7 @@ class AssistantControllerTest
       }
 
     @Test
-    fun `다른 사용자의 대화방 접근 시 정상적으로 처리`() =
+    fun `다른 사용자의 대화방 접근 시 401 Unauthorized 반환`() =
       runTest {
         // given - 다른 사용자 생성
         val anotherUser =
@@ -405,9 +405,7 @@ class AssistantControllerTest
 
         val request = AssistantRequest(text = "Hello!")
 
-        mockAssistantChatResponse(anotherUserConversation, request)
-
-        // when - 현재는 대화방 접근 권한 검증이 없어 정상 처리됨 (향후 권한 검증 추가 필요)
+        // when - 다른 사용자의 대화방에 접근하므로 401 에러 발생
         val response =
           webTestClient
             .mutateWith(mockAuthentication(authentication))
@@ -417,14 +415,16 @@ class AssistantControllerTest
             .bodyValue(request)
             .exchange()
             .expectStatus()
-            .isOk
-            .expectBody<ServiceResponse<AssistantResponse>>()
+            .isUnauthorized
+            .expectBody<ServiceResponse<Unit>>()
             .returnResult()
             .responseBody!!
 
         // then
-        assertThat(response.statusCode).isEqualTo(200)
-        assertThat(response.data).isNotNull
+        assertThat(response.statusCode).isEqualTo(401)
+        assertThat(response.errorCode).isEqualTo("AUTH:UNAUTHORIZED")
+        assertThat(response.message).isEqualTo("인증이 필요합니다. 로그인을 진행해주세요.")
+        assertThat(response.data).isNull()
       }
 
     @Test

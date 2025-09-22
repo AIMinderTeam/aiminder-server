@@ -40,11 +40,13 @@ class AssistantController(
     conversationId: UUID,
     @RequestBody
     request: AssistantRequest,
+    @AuthenticationPrincipal
+    user: User,
   ): ServiceResponse<AssistantResponse> {
     if (request.text.isBlank()) {
       throw CommonError.InvalidRequest("메시지 내용이 비어있습니다.")
     }
-    conversationService.findById(conversationId)
+    conversationService.validateUserAuthorization(conversationId, user)
     val assistantResponse: AssistantResponse = assistantService.sendMessage(conversationId, request)
     return ServiceResponse.from(assistantResponse)
   }
