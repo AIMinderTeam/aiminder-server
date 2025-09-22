@@ -1,6 +1,9 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
+import ai.aiminder.aiminderserver.assistant.client.AssistantClient
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.entity.ConversationEntity
 import ai.aiminder.aiminderserver.assistant.repository.ConversationRepository
@@ -11,6 +14,9 @@ import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.entity.UserEntity
 import ai.aiminder.aiminderserver.user.repository.UserRepository
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.clearMocks
+import io.mockk.coEvery
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
@@ -31,12 +37,17 @@ class AssistantControllerTest
     private val userRepository: UserRepository,
     private val conversationRepository: ConversationRepository,
   ) : BaseIntegrationTest() {
+    @MockkBean
+    private lateinit var assistantClient: AssistantClient
     private lateinit var testUser: User
     private lateinit var authentication: UsernamePasswordAuthenticationToken
 
     @BeforeEach
     fun setUp() =
       runTest {
+        // Clear all mocks before each test
+        clearMocks(assistantClient)
+
         val savedUser =
           userRepository.save(
             UserEntity(
@@ -75,7 +86,12 @@ class AssistantControllerTest
           assertThat(it.statusCode).isEqualTo(200)
           assertThat(it.data).isNotNull
           assertThat(it.data?.responses).isNotEmpty
-          assertThat(it.data?.responses?.first()?.messages).isNotEmpty
+          assertThat(
+            it.data
+              ?.responses
+              ?.first()
+              ?.messages,
+          ).isNotEmpty
         }
 
         // 새로운 Conversation이 생성되었는지 확인
@@ -156,7 +172,9 @@ class AssistantControllerTest
           )
         val request = AssistantRequest(text = "안녕하세요! 오늘 날씨가 어떤가요?")
 
-        // when - 현재 AI 서비스가 설정되지 않아 500 에러가 예상됨
+        mockAssistantChatResponse(conversation, request)
+
+        // when - AI 응답이 모킹되어 정상 처리 예상
         val response =
           webTestClient
             .mutateWith(mockAuthentication(authentication))
@@ -166,18 +184,50 @@ class AssistantControllerTest
             .bodyValue(request)
             .exchange()
             .expectStatus()
-            .is5xxServerError
-            .expectBody<ServiceResponse<Unit>>()
+            .isOk
+            .expectBody<ServiceResponse<AssistantResponse>>()
             .returnResult()
             .responseBody!!
 
-        // then - AI 서비스 에러로 인한 500 에러 확인
+        // then - 정상 AI 응답 확인
         response.also {
-          assertThat(it.statusCode).isEqualTo(500)
-          assertThat(it.errorCode).isEqualTo("ASSISTANT:INFERENCEERROR")
-          assertThat(it.message).isEqualTo("AI 요청을 실패했습니다.")
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data?.responses).isNotEmpty
+          assertThat(
+            it.data
+              ?.responses
+              ?.first()
+              ?.type,
+          ).isEqualTo(AssistantResponseType.TEXT)
+          assertThat(
+            it.data
+              ?.responses
+              ?.first()
+              ?.messages,
+          ).contains("안녕하세요! 오늘은 맑고 화창한 날씨입니다. 기온은 22도 정도로 외출하기에 좋은 날씨네요!")
         }
       }
+
+    private fun mockAssistantChatResponse(
+      conversation: ConversationEntity,
+      request: AssistantRequest,
+    ) {
+      val mockAIResponse =
+        AssistantResponse(
+          responses =
+            listOf(
+              AssistantResponseDto(
+                type = AssistantResponseType.TEXT,
+                messages = listOf("안녕하세요! 오늘은 맑고 화창한 날씨입니다. 기온은 22도 정도로 외출하기에 좋은 날씨네요!"),
+              ),
+            ),
+        )
+
+      coEvery {
+        assistantClient.chat(conversation.id!!, request)
+      } returns mockAIResponse
+    }
 
     @Test
     fun `존재하지 않는 대화방으로 메시지 전송 시 AI 서비스 에러 반환`() {
