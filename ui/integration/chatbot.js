@@ -167,35 +167,127 @@ class ChatBot {
     /**
      * Start a new conversation
      */
-    startNewConversation() {
+    async startNewConversation() {
         if (!this.currentUser) {
             console.warn('Cannot start conversation without authenticated user');
             return;
         }
 
-        // Generate new conversation ID
-        this.conversationId = Utils.generateUUID();
+        this.setLoading(true);
+        this.clearMessageContainer();
 
-        // Clear message container
+        try {
+            const assistantResponse = await this.requestNewConversationFromServer();
+            this.createConversationWithServerResponse(assistantResponse, true);
+            console.log('Started new conversation:', this.conversationId);
+        } catch (error) {
+            console.error('Failed to start conversation:', error);
+            this.displayError('새로운 대화를 시작할 수 없습니다. 다시 시도해주세요.');
+            this.createFallbackConversation();
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    /**
+     * Clear message container
+     */
+    clearMessageContainer() {
         if (this.messageContainer) {
             this.messageContainer.innerHTML = '';
         }
+    }
 
-        // Create new conversation
-        const newConversation = {
+    /**
+     * Request new conversation from server
+     */
+    async requestNewConversationFromServer() {
+        const response = await authManager.makeAuthenticatedRequest(
+            `${CONFIG.API_BASE_URL}/api/v1/chat`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.data;
+    }
+
+    /**
+     * Create conversation with server response
+     */
+    createConversationWithServerResponse(assistantResponse, serverSynced) {
+        // TODO: Backend needs to include conversationId in response
+        // For now, generate temporary UUID until backend is updated
+        this.conversationId = Utils.generateUUID();
+        
+        const newConversation = this.createConversationObject(serverSynced);
+        this.addConversationToHistory(newConversation);
+        
+        // Display server's welcome message
+        const time = this.saveMessage('assistant', null, assistantResponse);
+        this.displayAssistantMessage(assistantResponse, time, false);
+    }
+
+    /**
+     * Create fallback conversation when server is unavailable
+     */
+    createFallbackConversation() {
+        this.conversationId = Utils.generateUUID();
+        const fallbackConversation = this.createConversationObject(false);
+        this.addConversationToHistory(fallbackConversation);
+        
+        const fallbackResponse = this.createFallbackWelcomeResponse();
+        const time = this.saveMessage('assistant', null, fallbackResponse);
+        this.displayAssistantMessage(fallbackResponse, time, false);
+    }
+
+    /**
+     * Create conversation object
+     */
+    createConversationObject(serverSynced) {
+        return {
             id: this.conversationId,
             title: '새 대화',
             date: new Date().toISOString(),
             messages: [],
-            userId: this.currentUser.id
+            userId: this.currentUser.id,
+            serverSynced: serverSynced
         };
+    }
 
-        this.conversations.push(newConversation);
+    /**
+     * Add conversation to history and save
+     */
+    addConversationToHistory(conversation) {
+        this.conversations.push(conversation);
         this.saveConversations();
         this.loadConversationHistory();
-        this.showWelcomeMessage();
+    }
 
-        console.log('Started new conversation:', this.conversationId);
+    /**
+     * Create fallback welcome response compatible with server format
+     */
+    createFallbackWelcomeResponse() {
+        return {
+            responses: [
+                {
+                    type: "TEXT",
+                    messages: [`안녕하세요, ${this.currentUser?.name || '사용자'}님! 👋 저는 당신의 AI 목표 코칭 비서입니다. 지금부터 목표 달성 여정을 함께 설계해 봐요. 먼저, 목표를 명확히 파악해야 해요. 🎯 이루고자 하는 목표는 무엇인가요❓`]
+                },
+                {
+                    type: "QUICK_REPLIES",
+                    messages: ["다이어트 💪", "경제적 자유 💰", "자격증 취득 🏅", "새로운 습관 만들기 🌱"]
+                }
+            ]
+        };
     }
 
     /**
@@ -272,26 +364,6 @@ class ChatBot {
         }
     }
 
-    /**
-     * Show welcome message
-     */
-    showWelcomeMessage() {
-        const welcomeResponse = {
-            responses: [
-                {
-                    type: "TEXT",
-                    messages: [`안녕하세요, ${this.currentUser?.name || '사용자'}님! 👋 저는 당신의 AI 목표 코칭 비서입니다. 지금부터 목표 달성 여정을 함께 설계해 봐요. 먼저, 목표를 명확히 파악해야 해요. 🎯 이루고자 하는 목표는 무엇인가요❓`]
-                },
-                {
-                    type: "QUICK_REPLIES",
-                    messages: ["다이어트 💪", "경제적 자유 💰", "자격증 취득 🏅", "새로운 습관 만들기 🌱"]
-                }
-            ]
-        };
-
-        const time = this.saveMessage('assistant', null, welcomeResponse);
-        this.displayAssistantMessage(welcomeResponse, time, false);
-    }
 
     /**
      * Handle form submission
