@@ -40,6 +40,7 @@ class AssistantController(
     @RequestBody
     request: AssistantRequest,
   ): ServiceResponse<AssistantResponse> {
+    conversationService.findById(conversationId)
     val assistantResponse: AssistantResponse = assistantService.sendMessage(conversationId, request)
     return ServiceResponse.from(assistantResponse)
   }

@@ -230,12 +230,12 @@ class AssistantControllerTest
     }
 
     @Test
-    fun `존재하지 않는 대화방으로 메시지 전송 시 AI 서비스 에러 반환`() {
+    fun `존재하지 않는 대화방으로 메시지 전송 시 404 NotFound 반환`() {
       // given
       val nonExistentConversationId = UUID.randomUUID()
       val request = AssistantRequest(text = "Hello!")
 
-      // when - 현재 구현에서는 conversationId 검증 없이 AI 서비스로 전달되어 500 에러 발생
+      // when
       val response =
         webTestClient
           .mutateWith(mockAuthentication(authentication))
@@ -245,14 +245,15 @@ class AssistantControllerTest
           .bodyValue(request)
           .exchange()
           .expectStatus()
-          .is5xxServerError
+          .isNotFound
           .expectBody<ServiceResponse<Unit>>()
           .returnResult()
           .responseBody!!
 
       // then
-      assertThat(response.statusCode).isEqualTo(500)
-      assertThat(response.errorCode).isEqualTo("ASSISTANT:INFERENCEERROR")
+      assertThat(response.statusCode).isEqualTo(404)
+      assertThat(response.errorCode).isEqualTo("ASSISTANT:CONVERSATIONNOTFOUND")
+      assertThat(response.message).contains("대화방을 찾을 수 없습니다")
     }
 
     @Test
@@ -297,7 +298,9 @@ class AssistantControllerTest
           )
         val emptyTextRequest = AssistantRequest(text = "")
 
-        // when - 현재 구현에서는 빈 문자열도 AI 서비스로 전달되어 500 에러 발생
+        mockAssistantChatResponse(conversation, emptyTextRequest)
+
+        // when - 현재 구현에서는 빈 문자열도 AI 서비스로 전달되어 정상 처리됨
         val response =
           webTestClient
             .mutateWith(mockAuthentication(authentication))
@@ -307,15 +310,15 @@ class AssistantControllerTest
             .bodyValue(emptyTextRequest)
             .exchange()
             .expectStatus()
-            .is5xxServerError
-            .expectBody<ServiceResponse<Unit>>()
+            .isOk
+            .expectBody<ServiceResponse<AssistantResponse>>()
             .returnResult()
             .responseBody!!
 
         // then
         response.also {
-          assertThat(it.statusCode).isEqualTo(500)
-          assertThat(it.errorCode).isEqualTo("ASSISTANT:INFERENCEERROR")
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
         }
       }
 
@@ -329,7 +332,9 @@ class AssistantControllerTest
           )
         val whitespaceOnlyRequest = AssistantRequest(text = "   ")
 
-        // when - 현재 구현에서는 공백만 포함된 문자열도 AI 서비스로 전달되어 500 에러 발생
+        mockAssistantChatResponse(conversation, whitespaceOnlyRequest)
+
+        // when - 현재 구현에서는 공백만 포함된 문자열도 AI 서비스로 전달되어 정상 처리됨
         val response =
           webTestClient
             .mutateWith(mockAuthentication(authentication))
@@ -339,15 +344,15 @@ class AssistantControllerTest
             .bodyValue(whitespaceOnlyRequest)
             .exchange()
             .expectStatus()
-            .is5xxServerError
-            .expectBody<ServiceResponse<Unit>>()
+            .isOk
+            .expectBody<ServiceResponse<AssistantResponse>>()
             .returnResult()
             .responseBody!!
 
         // then
         response.also {
-          assertThat(it.statusCode).isEqualTo(500)
-          assertThat(it.errorCode).isEqualTo("ASSISTANT:INFERENCEERROR")
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
         }
       }
 
@@ -383,7 +388,7 @@ class AssistantControllerTest
       }
 
     @Test
-    fun `다른 사용자의 대화방 접근 시 AI 서비스 에러 처리`() =
+    fun `다른 사용자의 대화방 접근 시 정상적으로 처리`() =
       runTest {
         // given - 다른 사용자 생성
         val anotherUser =
@@ -402,7 +407,9 @@ class AssistantControllerTest
 
         val request = AssistantRequest(text = "Hello!")
 
-        // when - 현재 구현에서는 대화방 접근 권한 검증 없이 AI 서비스로 전달되어 500 에러 발생
+        mockAssistantChatResponse(anotherUserConversation, request)
+
+        // when - 현재는 대화방 접근 권한 검증이 없어 정상 처리됨 (향후 권한 검증 추가 필요)
         val response =
           webTestClient
             .mutateWith(mockAuthentication(authentication))
@@ -412,14 +419,14 @@ class AssistantControllerTest
             .bodyValue(request)
             .exchange()
             .expectStatus()
-            .is5xxServerError
-            .expectBody<ServiceResponse<Unit>>()
+            .isOk
+            .expectBody<ServiceResponse<AssistantResponse>>()
             .returnResult()
             .responseBody!!
 
         // then
-        assertThat(response.statusCode).isEqualTo(500)
-        assertThat(response.errorCode).isEqualTo("ASSISTANT:INFERENCEERROR")
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isNotNull
       }
 
     @Test
@@ -448,8 +455,13 @@ class AssistantControllerTest
         assertThat(conversations).hasSize(1)
         val conversationId = conversations.first().id!!
 
-        // when - 메시지 전송 (현재 AI 서비스 설정 문제로 500 에러 예상)
+        // when - 메시지 전송
         val request = AssistantRequest(text = "안녕하세요!")
+
+        // mock 설정
+        val conversationEntity = conversationRepository.findById(conversationId)!!
+        mockAssistantChatResponse(conversationEntity, request)
+
         val sendMessageResponse =
           webTestClient
             .mutateWith(mockAuthentication(authentication))
@@ -459,14 +471,14 @@ class AssistantControllerTest
             .bodyValue(request)
             .exchange()
             .expectStatus()
-            .is5xxServerError
-            .expectBody<ServiceResponse<Unit>>()
+            .isOk
+            .expectBody<ServiceResponse<AssistantResponse>>()
             .returnResult()
             .responseBody!!
 
-        // then - AI 서비스 에러 확인
-        assertThat(sendMessageResponse.statusCode).isEqualTo(500)
-        assertThat(sendMessageResponse.errorCode).isEqualTo("ASSISTANT:INFERENCEERROR")
+        // then - 정상 응답 확인
+        assertThat(sendMessageResponse.statusCode).isEqualTo(200)
+        assertThat(sendMessageResponse.data).isNotNull
       }
 
     @Test
@@ -485,9 +497,12 @@ class AssistantControllerTest
             "내일 할 일을 추천해주세요.",
           )
 
-        // when & then - 연속된 메시지 전송 (현재 AI 서비스 설정 문제로 모두 500 에러 예상)
+        // when & then - 연속된 메시지 전송
         messages.forEach { messageText ->
           val request = AssistantRequest(text = messageText)
+
+          mockAssistantChatResponse(conversation, request)
+
           val response =
             webTestClient
               .mutateWith(mockAuthentication(authentication))
@@ -497,13 +512,13 @@ class AssistantControllerTest
               .bodyValue(request)
               .exchange()
               .expectStatus()
-              .is5xxServerError
-              .expectBody<ServiceResponse<Unit>>()
+              .isOk
+              .expectBody<ServiceResponse<AssistantResponse>>()
               .returnResult()
               .responseBody!!
 
-          assertThat(response.statusCode).isEqualTo(500)
-          assertThat(response.errorCode).isEqualTo("ASSISTANT:INFERENCEERROR")
+          assertThat(response.statusCode).isEqualTo(200)
+          assertThat(response.data).isNotNull
         }
       }
   }
