@@ -3,9 +3,16 @@ package ai.aiminder.aiminderserver.auth.filter
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
+import ai.aiminder.aiminderserver.auth.service.AuthenticationProcessor
 import ai.aiminder.aiminderserver.auth.service.CookieManager
+import ai.aiminder.aiminderserver.auth.service.DefaultAuthenticationProcessor
 import ai.aiminder.aiminderserver.auth.service.DefaultCookieManager
+import ai.aiminder.aiminderserver.auth.service.DefaultTokenRefreshService
+import ai.aiminder.aiminderserver.auth.service.DefaultTokenValidator
+import ai.aiminder.aiminderserver.auth.service.TokenExtractor
+import ai.aiminder.aiminderserver.auth.service.TokenRefreshService
 import ai.aiminder.aiminderserver.auth.service.TokenService
+import ai.aiminder.aiminderserver.auth.service.TokenValidator
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.entity.UserEntity
 import ai.aiminder.aiminderserver.user.service.UserService
@@ -35,6 +42,20 @@ class CookieAuthenticationWebFilterTest {
   private val userService: UserService = mockk()
   private val cookieProps = CookieProperties(domain = "", sameSite = "Lax", httpOnly = true, secure = false)
   private val cookieManager: CookieManager = DefaultCookieManager(cookieProps)
+  private val tokenExtractor: TokenExtractor = mockk()
+  private val authenticationProcessor: AuthenticationProcessor = DefaultAuthenticationProcessor(userService)
+  private val tokenValidator: TokenValidator =
+    DefaultTokenValidator(accessDecoder, tokenService, authenticationProcessor)
+  private val tokenRefreshService: TokenRefreshService =
+    DefaultTokenRefreshService(
+      accessDecoder,
+      refreshDecoder,
+      tokenService,
+      userService,
+      cookieProps,
+      cookieManager,
+      authenticationProcessor,
+    )
 
   private fun jwt(token: String): Jwt =
     Jwt
@@ -47,6 +68,8 @@ class CookieAuthenticationWebFilterTest {
   fun `유효한 액세스 토큰으로 인증 컨텍스트가 설정된다`() {
     // given
     val access = "aaa.bbb.ccc"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns null
     every { accessDecoder.decode(access) } returns Mono.just(jwt(access))
     every { tokenService.validateAccessToken(access) } returns true
     val subjectId = UUID.fromString("00000000-0000-0000-0000-000000000000")
@@ -71,12 +94,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder = accessDecoder,
-        refreshDecoder = refreshDecoder,
-        tokenService = tokenService,
-        userService = userService,
-        cookieProperties = cookieProps,
         cookieManager = cookieManager,
+        tokenExtractor = tokenExtractor,
+        tokenValidator = tokenValidator,
+        tokenRefreshService = tokenRefreshService,
       )
 
     // when
@@ -94,6 +115,8 @@ class CookieAuthenticationWebFilterTest {
     val newAccess = "new.access"
     val newRefresh = "new.refresh"
 
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns refresh
     every { accessDecoder.decode(access) } returns Mono.error(JwtException("invalid"))
     every { refreshDecoder.decode(refresh) } returns Mono.just(jwt(refresh))
     coEvery { tokenService.validateRefreshToken(refresh) } returns true
@@ -139,12 +162,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -165,6 +186,8 @@ class CookieAuthenticationWebFilterTest {
     // given
     val access = "bad.access"
     val refresh = "bad.refresh"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns refresh
     every { accessDecoder.decode(access) } returns Mono.error(JwtException("invalid"))
     every { refreshDecoder.decode(refresh) } returns Mono.error(JwtException("invalid"))
 
@@ -186,12 +209,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -210,6 +231,8 @@ class CookieAuthenticationWebFilterTest {
   @Test
   fun `쿠키 미제공 시 체인만 통과한다`() {
     // given
+    every { tokenExtractor.extractAccessToken(any()) } returns null
+    every { tokenExtractor.extractRefreshToken(any()) } returns null
     val request = MockServerHttpRequest.get("/api/test").build()
     val exchange = MockServerWebExchange.from(request)
 
@@ -224,12 +247,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -244,6 +265,8 @@ class CookieAuthenticationWebFilterTest {
     // given
     val access = "valid.jwt.format"
     val refresh = "good.refresh"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns refresh
     every { accessDecoder.decode(access) } returns Mono.just(jwt(access))
     every { tokenService.validateAccessToken(access) } returns false // 검증 실패
     every { refreshDecoder.decode(refresh) } returns Mono.just(jwt(refresh))
@@ -284,12 +307,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -309,6 +330,8 @@ class CookieAuthenticationWebFilterTest {
   fun `액세스 토큰 무효하고 리프래시 토큰도 없는 경우`() {
     // given
     val access = "bad.access"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns null
     every { accessDecoder.decode(access) } returns Mono.error(JwtException("invalid"))
 
     val request =
@@ -326,12 +349,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -347,6 +368,8 @@ class CookieAuthenticationWebFilterTest {
     // given
     val access = "bad.access"
     val refresh = "valid.jwt.format"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns refresh
     every { accessDecoder.decode(access) } returns Mono.error(JwtException("invalid"))
     every { refreshDecoder.decode(refresh) } returns Mono.just(jwt(refresh))
     coEvery { tokenService.validateRefreshToken(refresh) } returns false // 검증 실패
@@ -366,12 +389,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -392,6 +413,8 @@ class CookieAuthenticationWebFilterTest {
     // given
     val access = "bad.access"
     val refresh = "good.refresh"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns refresh
     every { accessDecoder.decode(access) } returns Mono.error(JwtException("invalid"))
     every { refreshDecoder.decode(refresh) } returns Mono.just(jwt(refresh))
     coEvery { tokenService.validateRefreshToken(refresh) } returns true
@@ -413,12 +436,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -438,6 +459,8 @@ class CookieAuthenticationWebFilterTest {
   fun `인증 처리에서 사용자 조회 실패하는 경우`() {
     // given
     val access = "aaa.bbb.ccc"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns null
     every { accessDecoder.decode(access) } returns Mono.just(jwt(access))
     every { tokenService.validateAccessToken(access) } returns true
     val subjectId = UUID.fromString("00000000-0000-0000-0000-000000000000")
@@ -458,12 +481,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -477,6 +498,8 @@ class CookieAuthenticationWebFilterTest {
   fun `JWT subject가 유효한 UUID가 아닌 경우`() {
     // given
     val access = "aaa.bbb.ccc"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns null
     val invalidJwt =
       Jwt
         .withTokenValue(access)
@@ -502,12 +525,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -525,6 +546,8 @@ class CookieAuthenticationWebFilterTest {
     val newAccess = "corrupted.access"
     val newRefresh = "new.refresh"
 
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns refresh
     every { accessDecoder.decode(access) } returns Mono.error(JwtException("invalid"))
     every { refreshDecoder.decode(refresh) } returns Mono.just(jwt(refresh))
     coEvery { tokenService.validateRefreshToken(refresh) } returns true
@@ -560,12 +583,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -585,6 +606,8 @@ class CookieAuthenticationWebFilterTest {
   fun `쿠키 추출 기능 - request cookies에서 추출하는 경우`() {
     // given
     val access = "aaa.bbb.ccc"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns null
     every { accessDecoder.decode(access) } returns Mono.just(jwt(access))
     every { tokenService.validateAccessToken(access) } returns true
     val subjectId = UUID.fromString("00000000-0000-0000-0000-000000000000")
@@ -606,12 +629,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -625,6 +646,8 @@ class CookieAuthenticationWebFilterTest {
   fun `쿠키 추출 기능 - Cookie 헤더에서 파싱하는 경우`() {
     // given
     val access = "aaa.bbb.ccc"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns null
     every { accessDecoder.decode(access) } returns Mono.just(jwt(access))
     every { tokenService.validateAccessToken(access) } returns true
     val subjectId = UUID.fromString("00000000-0000-0000-0000-000000000000")
@@ -646,12 +669,10 @@ class CookieAuthenticationWebFilterTest {
 
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
@@ -666,6 +687,8 @@ class CookieAuthenticationWebFilterTest {
     // given
     val access = "bad.access"
     val refresh = "bad.refresh"
+    every { tokenExtractor.extractAccessToken(any()) } returns access
+    every { tokenExtractor.extractRefreshToken(any()) } returns refresh
     every { accessDecoder.decode(access) } returns Mono.error(JwtException("invalid"))
     every { refreshDecoder.decode(refresh) } returns Mono.error(JwtException("invalid"))
 
@@ -679,12 +702,10 @@ class CookieAuthenticationWebFilterTest {
     val chain = WebFilterChain { _ -> Mono.empty() }
     val filter =
       CookieAuthenticationWebFilter(
-        accessDecoder,
-        refreshDecoder,
-        tokenService,
-        userService,
-        cookieProps,
         cookieManager,
+        tokenExtractor,
+        tokenValidator,
+        tokenRefreshService,
       )
 
     // when
