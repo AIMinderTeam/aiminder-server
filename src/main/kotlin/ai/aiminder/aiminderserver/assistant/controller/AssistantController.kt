@@ -22,10 +22,10 @@ import java.util.UUID
 class AssistantController(
   private val assistantService: AssistantService,
   private val conversationService: ConversationService,
-) {
+) : AssistantControllerDocs {
   @Transactional
   @PostMapping("/chat")
-  suspend fun startChat(
+  override suspend fun startChat(
     @AuthenticationPrincipal
     user: User,
   ): ServiceResponse<AssistantResponse> {
@@ -35,7 +35,7 @@ class AssistantController(
   }
 
   @PostMapping("/chat/{conversationId}")
-  suspend fun sendMessage(
+  override suspend fun sendMessage(
     @PathVariable
     conversationId: UUID,
     @RequestBody
