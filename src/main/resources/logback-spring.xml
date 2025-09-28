@@ -56,27 +56,32 @@
         </appender>
 
         <!-- 도메인별 로그 레벨 설정 -->
-        
+
         <logger name="ai.aiminder.aiminderserver" level="DEBUG" additivity="false">
             <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
             <appender-ref ref="CONSOLE"/>
         </logger>
-        
+
         <!-- 데이터베이스 관련 로그 -->
-        <logger name="io.r2dbc.postgresql" level="DEBUG" additivity="false">
+        <logger name="io.r2dbc.postgresql.QUERY" level="DEBUG" additivity="false">
             <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
             <appender-ref ref="CONSOLE"/>
         </logger>
-        
+        <logger name="io.r2dbc.postgresql.PARAM" level="DEBUG" additivity="false">
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+
         <!-- Spring Security 로그 -->
         <logger name="org.springframework.security" level="DEBUG" additivity="false">
             <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
             <appender-ref ref="CONSOLE"/>
         </logger>
-        
+
         <!-- Root Logger (dev 프로파일) -->
         <root level="INFO">
             <appender-ref ref="FILE"/>
