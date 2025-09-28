@@ -64,7 +64,7 @@ class SecurityConfig(
         exceptions.authenticationEntryPoint(unauthorizedEntryPoint())
       }.addFilterAt(returnToCaptureWebFilter, SecurityWebFiltersOrder.FIRST)
       .addFilterBefore(bearerTokenAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-      .addFilterAt(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+      .addFilterBefore(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
       .build()
 
   @Bean
