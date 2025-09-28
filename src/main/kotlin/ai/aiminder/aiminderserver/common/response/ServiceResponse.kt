@@ -1,13 +1,20 @@
 package ai.aiminder.aiminderserver.common.response
 
 import ai.aiminder.aiminderserver.common.error.ServiceError
+import io.swagger.v3.oas.annotations.media.Schema
 import org.springframework.data.domain.Page
 
+@Schema(description = "공통 API 응답 형식")
 data class ServiceResponse<T>(
+  @Schema(description = "HTTP 상태 코드", example = "200")
   val statusCode: Int,
+  @Schema(description = "응답 메시지", example = "성공")
   val message: String? = null,
+  @Schema(description = "에러 코드", example = "null")
   val errorCode: String? = null,
+  @Schema(description = "응답 데이터")
   val data: T? = null,
+  @Schema(description = "페이지네이션 정보")
   val pageable: PageableResponse? = null,
 ) {
   companion object {
