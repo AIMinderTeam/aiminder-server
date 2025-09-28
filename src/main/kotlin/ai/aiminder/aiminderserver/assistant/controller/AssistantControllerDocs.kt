@@ -51,7 +51,11 @@ interface AssistantControllerDocs {
                     "responses": [
                       {
                         "type": "TEXT",
-                        "messages": ["안녕하세요! AI 어시스턴트입니다. 어떤 도움이 필요하신가요?"]
+                        "messages": ["안녕하세요! 👋 저는 당신의 AI 비서입니다. 지금부터 목표 달성 여정을 함께 설계해 봐요. 먼저 목표를 명확히 파악해야 해요. 🎯 이루고자 하는 목표는 무엇인가요❓"]
+                      },
+                      {
+                        "type": "QUICK_REPLIES",
+                        "messages" : [ "다이어트 💪", "경제적 자유 💰", "자격증 취득 🏅" ]
                       }
                     ]
                   },
@@ -141,6 +145,10 @@ interface AssistantControllerDocs {
                       {
                         "type": "TEXT",
                         "messages": ["안녕하세요! 목표 설정이나 일정 관리에 도움을 드릴 수 있습니다. 어떤 도움이 필요하신가요?"]
+                      },
+                      {
+                        "type": "QUICK_REPLIES",
+                        "messages": ["목표 설정", "일정 관리"]
                       }
                     ]
                   },

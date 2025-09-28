@@ -15,6 +15,10 @@ data class AssistantResponse(
             AssistantResponseType.TEXT,
             listOf(welcomeMessage.getContentAsString(Charsets.UTF_8)),
           ),
+          AssistantResponseDto(
+            AssistantResponseType.QUICK_REPLIES,
+            listOf("다이어트 💪", "경제적 자유 💰", "자격증 취득 🏅"),
+          ),
         ),
       )
   }
