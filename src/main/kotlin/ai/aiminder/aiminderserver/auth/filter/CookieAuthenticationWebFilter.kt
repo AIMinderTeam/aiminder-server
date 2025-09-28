@@ -5,6 +5,7 @@ import ai.aiminder.aiminderserver.auth.domain.RefreshToken
 import ai.aiminder.aiminderserver.auth.domain.Role
 import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.property.CookieProperties
+import ai.aiminder.aiminderserver.auth.service.CookieManager
 import ai.aiminder.aiminderserver.auth.service.TokenService
 import ai.aiminder.aiminderserver.common.util.logger
 import ai.aiminder.aiminderserver.common.util.toUUID
@@ -12,7 +13,6 @@ import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.service.UserService
 import kotlinx.coroutines.reactor.mono
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.http.ResponseCookie
 import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.http.server.reactive.ServerHttpResponse
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -35,6 +35,7 @@ class CookieAuthenticationWebFilter(
   private val tokenService: TokenService,
   private val userService: UserService,
   private val cookieProperties: CookieProperties,
+  private val cookieManager: CookieManager,
 ) : WebFilter {
   private val logger = logger()
 
@@ -106,11 +107,8 @@ class CookieAuthenticationWebFilter(
                 val newRefresh = tokenService.createRefreshToken(user)
                 Pair(newAccess, newRefresh)
               }.flatMap { (newAccess, newRefresh) ->
-                val accessTokenCookie = cookieProperties.buildCookie(ACCESS_COOKIE, newAccess)
-                val refreshTokenCookie = cookieProperties.buildCookie(REFRESH_COOKIE, newRefresh)
                 accessDecoder.decode(newAccess).flatMap { newJwt ->
-                  response.addCookie(accessTokenCookie)
-                  response.addCookie(refreshTokenCookie)
+                  cookieManager.setTokenCookies(response, newAccess, newRefresh)
                   logger.info("CookieAuth reissued tokens; cookies set id=${request.id}")
                   logger.debug(
                     "CookieAuth cookie flags domain=${cookieProperties.domain} sameSite=${cookieProperties.sameSite} " +
@@ -125,8 +123,7 @@ class CookieAuthenticationWebFilter(
                   "CookieAuth error during refresh flow id=${request.id} path=${request.uri.path}: ${it.message}",
                   it,
                 )
-                response.addCookie(expiredCookie(ACCESS_COOKIE))
-                response.addCookie(expiredCookie(REFRESH_COOKIE))
+                cookieManager.clearTokenCookies(response)
               }
               chain.filter(exchange)
             }
@@ -188,17 +185,6 @@ class CookieAuthenticationWebFilter(
     logger.debug("CookieAuth extractCookie name=$name found=${!value.isNullOrBlank()} (from header) id=${request.id}")
     return value
   }
-
-  private fun expiredCookie(name: String): ResponseCookie =
-    ResponseCookie
-      .from(name, "")
-      .let { if (cookieProperties.domain.isNotBlank()) it.domain(cookieProperties.domain) else it }
-      .sameSite(cookieProperties.sameSite)
-      .httpOnly(cookieProperties.httpOnly)
-      .secure(cookieProperties.secure)
-      .path("/")
-      .maxAge(0)
-      .build()
 
   fun logHeader(
     name: String,
