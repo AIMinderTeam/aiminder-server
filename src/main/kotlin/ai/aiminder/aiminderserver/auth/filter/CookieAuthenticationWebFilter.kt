@@ -20,6 +20,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContextImpl
 import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.security.oauth2.jwt.JwtException
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
@@ -73,57 +74,65 @@ class CookieAuthenticationWebFilter(
         logger.debug("CookieAuth access decoded: sub={} exp={} id={}", jwt.subject, jwt.expiresAt, request.id)
         val token: AccessToken = accessToken
         if (!tokenService.validateAccessToken(token)) {
-          logger.warn("CookieAuth access token invalid for sub=${jwt.subject} id=${request.id}")
+          logger.debug("CookieAuth access token invalid for sub=${jwt.subject} id=${request.id}")
           return@flatMap Mono.error(AuthError.InvalidAccessToken())
         }
         logger.debug("CookieAuth access token valid for sub=${jwt.subject} id=${request.id}")
         processAuthentication(jwt, chain, exchange)
       }.onErrorResume { err ->
-        logger.error(
-          "CookieAuth error on access validation id=${request.id} path=${request.uri.path}: ${err.message}",
-          err,
-        )
-        if (refreshToken.isNullOrBlank()) {
-          logger.debug("CookieAuth no refresh token; proceeding unauthenticated id=${request.id}")
-          return@onErrorResume chain.filter(exchange)
-        }
-        logger.debug("CookieAuth attempting refresh flow id=${request.id}")
-        refreshDecoder
-          .decode(refreshToken)
-          .flatMap {
-            mono {
-              val token: RefreshToken = refreshToken
-              logger.debug("CookieAuth decoding refresh token succeeded id=${request.id}")
-              tokenService.validateRefreshToken(token)
-              val user = userService.getUser(token)
-              logger.debug("CookieAuth refresh validated; issuing new tokens userId={} id={}", user.id, request.id)
-              val newAccess = tokenService.createAccessToken(user)
-              val newRefresh = tokenService.createRefreshToken(user)
-              Pair(newAccess, newRefresh)
-            }.flatMap { (newAccess, newRefresh) ->
-              val accessTokenCookie = cookieProperties.buildCookie(ACCESS_COOKIE, newAccess)
-              val refreshTokenCookie = cookieProperties.buildCookie(REFRESH_COOKIE, newRefresh)
-              accessDecoder.decode(newAccess).flatMap { newJwt ->
-                response.addCookie(accessTokenCookie)
-                response.addCookie(refreshTokenCookie)
-                logger.info("CookieAuth reissued tokens; cookies set id=${request.id}")
-                logger.debug(
-                  "CookieAuth cookie flags domain=${cookieProperties.domain} sameSite=${cookieProperties.sameSite} " +
-                    "secure=${cookieProperties.secure} id=${request.id}",
-                )
-                processAuthentication(newJwt, chain, exchange)
-              }
-            }
-          }.onErrorResume { refreshErr ->
-            logger.error(
-              "CookieAuth error during refresh flow id=${request.id} path=${request.uri.path}: ${refreshErr.message}",
-              refreshErr,
-            )
-            response.addCookie(expiredCookie(ACCESS_COOKIE))
-            response.addCookie(expiredCookie(REFRESH_COOKIE))
-            logger.info("CookieAuth cleared auth cookies after refresh failure id=${request.id}")
-            chain.filter(exchange)
+        if (err is AuthError.InvalidAccessToken || err is JwtException) {
+          logger.debug(
+            "CookieAuth error on access validation id=${request.id} path=${request.uri.path}: ${err.message}",
+            err,
+          )
+          if (refreshToken.isNullOrBlank()) {
+            logger.debug("CookieAuth no refresh token; proceeding unauthenticated id=${request.id}")
+            return@onErrorResume chain.filter(exchange)
           }
+          logger.debug("CookieAuth attempting refresh flow id=${request.id}")
+          refreshDecoder
+            .decode(refreshToken)
+            .flatMap {
+              mono {
+                val token: RefreshToken = refreshToken
+                logger.debug("CookieAuth decoding refresh token succeeded id=${request.id}")
+                if (!tokenService.validateRefreshToken(token)) {
+                  logger.debug("CookieAuth refresh token invalid id=${request.id}")
+                  throw AuthError.InvalidRefreshToken()
+                }
+                val user = userService.getUser(token)
+                logger.debug("CookieAuth refresh validated; issuing new tokens userId={} id={}", user.id, request.id)
+                val newAccess = tokenService.createAccessToken(user)
+                val newRefresh = tokenService.createRefreshToken(user)
+                Pair(newAccess, newRefresh)
+              }.flatMap { (newAccess, newRefresh) ->
+                val accessTokenCookie = cookieProperties.buildCookie(ACCESS_COOKIE, newAccess)
+                val refreshTokenCookie = cookieProperties.buildCookie(REFRESH_COOKIE, newRefresh)
+                accessDecoder.decode(newAccess).flatMap { newJwt ->
+                  response.addCookie(accessTokenCookie)
+                  response.addCookie(refreshTokenCookie)
+                  logger.info("CookieAuth reissued tokens; cookies set id=${request.id}")
+                  logger.debug(
+                    "CookieAuth cookie flags domain=${cookieProperties.domain} sameSite=${cookieProperties.sameSite} " +
+                      "secure=${cookieProperties.secure} id=${request.id}",
+                  )
+                  processAuthentication(newJwt, chain, exchange)
+                }
+              }
+            }.onErrorResume {
+              if (it is AuthError || it is JwtException) {
+                logger.debug(
+                  "CookieAuth error during refresh flow id=${request.id} path=${request.uri.path}: ${it.message}",
+                  it,
+                )
+                response.addCookie(expiredCookie(ACCESS_COOKIE))
+                response.addCookie(expiredCookie(REFRESH_COOKIE))
+              }
+              chain.filter(exchange)
+            }
+        } else {
+          chain.filter(exchange)
+        }
       }
   }
 
@@ -154,9 +163,6 @@ class CookieAuthenticationWebFilter(
         chain
           .filter(exchange)
           .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)))
-      }.onErrorResume { err ->
-        logger.error("CookieAuth failed to resolve user from JWT subject id=$requestId: ${err.message}", err)
-        chain.filter(exchange)
       }
   }
 

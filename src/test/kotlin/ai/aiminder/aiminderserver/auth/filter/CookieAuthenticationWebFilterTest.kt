@@ -15,6 +15,7 @@ import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import org.springframework.mock.web.server.MockServerWebExchange
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.security.oauth2.jwt.JwtException
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
@@ -87,7 +88,7 @@ class CookieAuthenticationWebFilterTest {
     val newAccess = "new.access"
     val newRefresh = "new.refresh"
 
-    every { accessDecoder.decode(access) } returns Mono.error(RuntimeException("invalid"))
+    every { accessDecoder.decode(access) } returns Mono.error(JwtException("invalid"))
     every { refreshDecoder.decode(refresh) } returns Mono.just(jwt(refresh))
     coEvery { tokenService.validateRefreshToken(refresh) } returns true
 
@@ -150,8 +151,8 @@ class CookieAuthenticationWebFilterTest {
     // given
     val access = "bad.access"
     val refresh = "bad.refresh"
-    every { accessDecoder.decode(access) } returns Mono.error(RuntimeException("invalid"))
-    every { refreshDecoder.decode(refresh) } returns Mono.error(RuntimeException("invalid"))
+    every { accessDecoder.decode(access) } returns Mono.error(JwtException("invalid"))
+    every { refreshDecoder.decode(refresh) } returns Mono.error(JwtException("invalid"))
 
     val request =
       MockServerHttpRequest
