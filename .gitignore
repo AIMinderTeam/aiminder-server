@@ -239,3 +239,7 @@ docker/data
 AGENTS.md
 
 openapi-generator
+
+# Logging directories
+logs/
+docker/logs/
