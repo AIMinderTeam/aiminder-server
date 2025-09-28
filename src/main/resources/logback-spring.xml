@@ -57,28 +57,7 @@
 
         <!-- 도메인별 로그 레벨 설정 -->
         
-        <!-- AI Assistant 관련 로그 -->
-        <logger name="ai.aiminder.aiminderserver.assistant" level="DEBUG" additivity="false">
-            <appender-ref ref="FILE"/>
-            <appender-ref ref="ERROR_FILE"/>
-            <appender-ref ref="CONSOLE"/>
-        </logger>
-        
-        <!-- 인증 관련 로그 -->
-        <logger name="ai.aiminder.aiminderserver.auth" level="DEBUG" additivity="false">
-            <appender-ref ref="FILE"/>
-            <appender-ref ref="ERROR_FILE"/>
-            <appender-ref ref="CONSOLE"/>
-        </logger>
-        
-        <!-- 목표 및 스케줄 관리 로그 -->
-        <logger name="ai.aiminder.aiminderserver.goal" level="INFO" additivity="false">
-            <appender-ref ref="FILE"/>
-            <appender-ref ref="ERROR_FILE"/>
-            <appender-ref ref="CONSOLE"/>
-        </logger>
-        
-        <logger name="ai.aiminder.aiminderserver.schedule" level="INFO" additivity="false">
+        <logger name="ai.aiminder.aiminderserver" level="DEBUG" additivity="false">
             <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
             <appender-ref ref="CONSOLE"/>
@@ -93,13 +72,6 @@
         
         <!-- Spring Security 로그 -->
         <logger name="org.springframework.security" level="DEBUG" additivity="false">
-            <appender-ref ref="FILE"/>
-            <appender-ref ref="ERROR_FILE"/>
-            <appender-ref ref="CONSOLE"/>
-        </logger>
-        
-        <!-- Spring WebFlux 로그 -->
-        <logger name="org.springframework.web" level="DEBUG" additivity="false">
             <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
             <appender-ref ref="CONSOLE"/>
