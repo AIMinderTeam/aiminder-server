@@ -62,6 +62,7 @@ interface AssistantControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
