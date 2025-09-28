@@ -39,7 +39,6 @@ logging:
     root: info
     ai.aiminder: debug
     org.springframework.security: debug
-    org.springframework.r2dbc: debug
     io.r2dbc.postgresql:
       QUERY: debug
       PARAM: debug
