@@ -36,34 +36,6 @@ interface ImageControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 이미지 업로드 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": null,
-                  "errorCode": null,
-                  "data": {
-                    "id": "550e8400-e29b-41d4-a716-446655440000",
-                    "userId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
-                    "originalFileName": "photo.jpg",
-                    "storedFileName": "550e8400-e29b-41d4-a716-446655440000.jpg",
-                    "filePath": "/uploads/images/550e8400-e29b-41d4-a716-446655440000.jpg",
-                    "fileSize": 1024000,
-                    "contentType": "image/jpeg",
-                    "createdAt": "2024-01-01T10:00:00Z",
-                    "updatedAt": "2024-01-01T10:00:00Z",
-                    "deletedAt": null
-                  },
-                  "pageable": null
-                }
-              """,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "400",
@@ -82,6 +54,7 @@ interface ImageControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -103,6 +76,7 @@ interface ImageControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],

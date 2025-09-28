@@ -31,23 +31,6 @@ interface AuthControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 현재 로그인한 사용자 정보 반환",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": null,
-                  "errorCode": null,
-                  "data": { "id": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f" },
-                  "pageable": null
-                }
-              """,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -66,6 +49,7 @@ interface AuthControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -87,6 +71,7 @@ interface AuthControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
