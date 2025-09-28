@@ -97,9 +97,6 @@ class BearerTokenAuthenticationWebFilter(
         chain
           .filter(exchange)
           .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)))
-      }.onErrorResume { err ->
-        logger.error("BearerAuth failed to resolve user from JWT subject id=$requestId: ${err.message}", err)
-        chain.filter(exchange)
       }
   }
 
