@@ -35,7 +35,7 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class CookieAuthenticationWebFilterTest {
+class AuthenticationWebFilterTest {
   private val accessDecoder: ReactiveJwtDecoder = mockk()
   private val refreshDecoder: ReactiveJwtDecoder = mockk()
   private val tokenService: TokenService = mockk()
@@ -93,7 +93,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager = cookieManager,
         tokenExtractor = tokenExtractor,
         tokenValidator = tokenValidator,
@@ -161,7 +161,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -208,7 +208,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -246,7 +246,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -306,7 +306,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -348,7 +348,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -388,7 +388,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -435,7 +435,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -480,7 +480,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -524,7 +524,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -582,7 +582,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -628,7 +628,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -668,7 +668,7 @@ class CookieAuthenticationWebFilterTest {
       }
 
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,
@@ -701,7 +701,7 @@ class CookieAuthenticationWebFilterTest {
 
     val chain = WebFilterChain { _ -> Mono.empty() }
     val filter =
-      CookieAuthenticationWebFilter(
+      AuthenticationWebFilter(
         cookieManager,
         tokenExtractor,
         tokenValidator,

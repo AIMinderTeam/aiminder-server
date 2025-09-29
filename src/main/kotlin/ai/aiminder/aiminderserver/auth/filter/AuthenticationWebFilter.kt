@@ -18,12 +18,16 @@ import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
 @Component
-class CookieAuthenticationWebFilter(
+class AuthenticationWebFilter(
   private val cookieManager: CookieManager,
   private val tokenExtractor: TokenExtractor,
   private val tokenValidator: TokenValidator,
   private val tokenRefreshService: TokenRefreshService,
 ) : WebFilter {
+  private companion object {
+    private const val BEARER_PREFIX = "Bearer "
+  }
+
   private val logger = logger()
 
   override fun filter(
@@ -35,7 +39,7 @@ class CookieAuthenticationWebFilter(
 
     logger.debug("CookieAuth start method=${request.method.name()} path=${request.uri.path} id=${request.id}")
 
-    val accessToken: AccessToken? = tokenExtractor.extractAccessToken(request)
+    val accessToken: AccessToken? = tokenExtractor.extractAccessToken(request) ?: extractBearerToken(request)
     val refreshToken: RefreshToken? = tokenExtractor.extractRefreshToken(request)
 
     logger.debug(
@@ -74,8 +78,27 @@ class CookieAuthenticationWebFilter(
               chain.filter(exchange)
             }
         } else {
+          logger.debug("CookieAuth error on access validation id=${request.id} path=${request.uri.path}", err)
           chain.filter(exchange)
         }
       }
+  }
+
+  private fun extractBearerToken(request: ServerHttpRequest): String? {
+    val authorizationHeader = request.headers.getFirst("Authorization") ?: return null
+
+    if (!authorizationHeader.startsWith(BEARER_PREFIX)) {
+      logger.debug("BearerAuth authorization header doesn't start with 'Bearer ' id=${request.id}")
+      return null
+    }
+
+    val token = authorizationHeader.substring(BEARER_PREFIX.length).trim()
+    if (token.isBlank()) {
+      logger.debug("BearerAuth empty token after 'Bearer ' prefix id=${request.id}")
+      return null
+    }
+
+    logger.debug("BearerAuth found bearer token id=${request.id}")
+    return token
   }
 }
