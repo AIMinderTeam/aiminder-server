@@ -38,12 +38,9 @@ class CookieAuthenticationWebFilter(
     val accessToken: AccessToken? = tokenExtractor.extractAccessToken(request)
     val refreshToken: RefreshToken? = tokenExtractor.extractRefreshToken(request)
 
-    logHeader("access", accessToken)
-    logHeader("refresh", refreshToken)
-
     logger.debug(
-      "CookieAuth cookies present: access=${!accessToken.isNullOrBlank()} refresh=${!refreshToken.isNullOrBlank()} " +
-        "id=${request.id}",
+      "CookieAuth cookies present: access=${accessToken.isNullOrBlank().not()} " +
+        "refresh=${refreshToken.isNullOrBlank().not()} id=${request.id}",
     )
 
     if (accessToken.isNullOrBlank()) {
@@ -80,28 +77,5 @@ class CookieAuthenticationWebFilter(
           chain.filter(exchange)
         }
       }
-  }
-
-  fun logHeader(
-    name: String,
-    token: String?,
-  ) {
-    if (token.isNullOrBlank()) return
-    runCatching {
-      val parts = token.split('.')
-      if (parts.size >= 2) {
-        val headerJson =
-          String(
-            java.util.Base64
-              .getUrlDecoder()
-              .decode(parts[0]),
-          )
-        val alg = Regex("\"alg\"\\s*:\\s*\"([^\"]+)\"").find(headerJson)?.groupValues?.getOrNull(1)
-        val kid = Regex("\"kid\"\\s*:\\s*\"([^\"]+)\"").find(headerJson)?.groupValues?.getOrNull(1)
-        logger.debug("CookieAuth $name header alg=${alg ?: "?"} kid=${kid ?: "-"}")
-      }
-    }.onFailure {
-      logger.debug("CookieAuth $name header error parsing token: ${it.message}")
-    }
   }
 }
