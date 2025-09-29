@@ -69,6 +69,38 @@ class GoalControllerTest
     }
 
     @Test
+    fun `인증된 회원이 잘못된 날짜 형식으로 Goal 생성 테스트`() {
+      // given
+      val request =
+        mapOf(
+          "title" to "Test Goal",
+          "description" to "Test Description",
+          "targetDate" to "2025-12-31",
+        )
+
+      // when
+      val response =
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .post()
+          .uri("/api/v1/goals")
+          .accept(MediaType.APPLICATION_JSON)
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(request)
+          .exchange()
+          .expectStatus()
+          .isBadRequest
+          .expectBody<ServiceResponse<Unit>>()
+          .returnResult()
+          .responseBody!!
+
+      // then
+      assertThat(response.statusCode).isEqualTo(400)
+      assertThat(response.errorCode).isEqualTo("COMMON:INVALIDREQUEST")
+      assertThat(response.data).isNull()
+    }
+
+    @Test
     fun `인증되지 않은 사용자 요청 시 401 반환`() {
       // given
       val request =
