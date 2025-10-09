@@ -243,3 +243,5 @@ openapi-generator
 # Logging directories
 logs/
 docker/logs/
+
+**/.tool-versions

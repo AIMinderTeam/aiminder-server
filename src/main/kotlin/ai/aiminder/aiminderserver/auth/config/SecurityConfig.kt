@@ -72,13 +72,7 @@ class SecurityConfig(
       CorsConfiguration().apply {
         allowedOriginPatterns = securityProperties.allowOriginPatterns
         allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
-        allowedHeaders =
-          listOf(
-            "Authorization",
-            "Content-Type",
-            "Accept",
-            "X-Requested-With",
-          )
+        allowedHeaders = listOf("*")
         allowCredentials = true
         maxAge = 3600L
       }

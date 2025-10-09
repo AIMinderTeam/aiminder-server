@@ -17,6 +17,7 @@ import org.springframework.ai.openai.api.ResponseFormat
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime.now
+import java.util.UUID
 
 @Component
 class OpenAIClient(
@@ -40,6 +41,7 @@ class OpenAIClient(
       val userMessage = UserMessage(dto.text)
       val prompt = Prompt(listOf(systemMessage, userMessage), chatOptions)
       var response: T?
+      val toolContext: Map<String, UUID> = mapOf(CONVERSATION_ID to dto.conversationId, USER_ID to dto.userId)
 
       try {
         val chatResponse =
@@ -47,7 +49,7 @@ class OpenAIClient(
             .prompt(
               prompt,
             ).advisors { it.param(ChatMemory.CONVERSATION_ID, dto.conversationId) }
-            .toolContext(mapOf(CONVERSATION_ID to dto.conversationId, USER_ID to dto.userId))
+            .toolContext(toolContext)
             .tools(tools)
             .call()
             .chatResponse()
