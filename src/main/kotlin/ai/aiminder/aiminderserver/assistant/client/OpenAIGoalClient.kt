@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.assistant.client
 
-import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.Resource
@@ -16,9 +16,9 @@ class OpenAIGoalClient(
   override suspend fun chat(
     conversationId: UUID,
     assistantRequest: AssistantRequest,
-  ): AssistantResponse =
+  ): AssistantResponseDto =
     openAIClient
-      .requestStructuredResponse<AssistantResponse>(
+      .requestStructuredResponse<AssistantResponseDto>(
         systemMessage = systemPrompt,
         userMessage = assistantRequest.text,
         conversationId = conversationId,

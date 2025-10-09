@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.assistant.service
 
 import ai.aiminder.aiminderserver.assistant.client.AssistantClient
-import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
 import ai.aiminder.aiminderserver.assistant.domain.Conversation
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -20,17 +20,17 @@ class AssistantService(
   private val chatMemory: ChatMemory,
   objectMapper: ObjectMapper,
 ) {
-  private val assistantResponse = AssistantResponse.from(welcomeMessageResource)
-  private val welcomeMessage: String = objectMapper.writeValueAsString(assistantResponse)
+  private val assistantResponseDto: AssistantResponseDto = AssistantResponseDto.from(welcomeMessageResource)
+  private val welcomeMessage: String = objectMapper.writeValueAsString(assistantResponseDto)
   private val assistantMessage = AssistantMessage(welcomeMessage)
 
   suspend fun sendMessage(
     conversationId: UUID,
     request: AssistantRequest,
-  ): AssistantResponse = assistantClient.chat(conversationId, request)
+  ): AssistantResponseDto = assistantClient.chat(conversationId, request)
 
-  suspend fun startChat(conversation: Conversation): AssistantResponse {
+  suspend fun startChat(conversation: Conversation): AssistantResponseDto {
     chatMemory.add(conversation.id.toString(), assistantMessage)
-    return assistantResponse
+    return assistantResponseDto
   }
 }

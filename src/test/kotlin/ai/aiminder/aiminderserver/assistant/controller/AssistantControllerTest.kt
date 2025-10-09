@@ -1,10 +1,11 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
 import ai.aiminder.aiminderserver.assistant.client.AssistantClient
-import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponsePayload
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
+import ai.aiminder.aiminderserver.assistant.dto.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.entity.ConversationEntity
 import ai.aiminder.aiminderserver.assistant.repository.ConversationRepository
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
@@ -85,10 +86,10 @@ class AssistantControllerTest
         response.also {
           assertThat(it.statusCode).isEqualTo(200)
           assertThat(it.data).isNotNull
-          assertThat(it.data?.responses).isNotEmpty
+          assertThat(it.data?.messages).isNotEmpty
           assertThat(
             it.data
-              ?.responses
+              ?.messages
               ?.first()
               ?.messages,
           ).isNotEmpty
@@ -193,16 +194,16 @@ class AssistantControllerTest
         response.also {
           assertThat(it.statusCode).isEqualTo(200)
           assertThat(it.data).isNotNull
-          assertThat(it.data?.responses).isNotEmpty
+          assertThat(it.data?.messages).isNotEmpty
           assertThat(
             it.data
-              ?.responses
+              ?.messages
               ?.first()
               ?.type,
           ).isEqualTo(AssistantResponseType.TEXT)
           assertThat(
             it.data
-              ?.responses
+              ?.messages
               ?.first()
               ?.messages,
           ).contains("안녕하세요! 오늘은 맑고 화창한 날씨입니다. 기온은 22도 정도로 외출하기에 좋은 날씨네요!")
@@ -214,10 +215,10 @@ class AssistantControllerTest
       request: AssistantRequest,
     ) {
       val mockAIResponse =
-        AssistantResponse(
-          responses =
+        AssistantResponseDto(
+          payloads =
             listOf(
-              AssistantResponseDto(
+              AssistantResponsePayload(
                 type = AssistantResponseType.TEXT,
                 messages = listOf("안녕하세요! 오늘은 맑고 화창한 날씨입니다. 기온은 22도 정도로 외출하기에 좋은 날씨네요!"),
               ),
@@ -446,7 +447,7 @@ class AssistantControllerTest
 
         // then - 채팅 시작 성공 확인
         assertThat(startChatResponse.data).isNotNull
-        assertThat(startChatResponse.data?.responses).isNotEmpty
+        assertThat(startChatResponse.data?.messages).isNotEmpty
 
         // given - 생성된 대화방 확인
         val conversations = conversationRepository.findAll().toList()

@@ -1,8 +1,9 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
-import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
 import ai.aiminder.aiminderserver.assistant.domain.Conversation
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
+import ai.aiminder.aiminderserver.assistant.dto.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.service.AssistantService
 import ai.aiminder.aiminderserver.assistant.service.ConversationService
 import ai.aiminder.aiminderserver.common.error.CommonError
@@ -30,8 +31,9 @@ class AssistantController(
     user: User,
   ): ServiceResponse<AssistantResponse> {
     val conversation: Conversation = conversationService.create(user)
-    val assistantResponse: AssistantResponse = assistantService.startChat(conversation)
-    return ServiceResponse.from(assistantResponse)
+    val assistantResponseDto: AssistantResponseDto = assistantService.startChat(conversation)
+    val response: AssistantResponse = AssistantResponse.from(conversation, assistantResponseDto)
+    return ServiceResponse.from(response)
   }
 
   @PostMapping("/chat/{conversationId}")
@@ -47,7 +49,12 @@ class AssistantController(
       throw CommonError.InvalidRequest("메시지 내용이 비어있습니다.")
     }
     conversationService.validateUserAuthorization(conversationId, user)
-    val assistantResponse: AssistantResponse = assistantService.sendMessage(conversationId, request)
-    return ServiceResponse.from(assistantResponse)
+    val assistantResponseDto: AssistantResponseDto = assistantService.sendMessage(conversationId, request)
+    val response: AssistantResponse =
+      AssistantResponse.from(
+        conversationService.findById(conversationId),
+        assistantResponseDto,
+      )
+    return ServiceResponse.from(response)
   }
 }

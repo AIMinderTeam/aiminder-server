@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
-import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
+import ai.aiminder.aiminderserver.assistant.dto.AssistantResponse
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.user.domain.User
 import io.swagger.v3.oas.annotations.Operation
