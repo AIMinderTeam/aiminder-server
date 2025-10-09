@@ -277,7 +277,7 @@ class ChatBot {
      */
     createFallbackWelcomeResponse() {
         return {
-            responses: [
+            chat: [
                 {
                     type: "TEXT",
                     messages: [`안녕하세요, ${this.currentUser?.name || '사용자'}님! 👋 저는 당신의 AI 목표 코칭 비서입니다. 지금부터 목표 달성 여정을 함께 설계해 봐요. 먼저, 목표를 명확히 파악해야 해요. 🎯 이루고자 하는 목표는 무엇인가요❓`]
@@ -501,7 +501,7 @@ class ChatBot {
      * Display assistant message
      */
     displayAssistantMessage(response, time = null, shouldSave = false) {
-        if (!this.messageContainer || !response.responses || !Array.isArray(response.responses)) {
+        if (!this.messageContainer || !response.chat || !Array.isArray(response.chat)) {
             this.displayError('서버에서 잘못된 응답을 받았습니다. 🚫');
             return;
         }
@@ -510,7 +510,7 @@ class ChatBot {
             ? Utils.formatTime(time) 
             : Utils.formatTime(new Date());
 
-        response.responses.forEach(item => {
+        response.chat.forEach(item => {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message assistant';
 
