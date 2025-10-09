@@ -12,7 +12,7 @@ data class AiGoal(
   val milestones: List<GoalMilestone>,
 ) {
   companion object {
-    fun create(draft: AiGoalDraft): AiGoal =
+    fun create(draft: GoalDraft): AiGoal =
       AiGoal(
         id = UUID.randomUUID(),
         goalTitle = draft.goalTitle,

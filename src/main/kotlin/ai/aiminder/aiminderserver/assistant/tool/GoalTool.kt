@@ -1,11 +1,14 @@
 package ai.aiminder.aiminderserver.assistant.tool
 
-import ai.aiminder.aiminderserver.assistant.domain.AiGoal
-import ai.aiminder.aiminderserver.assistant.domain.AiGoalDraft
 import ai.aiminder.aiminderserver.assistant.domain.AiSchedule
+import ai.aiminder.aiminderserver.assistant.domain.GoalDraft
 import ai.aiminder.aiminderserver.assistant.dto.GoalMilestone
-import ai.aiminder.aiminderserver.assistant.repository.AiGoalRepository
 import ai.aiminder.aiminderserver.assistant.repository.AiScheduleRepository
+import ai.aiminder.aiminderserver.assistant.service.ToolContextService
+import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
+import ai.aiminder.aiminderserver.goal.dto.GoalResponse
+import ai.aiminder.aiminderserver.goal.service.GoalService
+import org.springframework.ai.chat.model.ToolContext
 import org.springframework.ai.tool.annotation.Tool
 import org.springframework.ai.tool.annotation.ToolParam
 import org.springframework.stereotype.Component
@@ -13,8 +16,9 @@ import java.time.LocalDate
 
 @Component
 class GoalTool(
-  private val aiGoalRepository: AiGoalRepository,
+  private val goalService: GoalService,
   private val aiScheduleRepository: AiScheduleRepository,
+  private val toolContextService: ToolContextService,
 ) : AssistantTool {
   @Tool(
     description = """
@@ -22,13 +26,13 @@ class GoalTool(
         구체화하고 부족한 정보가 있으면 사용자에게 질문한다
         """,
   )
-  fun refineGoal(
+  suspend fun refineGoal(
     @ToolParam(required = true) goalTitle: String,
     @ToolParam(required = true) goalTargetDate: LocalDate,
     @ToolParam(required = true) goalDescription: String,
     @ToolParam(required = true) milestones: List<GoalMilestone>,
-  ): AiGoalDraft =
-    AiGoalDraft(
+  ): GoalDraft =
+    GoalDraft(
       goalTitle,
       goalTargetDate,
       goalDescription,
@@ -36,9 +40,14 @@ class GoalTool(
     )
 
   @Tool(description = "확정된 SMART 목표를 데이터베이스에 저장한다")
-  fun saveGoal(
-    @ToolParam(required = true) draft: AiGoalDraft,
-  ): AiGoal = aiGoalRepository.save(AiGoal.create(draft))
+  suspend fun saveGoal(
+    @ToolParam(required = true) draft: GoalDraft,
+    toolContext: ToolContext,
+  ): GoalResponse {
+    val context = toolContextService.getContext(toolContext)
+    val response = goalService.create(CreateGoalRequestDto.from(draft, context))
+    return response
+  }
 
   @Tool(description = "제안된 일정을 데이터베이스에 저장한다")
   fun saveSchedules(

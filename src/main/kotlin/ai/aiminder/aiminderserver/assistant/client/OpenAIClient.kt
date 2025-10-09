@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.assistant.client
 
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.error.AssistantError
+import ai.aiminder.aiminderserver.assistant.service.ToolContextService
 import ai.aiminder.aiminderserver.assistant.tool.AssistantTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,6 +23,7 @@ import java.util.UUID
 @Component
 class OpenAIClient(
   val chatClient: ChatClient,
+  val toolContextService: ToolContextService,
 ) {
   final suspend inline fun <reified T> requestStructuredResponse(
     dto: AssistantRequestDto,
@@ -41,7 +43,7 @@ class OpenAIClient(
       val userMessage = UserMessage(dto.text)
       val prompt = Prompt(listOf(systemMessage, userMessage), chatOptions)
       var response: T?
-      val toolContext: Map<String, UUID> = mapOf(CONVERSATION_ID to dto.conversationId, USER_ID to dto.userId)
+      val toolContext: Map<String, UUID> = toolContextService.create(dto.conversationId, dto.userId)
 
       try {
         val chatResponse =
@@ -64,9 +66,4 @@ class OpenAIClient(
         throw AssistantError.InferenceError("AI 요청을 실패했습니다.")
       }
     }
-
-  companion object {
-    const val CONVERSATION_ID = "CONVERSATION_ID"
-    const val USER_ID = "USER_ID"
-  }
 }
