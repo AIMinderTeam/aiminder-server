@@ -17,7 +17,6 @@ import ai.aiminder.aiminderserver.user.repository.UserRepository
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
@@ -344,7 +343,6 @@ class GoalControllerTest
         assertResponseGoalsAndPagination(response = response3, createdGoal = createdGoal1, page = 2)
       }
 
-    @Disabled
     @Test
     fun `Bearer token으로 잘못된 날짜 형식 요청 시 문제 상황 재현`() =
       runTest {
