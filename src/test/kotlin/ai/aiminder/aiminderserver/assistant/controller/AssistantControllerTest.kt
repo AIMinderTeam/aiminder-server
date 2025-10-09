@@ -226,7 +226,7 @@ class AssistantControllerTest
         )
 
       coEvery {
-        assistantClient.chat(conversation.id!!, request)
+        assistantClient.chat(match { it.conversationId == conversation.id && it.text == request.text })
       } returns mockAIResponse
     }
 

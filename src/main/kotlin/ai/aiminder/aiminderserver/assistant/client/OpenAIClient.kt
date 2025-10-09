@@ -1,7 +1,8 @@
 package ai.aiminder.aiminderserver.assistant.client
 
+import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.error.AssistantError
-import ai.aiminder.aiminderserver.assistant.tool.GoalTool
+import ai.aiminder.aiminderserver.assistant.tool.AssistantTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -16,17 +17,15 @@ import org.springframework.ai.openai.api.ResponseFormat
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime.now
-import java.util.UUID
 
 @Component
 class OpenAIClient(
   val chatClient: ChatClient,
-  val goalTool: GoalTool,
 ) {
   final suspend inline fun <reified T> requestStructuredResponse(
+    dto: AssistantRequestDto,
     systemMessage: Resource,
-    userMessage: String,
-    conversationId: UUID,
+    tools: List<AssistantTool>,
   ): T =
     withContext(Dispatchers.Default) {
       val logger = LoggerFactory.getLogger(this::class.java)
@@ -38,7 +37,7 @@ class OpenAIClient(
           .build()
       val now = "현재 시간: ${now()}\n"
       val systemMessage = SystemMessage(now + systemMessage.getContentAsString(Charsets.UTF_8))
-      val userMessage = UserMessage(userMessage)
+      val userMessage = UserMessage(dto.text)
       val prompt = Prompt(listOf(systemMessage, userMessage), chatOptions)
       var response: T?
 
@@ -47,8 +46,9 @@ class OpenAIClient(
           chatClient
             .prompt(
               prompt,
-            ).advisors { it.param(ChatMemory.CONVERSATION_ID, conversationId) }
-            .tools(goalTool)
+            ).advisors { it.param(ChatMemory.CONVERSATION_ID, dto.conversationId) }
+            .toolContext(mapOf(CONVERSATION_ID to dto.conversationId, USER_ID to dto.userId))
+            .tools(tools)
             .call()
             .chatResponse()
         val text =
@@ -62,4 +62,9 @@ class OpenAIClient(
         throw AssistantError.InferenceError("AI 요청을 실패했습니다.")
       }
     }
+
+  companion object {
+    const val CONVERSATION_ID = "CONVERSATION_ID"
+    const val USER_ID = "USER_ID"
+  }
 }

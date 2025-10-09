@@ -3,6 +3,7 @@ package ai.aiminder.aiminderserver.assistant.controller
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
 import ai.aiminder.aiminderserver.assistant.domain.Conversation
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
+import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.dto.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.service.AssistantService
 import ai.aiminder.aiminderserver.assistant.service.ConversationService
@@ -49,7 +50,8 @@ class AssistantController(
       throw CommonError.InvalidRequest("메시지 내용이 비어있습니다.")
     }
     conversationService.validateUserAuthorization(conversationId, user)
-    val assistantResponseDto: AssistantResponseDto = assistantService.sendMessage(conversationId, request)
+    val requestDto: AssistantRequestDto = AssistantRequestDto.from(conversationId, user, request)
+    val assistantResponseDto: AssistantResponseDto = assistantService.sendMessage(requestDto)
     val response: AssistantResponse =
       AssistantResponse.from(
         conversationService.findById(conversationId),
