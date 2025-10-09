@@ -3,7 +3,6 @@ package ai.aiminder.aiminderserver.assistant.client
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.assistant.service.ToolContextService
-import ai.aiminder.aiminderserver.assistant.tool.GoalTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -15,18 +14,23 @@ import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.ai.converter.BeanOutputConverter
 import org.springframework.ai.openai.OpenAiChatOptions
 import org.springframework.ai.openai.api.ResponseFormat
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime.now
 import java.util.UUID
 
 @Component
-class OpenAIClient(
-  val chatClient: ChatClient,
-  val toolContextService: ToolContextService,
-  val goalTool: GoalTool,
-) {
-  final suspend inline fun <reified T> requestStructuredResponse(
+abstract class OpenAIClient {
+  @Autowired
+  private lateinit var chatClient: ChatClient
+
+  @Autowired
+  private lateinit var toolContextService: ToolContextService
+
+  abstract fun setTools(requestSpec: ChatClient.ChatClientRequestSpec): ChatClient.ChatClientRequestSpec
+
+  internal final suspend inline fun <reified T> requestStructuredResponse(
     dto: AssistantRequestDto,
     systemMessage: Resource,
   ): T =
@@ -46,13 +50,16 @@ class OpenAIClient(
       val toolContext: Map<String, UUID> = toolContextService.create(dto.conversationId, dto.userId)
 
       try {
-        val chatResponse =
+        val chatRequestSpec: ChatClient.ChatClientRequestSpec =
           chatClient
-            .prompt(
-              prompt,
-            ).advisors { it.param(ChatMemory.CONVERSATION_ID, dto.conversationId) }
+            .prompt(prompt)
+            .advisors { it.param(ChatMemory.CONVERSATION_ID, dto.conversationId) }
             .toolContext(toolContext)
-            .tools(goalTool)
+
+        val requestSpec = setTools(chatRequestSpec)
+
+        val chatResponse =
+          requestSpec
             .call()
             .chatResponse()
         val text =
