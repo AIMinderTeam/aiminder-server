@@ -224,9 +224,9 @@ class ChatBot {
      * Create conversation with server response
      */
     createConversationWithServerResponse(assistantResponse, serverSynced) {
-        // TODO: Backend needs to include conversationId in response
-        // For now, generate temporary UUID until backend is updated
-        this.conversationId = Utils.generateUUID();
+        // Validate server response format and extract conversationId
+        this.validateServerResponse(assistantResponse);
+        this.conversationId = assistantResponse.conversationId;
         
         const newConversation = this.createConversationObject(serverSynced);
         this.addConversationToHistory(newConversation);
@@ -238,8 +238,11 @@ class ChatBot {
 
     /**
      * Create fallback conversation when server is unavailable
+     * Note: Only generates client-side UUID for offline mode
+     * This conversation will need server-side conversationId when connection is restored
      */
     createFallbackConversation() {
+        // Generate temporary UUID for offline mode only
         this.conversationId = Utils.generateUUID();
         const fallbackConversation = this.createConversationObject(false);
         this.addConversationToHistory(fallbackConversation);
@@ -288,6 +291,29 @@ class ChatBot {
                 }
             ]
         };
+    }
+
+    /**
+     * Validate server response format and content
+     */
+    validateServerResponse(assistantResponse) {
+        if (!assistantResponse || !assistantResponse.conversationId) {
+            throw new Error('서버 응답에 conversationId가 없습니다.');
+        }
+        
+        if (!assistantResponse.chat || !Array.isArray(assistantResponse.chat)) {
+            throw new Error('서버 응답 형식이 올바르지 않습니다.');
+        }
+        
+        return true;
+    }
+
+    /**
+     * Check if current conversation is synced with server
+     */
+    isCurrentConversationServerSynced() {
+        const currentConversation = this.conversations.find(c => c.id === this.conversationId);
+        return currentConversation ? currentConversation.serverSynced : false;
     }
 
     /**
@@ -468,7 +494,15 @@ class ChatBot {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-      return (await response.json()).data;
+        const data = (await response.json()).data;
+        
+        // Validate conversationId from server response
+        if (data.conversationId && data.conversationId !== this.conversationId) {
+            console.warn('서버에서 반환된 conversationId가 현재 ID와 다릅니다.');
+            this.conversationId = data.conversationId;
+        }
+        
+        return data;
     }
 
     /**
