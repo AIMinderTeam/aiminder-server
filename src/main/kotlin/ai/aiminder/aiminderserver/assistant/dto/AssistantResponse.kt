@@ -20,12 +20,12 @@ data class AssistantResponse(
         "{\"type\": \"QUICK_REPLIES\",\"messages\": " +
         "[\"다이어트 \uD83D\uDCAA\", \"경제적 자유 \uD83D\uDCB0\", \"자격증 취득 \uD83C\uDFC5\" ] }]",
   )
-  val messages: List<AssistantResponsePayload>,
+  val chat: List<AssistantResponsePayload>,
 ) {
   companion object {
     fun from(
       conversation: Conversation,
       assistantResponseDto: AssistantResponseDto,
-    ): AssistantResponse = AssistantResponse(conversationId = conversation.id, messages = assistantResponseDto.payloads)
+    ): AssistantResponse = AssistantResponse(conversationId = conversation.id, chat = assistantResponseDto.payloads)
   }
 }
