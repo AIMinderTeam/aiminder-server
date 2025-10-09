@@ -26,6 +26,6 @@ data class AssistantResponse(
     fun from(
       conversation: Conversation,
       assistantResponseDto: AssistantResponseDto,
-    ): AssistantResponse = AssistantResponse(conversationId = conversation.id, chat = assistantResponseDto.payloads)
+    ): AssistantResponse = AssistantResponse(conversationId = conversation.id, chat = assistantResponseDto.responses)
   }
 }

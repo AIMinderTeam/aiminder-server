@@ -3,7 +3,7 @@ package ai.aiminder.aiminderserver.assistant.client
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.assistant.service.ToolContextService
-import ai.aiminder.aiminderserver.assistant.tool.AssistantTool
+import ai.aiminder.aiminderserver.assistant.tool.GoalTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -24,11 +24,11 @@ import java.util.UUID
 class OpenAIClient(
   val chatClient: ChatClient,
   val toolContextService: ToolContextService,
+  val goalTool: GoalTool,
 ) {
   final suspend inline fun <reified T> requestStructuredResponse(
     dto: AssistantRequestDto,
     systemMessage: Resource,
-    tools: List<AssistantTool>,
   ): T =
     withContext(Dispatchers.Default) {
       val logger = LoggerFactory.getLogger(this::class.java)
@@ -52,7 +52,7 @@ class OpenAIClient(
               prompt,
             ).advisors { it.param(ChatMemory.CONVERSATION_ID, dto.conversationId) }
             .toolContext(toolContext)
-            .tools(tools)
+            .tools(goalTool)
             .call()
             .chatResponse()
         val text =

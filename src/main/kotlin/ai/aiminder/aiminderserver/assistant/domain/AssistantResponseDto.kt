@@ -1,9 +1,11 @@
 package ai.aiminder.aiminderserver.assistant.domain
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.core.io.Resource
 
 data class AssistantResponseDto(
-  val payloads: List<AssistantResponsePayload>,
+  @get:JsonProperty(required = true)
+  val responses: List<AssistantResponsePayload>,
 ) {
   companion object {
     fun from(welcomeMessage: Resource): AssistantResponseDto =

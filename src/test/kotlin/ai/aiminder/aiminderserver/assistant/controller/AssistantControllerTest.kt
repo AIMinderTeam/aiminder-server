@@ -216,7 +216,7 @@ class AssistantControllerTest
     ) {
       val mockAIResponse =
         AssistantResponseDto(
-          payloads =
+          responses =
             listOf(
               AssistantResponsePayload(
                 type = AssistantResponseType.TEXT,

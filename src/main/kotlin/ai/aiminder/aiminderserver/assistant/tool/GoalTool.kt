@@ -8,6 +8,7 @@ import ai.aiminder.aiminderserver.assistant.service.ToolContextService
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GoalResponse
 import ai.aiminder.aiminderserver.goal.service.GoalService
+import kotlinx.coroutines.runBlocking
 import org.springframework.ai.chat.model.ToolContext
 import org.springframework.ai.tool.annotation.Tool
 import org.springframework.ai.tool.annotation.ToolParam
@@ -26,7 +27,7 @@ class GoalTool(
         구체화하고 부족한 정보가 있으면 사용자에게 질문한다
         """,
   )
-  suspend fun refineGoal(
+  fun refineGoal(
     @ToolParam(required = true) goalTitle: String,
     @ToolParam(required = true) goalTargetDate: LocalDate,
     @ToolParam(required = true) goalDescription: String,
@@ -39,17 +40,18 @@ class GoalTool(
       milestones,
     )
 
-  @Tool(description = "확정된 SMART 목표를 데이터베이스에 저장한다")
-  suspend fun saveGoal(
+  @Tool(description = "사용자가 목표 저장을 요청할 경우 확정된 SMART 목표를 기반으로 데이터베이스에 저장한다")
+  fun saveGoal(
     @ToolParam(required = true) draft: GoalDraft,
     toolContext: ToolContext,
-  ): GoalResponse {
-    val context = toolContextService.getContext(toolContext)
-    val response = goalService.create(CreateGoalRequestDto.from(draft, context))
-    return response
-  }
+  ): GoalResponse =
+    runBlocking {
+      val context = toolContextService.getContext(toolContext)
+      val response = goalService.create(CreateGoalRequestDto.from(draft, context))
+      response
+    }
 
-  @Tool(description = "제안된 일정을 데이터베이스에 저장한다")
+  @Tool(description = "사용자가 일정 저장을 요청할 경우 제안된 일정을 데이터베이스에 저장한다")
   fun saveSchedules(
     @ToolParam(required = true) aiSchedules: List<AiSchedule>,
   ): List<AiSchedule> = aiScheduleRepository.save(aiSchedules)

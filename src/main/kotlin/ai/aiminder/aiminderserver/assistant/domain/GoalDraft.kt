@@ -10,5 +10,8 @@ data class GoalDraft(
   val milestones: List<GoalMilestone>,
 ) {
   val description: String
-    get() = "$goalDescription\n\n$milestones"
+    get() = "$goalDescription\n\n$descriptionWithMilestones"
+
+  val descriptionWithMilestones: String
+    get() = milestones.joinToString("\n") { "- 목표 : ${it.goal}, 목표 날짜 : ${it.targetDate}" }
 }
