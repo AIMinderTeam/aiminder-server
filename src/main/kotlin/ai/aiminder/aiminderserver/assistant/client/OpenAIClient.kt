@@ -17,7 +17,6 @@ import org.springframework.ai.openai.api.ResponseFormat
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime.now
 import java.util.UUID
 
 @Component
@@ -42,8 +41,7 @@ abstract class OpenAIClient {
           .builder()
           .responseFormat(ResponseFormat(ResponseFormat.Type.JSON_SCHEMA, outputConverter.jsonSchema))
           .build()
-      val now = "현재 시간: ${now()}\n"
-      val systemMessage = SystemMessage(now + systemMessage.getContentAsString(Charsets.UTF_8))
+      val systemMessage = SystemMessage(systemMessage)
       val userMessage = UserMessage(dto.text)
       val prompt = Prompt(listOf(systemMessage, userMessage), chatOptions)
       var response: T?

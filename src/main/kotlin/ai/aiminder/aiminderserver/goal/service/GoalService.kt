@@ -6,6 +6,7 @@ import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GetGoalsRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GoalResponse
 import ai.aiminder.aiminderserver.goal.entity.GoalEntity
+import ai.aiminder.aiminderserver.goal.error.GoalError
 import ai.aiminder.aiminderserver.goal.repository.GoalRepository
 import ai.aiminder.aiminderserver.image.repository.ImageRepository
 import kotlinx.coroutines.flow.map
@@ -57,6 +58,12 @@ class GoalService(
 
     return PageImpl(goalResponses, dto.pageable, totalCount)
   }
+
+  suspend fun get(goalId: UUID): Goal =
+    goalRepository
+      .findById(goalId)
+      ?.let { Goal.from(it) }
+      ?: throw GoalError.GoalNotFound(goalId)
 
   private suspend fun getImagePath(imageId: UUID?): String? =
     imageId?.let { id ->

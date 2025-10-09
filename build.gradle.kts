@@ -32,7 +32,7 @@ repositories {
   mavenCentral()
 }
 
-extra["springAiVersion"] = "1.0.0"
+extra["springAiVersion"] = "1.0.3"
 
 val testContainerVersion = "1.21.3"
 val jooqVersion = "3.19.4"

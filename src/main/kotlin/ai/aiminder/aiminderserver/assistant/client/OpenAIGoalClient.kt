@@ -3,6 +3,7 @@ package ai.aiminder.aiminderserver.assistant.client
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.tool.GoalTool
+import ai.aiminder.aiminderserver.assistant.tool.TodayTool
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.Resource
@@ -13,6 +14,7 @@ class OpenAIGoalClient(
   @param:Value("classpath:/prompts/goal_prompt.txt")
   private val systemPrompt: Resource,
   private val goalTool: GoalTool,
+  private val todayTool: TodayTool,
 ) : OpenAIClient(),
   AssistantClient {
   override suspend fun chat(dto: AssistantRequestDto): AssistantResponseDto =
@@ -22,5 +24,5 @@ class OpenAIGoalClient(
     )
 
   override fun setTools(requestSpec: ChatClient.ChatClientRequestSpec): ChatClient.ChatClientRequestSpec =
-    requestSpec.tools(goalTool)
+    requestSpec.tools(goalTool, todayTool)
 }

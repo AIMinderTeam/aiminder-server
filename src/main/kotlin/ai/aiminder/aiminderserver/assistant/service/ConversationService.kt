@@ -1,6 +1,7 @@
 package ai.aiminder.aiminderserver.assistant.service
 
 import ai.aiminder.aiminderserver.assistant.domain.Conversation
+import ai.aiminder.aiminderserver.assistant.dto.UpdateConversationDto
 import ai.aiminder.aiminderserver.assistant.entity.ConversationEntity
 import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.assistant.repository.ConversationRepository
@@ -34,4 +35,11 @@ class ConversationService(
       throw AuthError.Unauthorized()
     }
   }
+
+  suspend fun update(dto: UpdateConversationDto): Conversation =
+    findById(dto.conversationId)
+      .update(dto.goalId)
+      .let { ConversationEntity.from(it) }
+      .let { conversationRepository.save(it) }
+      .let { Conversation.from(it) }
 }
