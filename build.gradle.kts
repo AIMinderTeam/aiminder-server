@@ -45,6 +45,7 @@ dependencies {
 
   // spring
   implementation("org.springframework.ai:spring-ai-starter-model-openai")
+  implementation("org.springframework.ai:spring-ai-starter-model-chat-memory-repository-jdbc")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   if (osdetector.arch.equals("aarch_64")) {
     implementation("io.netty:netty-resolver-dns-native-macos:4.2.2.Final:osx-aarch_64")
@@ -93,6 +94,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("io.mockk:mockk:1.13.12")
+    testImplementation("com.ninja-squad:springmockk:4.0.2")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
@@ -187,6 +189,10 @@ tasks.withType<Test> {
 }
 
 tasks.named("runKtlintFormatOverMainSourceSet") {
+  dependsOn("jooqCodegenMain")
+}
+
+tasks.named("runKtlintCheckOverMainSourceSet") {
   dependsOn("jooqCodegenMain")
 }
 

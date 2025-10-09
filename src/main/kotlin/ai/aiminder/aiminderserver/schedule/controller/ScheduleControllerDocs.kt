@@ -40,35 +40,6 @@ interface ScheduleControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 일정 생성 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": null,
-                  "errorCode": null,
-                  "data": {
-                    "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-                    "goalId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
-                    "userId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
-                    "title": "Kotlin 학습 계획",
-                    "description": "Kotlin 기초 문법을 익히고 간단한 프로젝트를 진행한다",
-                    "status": "READY",
-                    "startDate": "2024-03-15",
-                    "endDate": "2024-03-22",
-                    "createdAt": "2024-03-15T10:30:00Z",
-                    "updatedAt": "2024-03-15T10:30:00Z",
-                    "deletedAt": null
-                  },
-                  "pageable": null
-                }
-              """,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "400",
@@ -87,6 +58,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -108,6 +80,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -129,6 +102,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -153,55 +127,6 @@ interface ScheduleControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 일정 목록 조회 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": null,
-                  "errorCode": null,
-                  "data": [
-                    {
-                      "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-                      "goalId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
-                      "userId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
-                      "title": "Kotlin 학습 계획",
-                      "description": "Kotlin 기초 문법을 익히고 간단한 프로젝트를 진행한다",
-                      "status": "READY",
-                      "startDate": "2024-03-15",
-                      "endDate": "2024-03-22",
-                      "createdAt": "2024-03-15T10:30:00Z",
-                      "updatedAt": "2024-03-15T10:30:00Z",
-                      "deletedAt": null
-                    },
-                    {
-                      "id": "a12bc34d-56ef-7890-abcd-ef1234567890",
-                      "goalId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
-                      "userId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
-                      "title": "프로젝트 구현",
-                      "description": "학습한 내용을 바탕으로 실제 프로젝트를 구현한다",
-                      "status": "COMPLETED",
-                      "startDate": "2024-03-23",
-                      "endDate": "2024-03-30",
-                      "createdAt": "2024-03-16T14:20:00Z",
-                      "updatedAt": "2024-03-16T14:20:00Z",
-                      "deletedAt": null
-                    }
-                  ],
-                  "pageable": {
-                    "page": 0,
-                    "count": 2,
-                    "totalPages": 1,
-                    "totalElements": 2
-                  }
-                }
-              """,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -220,6 +145,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -241,6 +167,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -264,35 +191,6 @@ interface ScheduleControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 일정 수정 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": null,
-                  "errorCode": null,
-                  "data": {
-                    "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-                    "goalId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
-                    "userId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
-                    "title": "Kotlin 고급 학습 계획",
-                    "description": "Kotlin 고급 문법과 Spring Boot 연동을 학습한다",
-                    "status": "COMPLETED",
-                    "startDate": "2024-03-15",
-                    "endDate": "2024-03-25",
-                    "createdAt": "2024-03-15T10:30:00Z",
-                    "updatedAt": "2024-03-16T15:45:00Z",
-                    "deletedAt": null
-                  },
-                  "pageable": null
-                }
-              """,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "400",
@@ -311,6 +209,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -332,6 +231,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -353,6 +253,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -374,6 +275,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -395,6 +297,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -418,23 +321,6 @@ interface ScheduleControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 일정 삭제 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": null,
-                  "errorCode": null,
-                  "data": "일정이 성공적으로 삭제되었습니다.",
-                  "pageable": null
-                }
-              """,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -453,6 +339,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -474,6 +361,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -495,6 +383,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -516,6 +405,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -538,35 +428,6 @@ interface ScheduleControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 일정 상세 정보 조회 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": null,
-                  "errorCode": null,
-                  "data": {
-                    "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-                    "goalId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
-                    "userId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890",
-                    "title": "Kotlin 학습 계획",
-                    "description": "Kotlin 기초 문법을 익히고 간단한 프로젝트를 진행한다",
-                    "status": "READY",
-                    "startDate": "2024-03-15",
-                    "endDate": "2024-03-22",
-                    "createdAt": "2024-03-15T10:30:00Z",
-                    "updatedAt": "2024-03-15T10:30:00Z",
-                    "deletedAt": null
-                  },
-                  "pageable": null
-                }
-              """,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -585,6 +446,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -606,6 +468,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -627,6 +490,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -648,6 +512,7 @@ interface ScheduleControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],

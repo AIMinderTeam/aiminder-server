@@ -27,11 +27,6 @@ aiminder:
     default-redirect-base-url: http://localhost:3000
 
 spring:
-  r2dbc:
-    url: r2dbc:postgresql://localhost:5432/aiminderdb
-    username: aiminder
-    password: aiminder
-
   flyway:
     url: jdbc:postgresql://localhost:5432/aiminderdb
     locations: classpath:/db/migration

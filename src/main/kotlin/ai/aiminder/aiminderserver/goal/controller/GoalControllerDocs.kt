@@ -38,35 +38,6 @@ interface GoalControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 목표 생성 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": null,
-                  "errorCode": null,
-                  "data": {
-                    "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-                    "userId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
-                    "title": "Learn Kotlin",
-                    "description": "Master Kotlin programming language by reading documentation and building projects",
-                    "targetDate": "2024-04-15T00:00:00Z",
-                    "isAiGenerated": false,
-                    "status": "ACTIVE",
-                    "imagePath": "/uploads/images/kotlin-learning-image.jpg",
-                    "createdAt": "2024-03-15T10:30:00Z",
-                    "updatedAt": "2024-03-15T10:30:00Z",
-                    "deletedAt": null
-                  },
-                  "pageable": null
-                }
-              """,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "400",
@@ -85,6 +56,7 @@ interface GoalControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -106,6 +78,7 @@ interface GoalControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -127,6 +100,7 @@ interface GoalControllerDocs {
                   "pageable": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -154,55 +128,6 @@ interface GoalControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 목표 목록 조회 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": null,
-                  "errorCode": null,
-                  "data": [
-                    {
-                      "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-                      "userId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
-                      "title": "Learn Kotlin",
-                      "description": "Master Kotlin programming language by reading documentation and building projects",
-                      "targetDate": "2024-04-15T00:00:00Z",
-                      "isAiGenerated": false,
-                      "status": "ACTIVE",
-                      "imagePath": "/uploads/images/kotlin-learning-image.jpg",
-                      "createdAt": "2024-03-15T10:30:00Z",
-                      "updatedAt": "2024-03-15T10:30:00Z",
-                      "deletedAt": null
-                    },
-                    {
-                      "id": "a12bc34d-56ef-7890-abcd-ef1234567890",
-                      "userId": "2f6a3a4c-1c3b-4bde-9d2a-6c2c8b6a1e7f",
-                      "title": "Complete Spring Boot Project",
-                      "description": "Build a complete REST API using Spring Boot with JWT authentication",
-                      "targetDate": "2024-05-01T00:00:00Z",
-                      "isAiGenerated": true,
-                      "status": "ACTIVE",
-                      "imagePath": null,
-                      "createdAt": "2024-03-16T14:20:00Z",
-                      "updatedAt": "2024-03-16T14:20:00Z",
-                      "deletedAt": null
-                    }
-                  ],
-                  "pageable": {
-                    "page": 0,
-                    "count": 2,
-                    "totalPages": 1,
-                    "totalElements": 2
-                  }
-                }
-              """,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -220,6 +145,7 @@ interface GoalControllerDocs {
                   "data": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],
@@ -240,6 +166,7 @@ interface GoalControllerDocs {
                   "data": null
                 }
               """,
+                implementation = ServiceResponse::class,
               ),
           ),
         ],

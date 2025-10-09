@@ -15,4 +15,11 @@ sealed class AssistantError(
       status = HttpStatus.INTERNAL_SERVER_ERROR,
       message = message,
     )
+
+  class ConversationNotFound(
+    conversationId: String,
+  ) : AssistantError(
+      status = HttpStatus.NOT_FOUND,
+      message = "대화방을 찾을 수 없습니다. conversationId: $conversationId",
+    )
 }

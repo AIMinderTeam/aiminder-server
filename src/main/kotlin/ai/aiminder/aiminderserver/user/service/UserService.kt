@@ -3,6 +3,7 @@ package ai.aiminder.aiminderserver.user.service
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.RefreshToken
 import ai.aiminder.aiminderserver.auth.dto.OAuth2UserInfo
+import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.auth.service.TokenService
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.entity.UserEntity
@@ -18,7 +19,7 @@ class UserService(
   suspend fun getUser(token: RefreshToken): User {
     val userId = tokenService.getUserIdFromRefreshToken(token)
     val userEntity: UserEntity =
-      userRepository.findById(userId) ?: throw IllegalAccessException("Not found user $userId")
+      userRepository.findById(userId) ?: throw AuthError.UserNotFoundException(userId)
     return User.from(userEntity)
   }
 
@@ -32,7 +33,7 @@ class UserService(
   }
 
   suspend fun getUserById(id: UUID): UserEntity =
-    userRepository.findById(id) ?: throw IllegalAccessException("Not found user $id")
+    userRepository.findById(id) ?: throw AuthError.UserNotFoundException(id)
 
   suspend fun createUser(
     userInfo: OAuth2UserInfo,

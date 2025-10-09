@@ -1,21 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-create table flyway_schema_history
-(
-  installed_rank integer                 not null
-    constraint flyway_schema_history_pk
-      primary key,
-  version        varchar(50),
-  description    varchar(200)            not null,
-  type           varchar(20)             not null,
-  script         varchar(1000)           not null,
-  checksum       integer,
-  installed_by   varchar(100)            not null,
-  installed_on   timestamp default now() not null,
-  execution_time integer                 not null,
-  success        boolean                 not null
-);
-
 create table users
 (
   user_id     uuid      default uuid_generate_v4() not null
@@ -104,4 +88,27 @@ create table schedules
   deleted_at  timestamp,
   constraint chk_schedule_dates
     check (start_date <= end_date)
+);
+
+create table spring_ai_chat_memory
+(
+  conversation_id varchar(255)  not null,
+  message_index   serial,
+  content         varchar(1000) not null,
+  type            varchar(50)   not null,
+  timestamp       timestamp default CURRENT_TIMESTAMP,
+  primary key (conversation_id, message_index)
+);
+
+
+create table conversations
+(
+  conversation_id uuid      default uuid_generate_v4() not null
+    primary key,
+  user_id         uuid                                 not null
+    constraint fk_conversations_user
+      references users
+      on delete cascade,
+  created_at      timestamp default CURRENT_TIMESTAMP  not null,
+  deleted_at      timestamp
 );

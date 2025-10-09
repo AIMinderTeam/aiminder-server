@@ -1,8 +1,7 @@
 package ai.aiminder.aiminderserver.auth.config
 
 import ai.aiminder.aiminderserver.auth.error.AuthError
-import ai.aiminder.aiminderserver.auth.filter.BearerTokenAuthenticationWebFilter
-import ai.aiminder.aiminderserver.auth.filter.CookieAuthenticationWebFilter
+import ai.aiminder.aiminderserver.auth.filter.AuthenticationWebFilter
 import ai.aiminder.aiminderserver.auth.filter.ReturnToCaptureWebFilter
 import ai.aiminder.aiminderserver.auth.handler.TokenLoginSuccessHandler
 import ai.aiminder.aiminderserver.auth.handler.TokenLogoutHandler
@@ -35,8 +34,7 @@ class SecurityConfig(
   private val securityProperties: SecurityProperties,
   private val objectMapper: ObjectMapper,
   private val tokenLoginSuccessHandler: TokenLoginSuccessHandler,
-  private val bearerTokenAuthenticationWebFilter: BearerTokenAuthenticationWebFilter,
-  private val cookieAuthenticationWebFilter: CookieAuthenticationWebFilter,
+  private val cookieAuthenticationWebFilter: AuthenticationWebFilter,
   private val returnToCaptureWebFilter: ReturnToCaptureWebFilter,
   private val tokenLogoutHandler: TokenLogoutHandler,
   private val tokenLogoutSuccessHandler: TokenLogoutSuccessHandler,
@@ -62,9 +60,10 @@ class SecurityConfig(
           .logoutSuccessHandler(tokenLogoutSuccessHandler)
       }.exceptionHandling { exceptions ->
         exceptions.authenticationEntryPoint(unauthorizedEntryPoint())
-      }.addFilterAt(returnToCaptureWebFilter, SecurityWebFiltersOrder.FIRST)
-      .addFilterBefore(bearerTokenAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-      .addFilterAt(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+      }.formLogin { form -> form.disable() }
+      .httpBasic { basic -> basic.disable() }
+      .addFilterAt(returnToCaptureWebFilter, SecurityWebFiltersOrder.FIRST)
+      .addFilterBefore(cookieAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
       .build()
 
   @Bean

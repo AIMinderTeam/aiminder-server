@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.goal.controller
 
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.Role
+import ai.aiminder.aiminderserver.auth.service.TokenService
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.goal.domain.Goal
@@ -32,6 +33,7 @@ class GoalControllerTest
   constructor(
     private val userRepository: UserRepository,
     private val goalRepository: GoalRepository,
+    private val tokenService: TokenService,
   ) : BaseIntegrationTest() {
     private lateinit var testUser: User
     private lateinit var authentication: UsernamePasswordAuthenticationToken
@@ -66,6 +68,38 @@ class GoalControllerTest
         assertThat(it.description).isEqualTo(request.description)
         assertThat(it.targetDate).isEqualTo(request.targetDate)
       }
+    }
+
+    @Test
+    fun `인증된 회원이 잘못된 날짜 형식으로 Goal 생성 테스트`() {
+      // given
+      val request =
+        mapOf(
+          "title" to "Test Goal",
+          "description" to "Test Description",
+          "targetDate" to "2025-12-31",
+        )
+
+      // when
+      val response =
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .post()
+          .uri("/api/v1/goals")
+          .accept(MediaType.APPLICATION_JSON)
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(request)
+          .exchange()
+          .expectStatus()
+          .isBadRequest
+          .expectBody<ServiceResponse<Unit>>()
+          .returnResult()
+          .responseBody!!
+
+      // then
+      assertThat(response.statusCode).isEqualTo(400)
+      assertThat(response.errorCode).isEqualTo("COMMON:INVALIDREQUEST")
+      assertThat(response.data).isNull()
     }
 
     @Test
@@ -307,6 +341,39 @@ class GoalControllerTest
         assertResponseGoalsAndPagination(response = response1, createdGoal = createdGoal3, page = 0)
         assertResponseGoalsAndPagination(response = response2, createdGoal = createdGoal2, page = 1)
         assertResponseGoalsAndPagination(response = response3, createdGoal = createdGoal1, page = 2)
+      }
+
+    @Test
+    fun `Bearer token으로 잘못된 날짜 형식 요청 시 문제 상황 재현`() =
+      runTest {
+        // given - 유효한 Bearer token을 생성
+        val validAccessToken = tokenService.createAccessToken(testUser)
+        val request =
+          mapOf(
+            "title" to "Test Goal",
+            "description" to "Test Description",
+            // 잘못된 날짜 형식 (문자열)
+            "targetDate" to "2025-12-31",
+          )
+
+        // when - 유효한 Bearer token으로 잘못된 JSON 데이터 요청
+        val response =
+          webTestClient
+            .post()
+            .uri("/api/v1/goals")
+            .accept(MediaType.APPLICATION_JSON)
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer $validAccessToken")
+            .bodyValue(request)
+            .exchange()
+            .expectStatus()
+            .is4xxClientError // 400 또는 401 중 어떤 것이 나오는지 확인
+            .expectBody<ServiceResponse<Unit>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        assertThat(response.statusCode).isEqualTo(400)
       }
 
     private fun assertResponseGoalsAndPagination(

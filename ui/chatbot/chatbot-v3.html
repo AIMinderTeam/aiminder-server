@@ -815,7 +815,7 @@
 
     showWelcomeMessage() {
       const welcomeResponse = {
-        responses: [
+        chat: [
           {
             type: "TEXT",
             messages: ["안녕하세요! 👋 저는 당신의 AI 비서입니다. 지금부터 목표 달성 여정을 함께 설계해 봐요. 먼저, 목표를 명확히 파악해야 해요. 🎯 이루고자 하는 목표는 무엇인가요❓"]
@@ -925,14 +925,14 @@
     }
 
     displayAssistantMessage(response, time = null) {
-      if (!response.responses || !Array.isArray(response.responses)) {
+      if (!response.chat || !Array.isArray(response.chat)) {
         this.displayError('서버에서 잘못된 응답을 받았습니다. 🚫');
         return;
       }
 
       const formattedTime = time ? new Date(time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
-      response.responses.forEach(item => {
+      response.chat.forEach(item => {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message assistant';
 

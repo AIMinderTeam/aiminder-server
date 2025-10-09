@@ -28,25 +28,11 @@ aiminder:
     default-redirect-base-url: https://dev.aiminder.click
 
 spring:
-  r2dbc:
-    url: r2dbc:postgresql://aiminder-database/aiminderdb
-    username: aiminder
-    password: aiminder
-
   flyway:
     url: jdbc:postgresql://aiminder-database/aiminderdb
     locations: classpath:/db/migration
     user: aiminder
     password: aiminder
-
-logging:
-  level:
-    root: info
-    ai.aiminder: debug
-    org.springframework.security: debug
-    io.r2dbc.postgresql:
-      QUERY: debug
-      PARAM: debug
 
 springdoc:
   swagger-ui:
