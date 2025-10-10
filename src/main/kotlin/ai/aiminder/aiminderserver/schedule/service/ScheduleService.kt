@@ -23,8 +23,6 @@ class ScheduleService(
   private val scheduleQueryRepository: ScheduleQueryRepository,
 ) {
   suspend fun create(dto: CreateScheduleRequestDto): ScheduleResponse {
-    validateDateRange(dto.startDate, dto.endDate)
-
     val schedule =
       ScheduleEntity
         .from(dto)
@@ -33,6 +31,13 @@ class ScheduleService(
 
     return ScheduleResponse.from(schedule)
   }
+
+  suspend fun create(dto: List<CreateScheduleRequestDto>): List<Schedule> =
+    dto
+      .map { ScheduleEntity.from(it) }
+      .let { scheduleRepository.saveAll(it) }
+      .map { Schedule.fromEntity(it) }
+      .toList()
 
   suspend fun get(dto: GetSchedulesRequestDto): Page<ScheduleResponse> {
     val schedules =
@@ -51,10 +56,6 @@ class ScheduleService(
 
     if (existingSchedule.userId != dto.userId || existingSchedule.deletedAt != null) {
       throw ScheduleError.AccessDenied()
-    }
-
-    if (dto.startDate != null && dto.endDate != null) {
-      validateDateRange(dto.startDate, dto.endDate)
     }
 
     val updatedSchedule =
@@ -106,14 +107,5 @@ class ScheduleService(
     }
 
     return ScheduleResponse.from(Schedule.fromEntity(schedule))
-  }
-
-  private fun validateDateRange(
-    startDate: Instant,
-    endDate: Instant,
-  ) {
-    if (startDate.isAfter(endDate)) {
-      throw ScheduleError.InvalidDateRange()
-    }
   }
 }

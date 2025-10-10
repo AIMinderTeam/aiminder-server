@@ -45,7 +45,7 @@ abstract class OpenAIClient {
       val userMessage = UserMessage(dto.text)
       val prompt = Prompt(listOf(systemMessage, userMessage), chatOptions)
       var response: T?
-      val toolContext: Map<String, UUID> = toolContextService.create(dto.conversationId, dto.userId)
+      val toolContext: Map<String, UUID> = toolContextService.create(dto.conversationId, dto.userId, dto.goalId)
 
       try {
         val chatRequestSpec: ChatClient.ChatClientRequestSpec =

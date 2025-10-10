@@ -12,6 +12,9 @@ import ai.aiminder.aiminderserver.common.util.logger
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GoalResponse
 import ai.aiminder.aiminderserver.goal.service.GoalService
+import ai.aiminder.aiminderserver.schedule.domain.Schedule
+import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequestDto
+import ai.aiminder.aiminderserver.schedule.service.ScheduleService
 import kotlinx.coroutines.runBlocking
 import org.springframework.ai.chat.model.ToolContext
 import org.springframework.ai.tool.annotation.Tool
@@ -22,8 +25,9 @@ import java.time.LocalDate
 @Component
 class GoalTool(
   private val aiScheduleRepository: AiScheduleRepository,
-  private val goalService: GoalService,
   private val conversationService: ConversationService,
+  private val goalService: GoalService,
+  private val scheduleService: ScheduleService,
   private val toolContextService: ToolContextService,
 ) : AssistantTool {
   private val logger = logger()
@@ -71,8 +75,13 @@ class GoalTool(
   @Tool(description = "사용자가 일정 저장을 요청할 경우 제안된 일정을 데이터베이스에 저장한다")
   fun saveSchedules(
     @ToolParam(required = true) aiSchedules: List<AiSchedule>,
-  ): List<AiSchedule> {
-    logger.debug("도구 호출: saveSchedules(AI일정={})", aiSchedules)
-    return aiScheduleRepository.save(aiSchedules)
-  }
+    toolContext: ToolContext,
+  ): List<Schedule> =
+    runBlocking {
+      logger.debug("도구 호출: saveSchedules(AI일정={})", aiSchedules)
+      val serviceToolContext: ServiceToolContext = toolContextService.getContext(toolContext)
+      val dto = aiSchedules.map { schedule -> CreateScheduleRequestDto.from(schedule, serviceToolContext) }
+      val schedules = scheduleService.create(dto)
+      schedules
+    }
 }
