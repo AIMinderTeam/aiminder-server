@@ -71,14 +71,14 @@ SMART 목표: {goalTitle}
 
 ### 주간 일정 형식
 ```
-이번 주 실행 계획:
-월요일 {date1}: {task1}
-화요일 {date2}: {task2}
-수요일 {date3}: {task3}
-목요일 {date4}: {task4}
-금요일 {date5}: {task5}
-토요일 {date6}: {task6}
-일요일 {date7}: {task7}
+한 주 실행 계획:
+{date1}: {task1}
+{date2}: {task2}
+{date3}: {task3}
+{date4}: {task4}
+{date5}: {task5}
+{date6}: {task6}
+{date7}: {task7}
 ```
 
 ## 가이드라인
