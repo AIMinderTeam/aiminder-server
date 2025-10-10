@@ -1,6 +1,6 @@
-package ai.aiminder.aiminderserver.assistant.entity
+package ai.aiminder.aiminderserver.conversation.entity
 
-import ai.aiminder.aiminderserver.assistant.domain.Conversation
+import ai.aiminder.aiminderserver.conversation.domain.Conversation
 import ai.aiminder.aiminderserver.user.domain.User
 import org.springframework.data.annotation.Id
 import org.springframework.data.domain.Persistable

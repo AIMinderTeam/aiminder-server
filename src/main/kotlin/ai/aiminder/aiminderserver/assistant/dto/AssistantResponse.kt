@@ -2,7 +2,7 @@ package ai.aiminder.aiminderserver.assistant.dto
 
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponsePayload
-import ai.aiminder.aiminderserver.assistant.domain.Conversation
+import ai.aiminder.aiminderserver.conversation.domain.Conversation
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import io.swagger.v3.oas.annotations.media.Schema
 import java.util.UUID

@@ -1,6 +1,6 @@
-package ai.aiminder.aiminderserver.assistant.domain
+package ai.aiminder.aiminderserver.conversation.domain
 
-import ai.aiminder.aiminderserver.assistant.entity.ConversationEntity
+import ai.aiminder.aiminderserver.conversation.entity.ConversationEntity
 import java.time.Instant
 import java.util.UUID
 

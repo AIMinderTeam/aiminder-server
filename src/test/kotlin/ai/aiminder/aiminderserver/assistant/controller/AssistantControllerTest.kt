@@ -6,12 +6,12 @@ import ai.aiminder.aiminderserver.assistant.domain.AssistantResponsePayload
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.dto.AssistantResponse
-import ai.aiminder.aiminderserver.assistant.entity.ConversationEntity
-import ai.aiminder.aiminderserver.assistant.repository.ConversationRepository
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.Role
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
+import ai.aiminder.aiminderserver.conversation.entity.ConversationEntity
+import ai.aiminder.aiminderserver.conversation.repository.ConversationRepository
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.entity.UserEntity
 import ai.aiminder.aiminderserver.user.repository.UserRepository

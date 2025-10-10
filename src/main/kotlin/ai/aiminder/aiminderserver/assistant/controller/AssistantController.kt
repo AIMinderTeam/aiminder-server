@@ -1,14 +1,14 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
-import ai.aiminder.aiminderserver.assistant.domain.Conversation
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.dto.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.service.AssistantService
-import ai.aiminder.aiminderserver.assistant.service.ConversationService
 import ai.aiminder.aiminderserver.common.error.CommonError
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
+import ai.aiminder.aiminderserver.conversation.domain.Conversation
+import ai.aiminder.aiminderserver.conversation.service.ConversationService
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.service.GoalService
 import ai.aiminder.aiminderserver.user.domain.User

@@ -1,6 +1,6 @@
-package ai.aiminder.aiminderserver.assistant.repository
+package ai.aiminder.aiminderserver.conversation.repository
 
-import ai.aiminder.aiminderserver.assistant.entity.ConversationEntity
+import ai.aiminder.aiminderserver.conversation.entity.ConversationEntity
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Repository
 import java.util.UUID

@@ -5,10 +5,9 @@ import ai.aiminder.aiminderserver.assistant.domain.GoalDraft
 import ai.aiminder.aiminderserver.assistant.domain.ServiceToolContext
 import ai.aiminder.aiminderserver.assistant.dto.GoalMilestone
 import ai.aiminder.aiminderserver.assistant.dto.UpdateConversationDto
-import ai.aiminder.aiminderserver.assistant.repository.AiScheduleRepository
-import ai.aiminder.aiminderserver.assistant.service.ConversationService
 import ai.aiminder.aiminderserver.assistant.service.ToolContextService
 import ai.aiminder.aiminderserver.common.util.logger
+import ai.aiminder.aiminderserver.conversation.service.ConversationService
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GoalResponse
 import ai.aiminder.aiminderserver.goal.service.GoalService
@@ -24,7 +23,6 @@ import java.time.LocalDate
 
 @Component
 class GoalTool(
-  private val aiScheduleRepository: AiScheduleRepository,
   private val conversationService: ConversationService,
   private val goalService: GoalService,
   private val scheduleService: ScheduleService,

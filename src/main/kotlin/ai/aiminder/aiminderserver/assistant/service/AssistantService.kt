@@ -2,8 +2,8 @@ package ai.aiminder.aiminderserver.assistant.service
 
 import ai.aiminder.aiminderserver.assistant.client.AssistantClient
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
-import ai.aiminder.aiminderserver.assistant.domain.Conversation
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
+import ai.aiminder.aiminderserver.conversation.domain.Conversation
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.ai.chat.memory.ChatMemory
 import org.springframework.ai.chat.messages.AssistantMessage

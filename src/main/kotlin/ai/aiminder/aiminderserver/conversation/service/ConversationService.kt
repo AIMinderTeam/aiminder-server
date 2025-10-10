@@ -1,11 +1,11 @@
-package ai.aiminder.aiminderserver.assistant.service
+package ai.aiminder.aiminderserver.conversation.service
 
-import ai.aiminder.aiminderserver.assistant.domain.Conversation
 import ai.aiminder.aiminderserver.assistant.dto.UpdateConversationDto
-import ai.aiminder.aiminderserver.assistant.entity.ConversationEntity
 import ai.aiminder.aiminderserver.assistant.error.AssistantError
-import ai.aiminder.aiminderserver.assistant.repository.ConversationRepository
 import ai.aiminder.aiminderserver.auth.error.AuthError
+import ai.aiminder.aiminderserver.conversation.domain.Conversation
+import ai.aiminder.aiminderserver.conversation.entity.ConversationEntity
+import ai.aiminder.aiminderserver.conversation.repository.ConversationRepository
 import ai.aiminder.aiminderserver.user.domain.User
 import org.springframework.stereotype.Service
 import java.util.UUID
