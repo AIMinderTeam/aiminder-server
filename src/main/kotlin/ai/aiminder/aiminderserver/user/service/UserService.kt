@@ -19,7 +19,7 @@ class UserService(
   suspend fun getUser(token: RefreshToken): User {
     val userId = tokenService.getUserIdFromRefreshToken(token)
     val userEntity: UserEntity =
-      userRepository.findById(userId) ?: throw AuthError.UserNotFoundException(userId)
+      userRepository.findById(userId) ?: throw AuthError.UserNotFound(userId)
     return User.from(userEntity)
   }
 
@@ -32,8 +32,7 @@ class UserService(
     return userEntity?.let { User.from(it) }
   }
 
-  suspend fun getUserById(id: UUID): UserEntity =
-    userRepository.findById(id) ?: throw AuthError.UserNotFoundException(id)
+  suspend fun getUserById(id: UUID): UserEntity = userRepository.findById(id) ?: throw AuthError.UserNotFound(id)
 
   suspend fun createUser(
     userInfo: OAuth2UserInfo,

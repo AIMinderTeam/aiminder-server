@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.schedule.entity
 
 import ai.aiminder.aiminderserver.schedule.domain.ScheduleStatus
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequestDto
+import ai.aiminder.aiminderserver.schedule.error.ScheduleError
 import org.springframework.data.annotation.Id
 import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
@@ -26,6 +27,12 @@ data class ScheduleEntity(
   val updatedAt: Instant = createdAt,
   val deletedAt: Instant? = null,
 ) : Persistable<UUID> {
+  init {
+    if (startDate.isAfter(endDate)) {
+      throw ScheduleError.InvalidDateRange(id)
+    }
+  }
+
   override fun getId(): UUID? = id
 
   override fun isNew(): Boolean = id == null

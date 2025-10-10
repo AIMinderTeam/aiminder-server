@@ -419,7 +419,7 @@ class AuthenticationWebFilterTest {
     every { refreshDecoder.decode(refresh) } returns Mono.just(jwt(refresh))
     coEvery { tokenService.validateRefreshToken(refresh) } returns true
     val subjectId = UUID.fromString("00000000-0000-0000-0000-000000000000")
-    coEvery { userService.getUser(refresh) } throws AuthError.UserNotFoundException(subjectId)
+    coEvery { userService.getUser(refresh) } throws AuthError.UserNotFound(subjectId)
 
     val request =
       MockServerHttpRequest
@@ -464,7 +464,7 @@ class AuthenticationWebFilterTest {
     every { accessDecoder.decode(access) } returns Mono.just(jwt(access))
     every { tokenService.validateAccessToken(access) } returns true
     val subjectId = UUID.fromString("00000000-0000-0000-0000-000000000000")
-    coEvery { userService.getUserById(subjectId) } throws AuthError.UserNotFoundException(subjectId)
+    coEvery { userService.getUserById(subjectId) } throws AuthError.UserNotFound(subjectId)
 
     val request =
       MockServerHttpRequest

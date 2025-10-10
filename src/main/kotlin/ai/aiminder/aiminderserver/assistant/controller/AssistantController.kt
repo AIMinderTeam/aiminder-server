@@ -1,14 +1,16 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
-import ai.aiminder.aiminderserver.assistant.domain.Conversation
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.dto.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.service.AssistantService
-import ai.aiminder.aiminderserver.assistant.service.ConversationService
 import ai.aiminder.aiminderserver.common.error.CommonError
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
+import ai.aiminder.aiminderserver.conversation.domain.Conversation
+import ai.aiminder.aiminderserver.conversation.service.ConversationService
+import ai.aiminder.aiminderserver.goal.domain.Goal
+import ai.aiminder.aiminderserver.goal.service.GoalService
 import ai.aiminder.aiminderserver.user.domain.User
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.transaction.annotation.Transactional
@@ -24,6 +26,7 @@ import java.util.UUID
 class AssistantController(
   private val assistantService: AssistantService,
   private val conversationService: ConversationService,
+  private val goalService: GoalService,
 ) : AssistantControllerDocs {
   @Transactional
   @PostMapping("/chat")
@@ -33,10 +36,17 @@ class AssistantController(
   ): ServiceResponse<AssistantResponse> {
     val conversation: Conversation = conversationService.create(user)
     val assistantResponseDto: AssistantResponseDto = assistantService.startChat(conversation)
-    val response: AssistantResponse = AssistantResponse.from(conversation, assistantResponseDto)
+    val goal: Goal? = conversation.goalId?.let { goalService.get(it) }
+    val response: AssistantResponse =
+      AssistantResponse.from(
+        conversation = conversation,
+        assistantResponseDto = assistantResponseDto,
+        goal = goal,
+      )
     return ServiceResponse.from(response)
   }
 
+  @Transactional
   @PostMapping("/chat/{conversationId}")
   override suspend fun sendMessage(
     @PathVariable
@@ -50,12 +60,15 @@ class AssistantController(
       throw CommonError.InvalidRequest("메시지 내용이 비어있습니다.")
     }
     conversationService.validateUserAuthorization(conversationId, user)
-    val requestDto: AssistantRequestDto = AssistantRequestDto.from(conversationId, user, request)
+    val conversation: Conversation = conversationService.findById(conversationId)
+    val goal: Goal? = conversation.goalId?.let { goalService.get(it) }
+    val requestDto: AssistantRequestDto = AssistantRequestDto.from(conversationId, user, request, goal)
     val assistantResponseDto: AssistantResponseDto = assistantService.sendMessage(requestDto)
     val response: AssistantResponse =
       AssistantResponse.from(
-        conversationService.findById(conversationId),
-        assistantResponseDto,
+        conversation = conversation,
+        assistantResponseDto = assistantResponseDto,
+        goal = goal,
       )
     return ServiceResponse.from(response)
   }

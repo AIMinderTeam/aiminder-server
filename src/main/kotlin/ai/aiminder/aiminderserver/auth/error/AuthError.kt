@@ -22,7 +22,7 @@ sealed class AuthError(
 
   class NotFoundOAuthId : AuthError(HttpStatus.INTERNAL_SERVER_ERROR, "OAuth2 식별자를 찾을 수 없습니다.")
 
-  class UserNotFoundException(
+  class UserNotFound(
     userId: UUID,
   ) : AuthError(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다: $userId")
 }
