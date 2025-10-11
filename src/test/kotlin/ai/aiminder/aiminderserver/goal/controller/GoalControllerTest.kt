@@ -945,6 +945,103 @@ class GoalControllerTest
         }
       }
 
+    @Test
+    fun `목표를 정상적으로 삭제할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+
+        // when
+        val response = deleteGoal(testGoal.id)
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isEqualTo("Goal deleted successfully")
+
+        // 실제로 데이터베이스에서 삭제되었는지 확인 (soft delete)
+        val deletedGoal = goalRepository.findById(testGoal.id)
+        assertThat(deletedGoal).isNotNull()
+        assertThat(deletedGoal!!.deletedAt).isNotNull()
+      }
+
+    @Test
+    fun `인증되지 않은 사용자의 삭제 시도 시 401 반환`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+
+        // when
+        val response = deleteGoalExpectingError(testGoal.id, null)
+
+        // then
+        verifyErrorResponse(response, 401, "AUTH:UNAUTHORIZED")
+      }
+
+    @Test
+    fun `다른 사용자의 목표 삭제 시도 시 403 반환`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val otherUserAuth =
+          UsernamePasswordAuthenticationToken(
+            otherUser,
+            null,
+            listOf(SimpleGrantedAuthority(Role.USER.name)),
+          )
+
+        // when
+        val response = deleteGoalExpectingError(testGoal.id, otherUserAuth)
+
+        // then
+        verifyErrorResponse(response, 403, "GOAL:ACCESSDENIED")
+      }
+
+    @Test
+    fun `존재하지 않는 목표 ID로 삭제 시도 시 404 반환`() {
+      // given
+      val nonExistentGoalId = UUID.randomUUID()
+
+      // when
+      val response = deleteGoalExpectingError(nonExistentGoalId)
+
+      // then
+      verifyErrorResponse(response, 404, "GOAL:GOALNOTFOUND")
+    }
+
+    @Test
+    fun `deleteGoal 시 잘못된 UUID 형식 요청 시 400 반환`() {
+      // when & then
+      webTestClient
+        .mutateWith(mockAuthentication(authentication))
+        .delete()
+        .uri("/api/v1/goals/invalid-uuid-format")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+    }
+
+    @Test
+    fun `이미 삭제된 목표를 삭제 시도 시 404 반환`() =
+      runTest {
+        // given - 삭제된 목표 생성
+        val deletedGoal =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Deleted Goal",
+              targetDate = Instant.now().plusSeconds(86400),
+              deletedAt = Instant.now(),
+            ),
+          )
+
+        // when
+        val response = deleteGoalExpectingError(deletedGoal.id!!)
+
+        // then
+        verifyErrorResponse(response, 404, "GOAL:GOALNOTFOUND")
+      }
+
     private suspend fun createTestGoal(user: User): GoalResponse {
       val goalEntity =
         goalRepository.save(
@@ -1043,5 +1140,44 @@ class GoalControllerTest
       assertThat(response.statusCode).isEqualTo(expectedStatus)
       assertThat(response.errorCode).isEqualTo(expectedErrorCode)
       assertThat(response.data).isNull()
+    }
+
+    private fun deleteGoal(
+      goalId: UUID,
+      auth: UsernamePasswordAuthenticationToken = authentication,
+    ): ServiceResponse<String> =
+      webTestClient
+        .mutateWith(mockAuthentication(auth))
+        .delete()
+        .uri("/api/v1/goals/$goalId")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<ServiceResponse<String>>()
+        .returnResult()
+        .responseBody!!
+
+    private fun deleteGoalExpectingError(
+      goalId: UUID,
+      auth: UsernamePasswordAuthenticationToken? = authentication,
+    ): ServiceResponse<Unit> {
+      val testClient =
+        if (auth != null) {
+          webTestClient.mutateWith(mockAuthentication(auth))
+        } else {
+          webTestClient
+        }
+
+      return testClient
+        .delete()
+        .uri("/api/v1/goals/$goalId")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .is4xxClientError
+        .expectBody<ServiceResponse<Unit>>()
+        .returnResult()
+        .responseBody!!
     }
   }
