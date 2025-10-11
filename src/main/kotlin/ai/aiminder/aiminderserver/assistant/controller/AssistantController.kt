@@ -75,7 +75,7 @@ class AssistantController(
   }
 
   @GetMapping("/{conversationId}/chat")
-  suspend fun getMessages(
+  override suspend fun getMessages(
     @PathVariable
     conversationId: UUID,
     pageable: PageableRequest,
