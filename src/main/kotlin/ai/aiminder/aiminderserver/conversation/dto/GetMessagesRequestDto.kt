@@ -4,7 +4,7 @@ import ai.aiminder.aiminderserver.common.request.PageableRequest
 import org.springframework.data.domain.Pageable
 import java.util.UUID
 
-data class GetConversationChatRequestDto(
+data class GetMessagesRequestDto(
   val conversationId: UUID,
   val pageable: Pageable,
 ) {
@@ -12,8 +12,8 @@ data class GetConversationChatRequestDto(
     fun from(
       conversationId: UUID,
       pageableRequest: PageableRequest,
-    ): GetConversationChatRequestDto =
-      GetConversationChatRequestDto(
+    ): GetMessagesRequestDto =
+      GetMessagesRequestDto(
         conversationId = conversationId,
         pageable = pageableRequest.toDomain(),
       )

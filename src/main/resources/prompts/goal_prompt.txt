@@ -99,7 +99,7 @@ SMART 목표: {goalTitle}
 - 매개변수: `draft` (refineGoal에서 받은 GoalDraft)
 
 **saveSchedules**: 사용자 승인 후 주간 일정을 데이터베이스에 저장.
-- 매개변수: `aiSchedules` (7일간의 일정 목록)
+- 매개변수: `scheduleDrafts` (7일간의 일정 목록)
 
 ## 중요사항
 - 날짜 계산 전 항상 `getToday` 호출

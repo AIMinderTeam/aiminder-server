@@ -6,14 +6,18 @@ import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
 import ai.aiminder.aiminderserver.assistant.service.AssistantService
 import ai.aiminder.aiminderserver.common.error.CommonError
+import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
+import ai.aiminder.aiminderserver.conversation.dto.GetMessagesRequestDto
 import ai.aiminder.aiminderserver.conversation.service.ConversationService
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.service.GoalService
 import ai.aiminder.aiminderserver.user.domain.User
+import org.springframework.data.domain.Page
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -68,5 +72,19 @@ class AssistantController(
         assistantResponse = assistantResponse,
       )
     return ServiceResponse.from(response)
+  }
+
+  @GetMapping("/{conversationId}/chat")
+  suspend fun getMessages(
+    @PathVariable
+    conversationId: UUID,
+    pageable: PageableRequest,
+    @AuthenticationPrincipal
+    user: User,
+  ): ServiceResponse<List<ChatResponse>> {
+    conversationService.validateUserAuthorization(conversationId, user)
+    val dto = GetMessagesRequestDto.from(conversationId, pageable)
+    val messages: Page<ChatResponse> = conversationService.get(dto)
+    return ServiceResponse.from(messages)
   }
 }

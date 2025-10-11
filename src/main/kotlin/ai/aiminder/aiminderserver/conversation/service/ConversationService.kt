@@ -3,16 +3,16 @@ package ai.aiminder.aiminderserver.conversation.service
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.domain.ChatResponseDto
+import ai.aiminder.aiminderserver.assistant.domain.ChatRow
+import ai.aiminder.aiminderserver.assistant.domain.ChatType
 import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
 import ai.aiminder.aiminderserver.assistant.dto.UpdateConversationDto
 import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.auth.error.AuthError
-import ai.aiminder.aiminderserver.conversation.domain.ChatType
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
-import ai.aiminder.aiminderserver.conversation.dto.ChatRow
 import ai.aiminder.aiminderserver.conversation.dto.ConversationResponse
-import ai.aiminder.aiminderserver.conversation.dto.GetConversationChatRequestDto
 import ai.aiminder.aiminderserver.conversation.dto.GetConversationRequestDto
+import ai.aiminder.aiminderserver.conversation.dto.GetMessagesRequestDto
 import ai.aiminder.aiminderserver.conversation.entity.ConversationEntity
 import ai.aiminder.aiminderserver.conversation.repository.ConversationQueryRepository
 import ai.aiminder.aiminderserver.conversation.repository.ConversationRepository
@@ -75,7 +75,7 @@ class ConversationService(
     return PageImpl(conversations.toList(), dto.pageable, totalCount)
   }
 
-  suspend fun get(dto: GetConversationChatRequestDto): Page<ChatResponse> {
+  suspend fun get(dto: GetMessagesRequestDto): Page<ChatResponse> {
     val chatRows: Flow<ChatResponse> =
       conversationQueryRepository
         .findChatBy(dto)

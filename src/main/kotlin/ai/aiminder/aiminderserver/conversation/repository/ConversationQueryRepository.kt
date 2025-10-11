@@ -1,9 +1,9 @@
 package ai.aiminder.aiminderserver.conversation.repository
 
+import ai.aiminder.aiminderserver.assistant.domain.ChatRow
 import ai.aiminder.aiminderserver.common.config.JooqR2dbcRepository
-import ai.aiminder.aiminderserver.conversation.dto.ChatRow
-import ai.aiminder.aiminderserver.conversation.dto.GetConversationChatRequestDto
 import ai.aiminder.aiminderserver.conversation.dto.GetConversationRequestDto
+import ai.aiminder.aiminderserver.conversation.dto.GetMessagesRequestDto
 import ai.aiminder.aiminderserver.conversation.repository.row.ConversationRow
 import ai.aiminder.aiminderserver.jooq.tables.Conversations.Companion.CONVERSATIONS
 import ai.aiminder.aiminderserver.jooq.tables.Goals.Companion.GOALS
@@ -75,7 +75,7 @@ class ConversationQueryRepository : JooqR2dbcRepository() {
       )
     }
 
-  suspend fun findChatBy(dto: GetConversationChatRequestDto): Flow<ChatRow> =
+  suspend fun findChatBy(dto: GetMessagesRequestDto): Flow<ChatRow> =
     query {
       select(
         SPRING_AI_CHAT_MEMORY.CONTENT,
@@ -99,7 +99,7 @@ class ConversationQueryRepository : JooqR2dbcRepository() {
         .where(buildConversationConditions(dto))
     }.single().component1().toLong()
 
-  suspend fun countBy(dto: GetConversationChatRequestDto): Long =
+  suspend fun countBy(dto: GetMessagesRequestDto): Long =
     query {
       selectCount()
         .from(SPRING_AI_CHAT_MEMORY)

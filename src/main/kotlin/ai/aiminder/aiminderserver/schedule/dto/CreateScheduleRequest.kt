@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.schedule.dto
 
-import ai.aiminder.aiminderserver.assistant.domain.AiSchedule
 import ai.aiminder.aiminderserver.assistant.domain.ServiceToolContext
+import ai.aiminder.aiminderserver.schedule.domain.ScheduleDraft
 import java.time.Instant
 import java.util.UUID
 
@@ -22,7 +22,7 @@ data class CreateScheduleRequestDto(
 ) {
   companion object {
     fun from(
-      schedule: AiSchedule,
+      schedule: ScheduleDraft,
       serviceToolContext: ServiceToolContext,
     ): CreateScheduleRequestDto =
       CreateScheduleRequestDto(

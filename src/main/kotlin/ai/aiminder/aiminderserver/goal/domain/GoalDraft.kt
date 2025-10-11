@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.assistant.domain
+package ai.aiminder.aiminderserver.goal.domain
 
 import ai.aiminder.aiminderserver.assistant.dto.GoalMilestone
 import java.time.LocalDate

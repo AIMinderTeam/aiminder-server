@@ -1,17 +1,17 @@
 package ai.aiminder.aiminderserver.assistant.tool
 
-import ai.aiminder.aiminderserver.assistant.domain.AiSchedule
-import ai.aiminder.aiminderserver.assistant.domain.GoalDraft
 import ai.aiminder.aiminderserver.assistant.domain.ServiceToolContext
 import ai.aiminder.aiminderserver.assistant.dto.GoalMilestone
 import ai.aiminder.aiminderserver.assistant.dto.UpdateConversationDto
 import ai.aiminder.aiminderserver.assistant.service.ToolContextService
 import ai.aiminder.aiminderserver.common.util.logger
 import ai.aiminder.aiminderserver.conversation.service.ConversationService
+import ai.aiminder.aiminderserver.goal.domain.GoalDraft
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GoalResponse
 import ai.aiminder.aiminderserver.goal.service.GoalService
 import ai.aiminder.aiminderserver.schedule.domain.Schedule
+import ai.aiminder.aiminderserver.schedule.domain.ScheduleDraft
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequestDto
 import ai.aiminder.aiminderserver.schedule.service.ScheduleService
 import kotlinx.coroutines.runBlocking
@@ -72,13 +72,13 @@ class GoalTool(
 
   @Tool(description = "사용자가 일정 저장을 요청할 경우 제안된 일정을 데이터베이스에 저장한다")
   fun saveSchedules(
-    @ToolParam(required = true) aiSchedules: List<AiSchedule>,
+    @ToolParam(required = true) scheduleDrafts: List<ScheduleDraft>,
     toolContext: ToolContext,
   ): List<Schedule> =
     runBlocking {
-      logger.debug("도구 호출: saveSchedules(AI일정={})", aiSchedules)
+      logger.debug("도구 호출: saveSchedules(AI일정={})", scheduleDrafts)
       val serviceToolContext: ServiceToolContext = toolContextService.getContext(toolContext)
-      val dto = aiSchedules.map { schedule -> CreateScheduleRequestDto.from(schedule, serviceToolContext) }
+      val dto = scheduleDrafts.map { schedule -> CreateScheduleRequestDto.from(schedule, serviceToolContext) }
       val schedules = scheduleService.create(dto)
       schedules
     }
