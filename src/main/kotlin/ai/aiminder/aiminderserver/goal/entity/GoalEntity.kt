@@ -54,6 +54,7 @@ data class GoalEntity(
         description = dto.description,
         targetDate = dto.targetDate,
         imageId = dto.imageId,
+        isAiGenerated = dto.isAiGenerated,
       )
   }
 }
