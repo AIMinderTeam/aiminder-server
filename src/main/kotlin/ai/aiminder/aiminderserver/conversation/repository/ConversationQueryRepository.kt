@@ -1,6 +1,8 @@
 package ai.aiminder.aiminderserver.conversation.repository
 
 import ai.aiminder.aiminderserver.common.config.JooqR2dbcRepository
+import ai.aiminder.aiminderserver.conversation.dto.ChatRow
+import ai.aiminder.aiminderserver.conversation.dto.GetConversationChatRequestDto
 import ai.aiminder.aiminderserver.conversation.dto.GetConversationRequestDto
 import ai.aiminder.aiminderserver.conversation.repository.row.ConversationRow
 import ai.aiminder.aiminderserver.jooq.tables.Conversations.Companion.CONVERSATIONS
@@ -16,7 +18,7 @@ import java.time.LocalDateTime
 
 @Repository
 class ConversationQueryRepository : JooqR2dbcRepository() {
-  suspend fun findAllBy(dto: GetConversationRequestDto): Flow<ConversationRow> =
+  suspend fun findConversationsBy(dto: GetConversationRequestDto): Flow<ConversationRow> =
     query {
       select(
         CONVERSATIONS.CONVERSATION_ID,
@@ -73,11 +75,35 @@ class ConversationQueryRepository : JooqR2dbcRepository() {
       )
     }
 
+  suspend fun findChatBy(dto: GetConversationChatRequestDto): Flow<ChatRow> =
+    query {
+      select(
+        SPRING_AI_CHAT_MEMORY.CONTENT,
+        SPRING_AI_CHAT_MEMORY.TYPE,
+      ).from(SPRING_AI_CHAT_MEMORY)
+        .where(SPRING_AI_CHAT_MEMORY.CONVERSATION_ID.eq(dto.conversationId.toString()))
+        .orderBy(SPRING_AI_CHAT_MEMORY.MESSAGE_INDEX.desc())
+        .offset(dto.pageable.offset.toInt())
+        .limit(dto.pageable.pageSize)
+    }.map { record ->
+      ChatRow(
+        content = record.get(SPRING_AI_CHAT_MEMORY.CONTENT)!!,
+        type = record.get(SPRING_AI_CHAT_MEMORY.TYPE)!!,
+      )
+    }
+
   suspend fun countBy(dto: GetConversationRequestDto): Long =
     query {
       selectCount()
         .from(CONVERSATIONS)
         .where(buildConversationConditions(dto))
+    }.single().component1().toLong()
+
+  suspend fun countBy(dto: GetConversationChatRequestDto): Long =
+    query {
+      selectCount()
+        .from(SPRING_AI_CHAT_MEMORY)
+        .where(SPRING_AI_CHAT_MEMORY.CONVERSATION_ID.eq(dto.conversationId.toString()))
     }.single().component1().toLong()
 
   private fun buildConversationConditions(dto: GetConversationRequestDto): List<Condition> {

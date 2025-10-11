@@ -1,9 +1,9 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
-import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
-import ai.aiminder.aiminderserver.assistant.dto.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
 import ai.aiminder.aiminderserver.assistant.service.AssistantService
 import ai.aiminder.aiminderserver.common.error.CommonError
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
@@ -33,15 +33,13 @@ class AssistantController(
   override suspend fun startChat(
     @AuthenticationPrincipal
     user: User,
-  ): ServiceResponse<AssistantResponse> {
+  ): ServiceResponse<ChatResponse> {
     val conversation: Conversation = conversationService.create(user)
-    val assistantResponseDto: AssistantResponseDto = assistantService.startChat(conversation)
-    val goal: Goal? = conversation.goalId?.let { goalService.get(it) }
-    val response: AssistantResponse =
-      AssistantResponse.from(
+    val assistantResponse: AssistantResponse = assistantService.startChat(conversation)
+    val response: ChatResponse =
+      ChatResponse.from(
         conversation = conversation,
-        assistantResponseDto = assistantResponseDto,
-        goal = goal,
+        assistantResponse = assistantResponse,
       )
     return ServiceResponse.from(response)
   }
@@ -55,7 +53,7 @@ class AssistantController(
     request: AssistantRequest,
     @AuthenticationPrincipal
     user: User,
-  ): ServiceResponse<AssistantResponse> {
+  ): ServiceResponse<ChatResponse> {
     if (request.text.isBlank()) {
       throw CommonError.InvalidRequest("메시지 내용이 비어있습니다.")
     }
@@ -63,12 +61,11 @@ class AssistantController(
     val conversation: Conversation = conversationService.findById(conversationId)
     val goal: Goal? = conversation.goalId?.let { goalService.get(it) }
     val requestDto: AssistantRequestDto = AssistantRequestDto.from(conversationId, user, request, goal)
-    val assistantResponseDto: AssistantResponseDto = assistantService.sendMessage(requestDto)
-    val response: AssistantResponse =
-      AssistantResponse.from(
+    val assistantResponse: AssistantResponse = assistantService.sendMessage(requestDto)
+    val response: ChatResponse =
+      ChatResponse.from(
         conversation = conversation,
-        assistantResponseDto = assistantResponseDto,
-        goal = goal,
+        assistantResponse = assistantResponse,
       )
     return ServiceResponse.from(response)
   }

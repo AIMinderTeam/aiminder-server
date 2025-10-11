@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
-import ai.aiminder.aiminderserver.assistant.dto.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.user.domain.User
 import io.swagger.v3.oas.annotations.Operation
@@ -86,7 +86,7 @@ interface AssistantControllerDocs {
   )
   suspend fun startChat(
     @Parameter(hidden = true) user: User,
-  ): ServiceResponse<AssistantResponse>
+  ): ServiceResponse<ChatResponse>
 
   @Operation(
     operationId = "sendMessage",
@@ -221,5 +221,5 @@ interface AssistantControllerDocs {
     @Parameter(description = "대화방 고유 ID (UUID)") conversationId: UUID,
     @Parameter(description = "전송할 메시지 내용") request: AssistantRequest,
     @Parameter(hidden = true) user: User,
-  ): ServiceResponse<AssistantResponse>
+  ): ServiceResponse<ChatResponse>
 }

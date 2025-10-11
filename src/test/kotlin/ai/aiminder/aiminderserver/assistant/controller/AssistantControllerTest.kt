@@ -1,11 +1,11 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
 import ai.aiminder.aiminderserver.assistant.client.AssistantClient
-import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
-import ai.aiminder.aiminderserver.assistant.domain.AssistantResponsePayload
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
+import ai.aiminder.aiminderserver.assistant.domain.ChatResponseDto
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
-import ai.aiminder.aiminderserver.assistant.dto.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.Role
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
@@ -78,7 +78,7 @@ class AssistantControllerTest
             .exchange()
             .expectStatus()
             .isOk
-            .expectBody<ServiceResponse<AssistantResponse>>()
+            .expectBody<ServiceResponse<ChatResponse>>()
             .returnResult()
             .responseBody!!
 
@@ -186,7 +186,7 @@ class AssistantControllerTest
             .exchange()
             .expectStatus()
             .isOk
-            .expectBody<ServiceResponse<AssistantResponse>>()
+            .expectBody<ServiceResponse<ChatResponse>>()
             .returnResult()
             .responseBody!!
 
@@ -215,10 +215,10 @@ class AssistantControllerTest
       request: AssistantRequest,
     ) {
       val mockAIResponse =
-        AssistantResponseDto(
+        AssistantResponse(
           responses =
             listOf(
-              AssistantResponsePayload(
+              ChatResponseDto(
                 type = AssistantResponseType.TEXT,
                 messages = listOf("안녕하세요! 오늘은 맑고 화창한 날씨입니다. 기온은 22도 정도로 외출하기에 좋은 날씨네요!"),
               ),
@@ -441,7 +441,7 @@ class AssistantControllerTest
             .exchange()
             .expectStatus()
             .isOk
-            .expectBody<ServiceResponse<AssistantResponse>>()
+            .expectBody<ServiceResponse<ChatResponse>>()
             .returnResult()
             .responseBody!!
 
@@ -471,7 +471,7 @@ class AssistantControllerTest
             .exchange()
             .expectStatus()
             .isOk
-            .expectBody<ServiceResponse<AssistantResponse>>()
+            .expectBody<ServiceResponse<ChatResponse>>()
             .returnResult()
             .responseBody!!
 
@@ -512,7 +512,7 @@ class AssistantControllerTest
               .exchange()
               .expectStatus()
               .isOk
-              .expectBody<ServiceResponse<AssistantResponse>>()
+              .expectBody<ServiceResponse<ChatResponse>>()
               .returnResult()
               .responseBody!!
 
