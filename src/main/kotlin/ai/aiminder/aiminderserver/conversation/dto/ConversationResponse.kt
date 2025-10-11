@@ -8,7 +8,7 @@ import java.util.UUID
 data class ConversationResponse(
   val conversationId: UUID,
   val recentChat: String,
-  val recentAt: Instant,
+  val recentAt: Instant?,
   val goalId: UUID?,
   val goalTitle: String?,
 ) {
@@ -17,7 +17,7 @@ data class ConversationResponse(
       ConversationResponse(
         conversationId = row.conversationId,
         recentChat = row.recentChat,
-        recentAt = row.recentAt.toUtcInstant(),
+        recentAt = row.recentAt?.toUtcInstant(),
         goalId = row.goalId,
         goalTitle = row.goalTitle,
       )

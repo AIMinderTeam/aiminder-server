@@ -44,14 +44,14 @@ class ConversationQueryRepository : JooqR2dbcRepository() {
         .leftJoin(GOALS)
         .on(CONVERSATIONS.GOAL_ID.eq(GOALS.GOAL_ID).and(GOALS.DELETED_AT.isNull))
         .where(buildConversationConditions(dto))
-        .orderBy(DSL.field("recent_at").desc())
+        .orderBy(DSL.field("recent_at").desc().nullsLast())
         .offset(dto.pageable.offset.toInt())
         .limit(dto.pageable.pageSize)
     }.map { record ->
       ConversationRow(
         conversationId = record.get(CONVERSATIONS.CONVERSATION_ID)!!,
         recentChat = record.get("recent_chat", String::class.java) ?: "",
-        recentAt = record.get("recent_at", java.time.LocalDateTime::class.java)!!,
+        recentAt = record.get("recent_at", java.time.LocalDateTime::class.java),
         goalId = record.get(CONVERSATIONS.GOAL_ID),
         goalTitle = record.get("goal_title", String::class.java),
       )
