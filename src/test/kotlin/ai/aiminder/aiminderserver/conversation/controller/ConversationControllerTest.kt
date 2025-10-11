@@ -18,11 +18,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.jdbc.DataSourceBuilder
-import org.springframework.boot.test.context.TestConfiguration
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Import
-import org.springframework.core.env.Environment
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
@@ -30,27 +25,7 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.test.web.reactive.server.expectBody
 import java.time.Instant
 import java.time.LocalDateTime
-import javax.sql.DataSource
 
-@TestConfiguration
-class TestDataSourceConfig {
-  @Bean
-  fun dataSource(environment: Environment): DataSource {
-    val jdbcUrl = environment.getProperty("spring.r2dbc.url")!!.replace("r2dbc:postgresql", "jdbc:postgresql")
-    val username = environment.getProperty("spring.r2dbc.username")!!
-    val password = environment.getProperty("spring.r2dbc.password")!!
-
-    return DataSourceBuilder
-      .create()
-      .url(jdbcUrl)
-      .username(username)
-      .password(password)
-      .driverClassName("org.postgresql.Driver")
-      .build()
-  }
-}
-
-@Import(TestDataSourceConfig::class)
 class ConversationControllerTest
   @Autowired
   constructor(
