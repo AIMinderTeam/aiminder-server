@@ -25,11 +25,13 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockAuthentication
 import org.springframework.test.web.reactive.server.expectBody
 import java.time.Instant
+import java.time.LocalDateTime
 import java.util.UUID
 
 class AssistantControllerTest
@@ -37,6 +39,7 @@ class AssistantControllerTest
   constructor(
     private val userRepository: UserRepository,
     private val conversationRepository: ConversationRepository,
+    private val jdbcTemplate: JdbcTemplate,
   ) : BaseIntegrationTest() {
     @MockkBean
     private lateinit var assistantClient: AssistantClient
@@ -518,6 +521,528 @@ class AssistantControllerTest
 
           assertThat(response.statusCode).isEqualTo(200)
           assertThat(response.data).isNotNull
+        }
+      }
+
+    // getMessages API 테스트들
+    @Test
+    fun `정상적인 메시지 조회 테스트 - 빈 대화방의 경우 빈 배열 반환`() =
+      runTest {
+        // given - 대화방 생성 (실제로는 Spring AI Chat Memory에 메시지가 저장되어야 하지만 테스트 환경에서는 빈 상태)
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // when - 메시지 조회
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<ChatResponse>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - Spring AI Chat Memory가 빈 상태이므로 빈 배열 반환이 정상
+        response.also {
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data).isEmpty() // 테스트 환경에서는 실제 AI 메모리가 없으므로 빈 배열
+        }
+      }
+
+    @Test
+    fun `페이징 파라미터를 사용한 메시지 조회 테스트`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // when - 페이지 크기 2로 첫 번째 페이지 조회
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat?page=0&size=2")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<ChatResponse>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 페이징 파라미터가 정상적으로 처리되고 빈 결과 반환
+        response.also {
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data).isEmpty() // 테스트 환경에서는 메시지가 없으므로 빈 배열
+        }
+      }
+
+    @Test
+    fun `빈 대화방 메시지 조회 테스트`() =
+      runTest {
+        // given - 메시지가 없는 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // when - 메시지 조회
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<ChatResponse>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 빈 배열 반환 확인
+        response.also {
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data).isEmpty()
+        }
+      }
+
+    @Test
+    fun `인증되지 않은 사용자 메시지 조회 시 401 반환`() =
+      runTest {
+        // given
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // when
+        val response =
+          webTestClient
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isUnauthorized
+            .expectBody<ServiceResponse<Unit>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        assertThat(response.statusCode).isEqualTo(401)
+        assertThat(response.message).isEqualTo("인증이 필요합니다. 로그인을 진행해주세요.")
+        assertThat(response.errorCode).isEqualTo("AUTH:UNAUTHORIZED")
+        assertThat(response.data).isNull()
+      }
+
+    @Test
+    fun `존재하지 않는 대화방 메시지 조회 시 404 반환`() {
+      // given
+      val nonExistentConversationId = UUID.randomUUID()
+
+      // when
+      val response =
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/conversations/$nonExistentConversationId/chat")
+          .accept(MediaType.APPLICATION_JSON)
+          .exchange()
+          .expectStatus()
+          .isNotFound
+          .expectBody<ServiceResponse<Unit>>()
+          .returnResult()
+          .responseBody!!
+
+      // then
+      assertThat(response.statusCode).isEqualTo(404)
+      assertThat(response.errorCode).isEqualTo("ASSISTANT:CONVERSATIONNOTFOUND")
+      assertThat(response.message).contains("대화방을 찾을 수 없습니다")
+    }
+
+    @Test
+    fun `다른 사용자의 대화방 메시지 조회 시 401 반환`() =
+      runTest {
+        // given - 다른 사용자 생성
+        val anotherUser =
+          userRepository.save(
+            UserEntity(
+              provider = OAuth2Provider.KAKAO,
+              providerId = "another-user-456",
+            ),
+          )
+
+        val anotherUserDomain = User.from(anotherUser)
+        val anotherUserConversation =
+          conversationRepository.save(
+            ConversationEntity.from(anotherUserDomain),
+          )
+
+        // when - 다른 사용자의 대화방 메시지 조회 시도
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${anotherUserConversation.id}/chat")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isUnauthorized
+            .expectBody<ServiceResponse<Unit>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        assertThat(response.statusCode).isEqualTo(401)
+        assertThat(response.errorCode).isEqualTo("AUTH:UNAUTHORIZED")
+        assertThat(response.message).isEqualTo("인증이 필요합니다. 로그인을 진행해주세요.")
+        assertThat(response.data).isNull()
+      }
+
+    @Test
+    fun `잘못된 UUID 형식으로 메시지 조회 시 400 반환`() {
+      // given
+      val invalidUuid = "invalid-uuid-format"
+
+      // when
+      val response =
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/conversations/$invalidUuid/chat")
+          .accept(MediaType.APPLICATION_JSON)
+          .exchange()
+          .expectStatus()
+          .isBadRequest
+          .expectBody<ServiceResponse<Unit>>()
+          .returnResult()
+          .responseBody!!
+
+      // then
+      assertThat(response.statusCode).isEqualTo(400)
+      assertThat(response.errorCode).isEqualTo("COMMON:INVALIDREQUEST")
+    }
+
+    @Test
+    fun `페이징 파라미터 경계값 테스트`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // when - page=0, size=1로 조회
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat?page=0&size=1")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<ChatResponse>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        response.also {
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data?.size).isLessThanOrEqualTo(1)
+        }
+      }
+
+    @Test
+    fun `음수 페이징 파라미터 테스트`() =
+      runTest {
+        // given
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // when - 음수 page로 조회 (Spring에서 내부적으로 500 에러 발생)
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat?page=-1&size=10")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .is5xxServerError
+            .expectBody<ServiceResponse<Unit>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        assertThat(response.statusCode).isEqualTo(500)
+        assertThat(response.errorCode).isEqualTo("COMMON:INTERNALSERVERERROR")
+        assertThat(response.message).contains("Page index must not be less than zero")
+      }
+
+    @Test
+    fun `대용량 데이터 페이징 테스트`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // when - 두 번째 페이지 조회 (page=1, size=10)
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat?page=1&size=10")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<ChatResponse>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 페이징이 정상적으로 처리되고 빈 결과 반환
+        response.also {
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data).isEmpty() // 테스트 환경에서는 메시지가 없으므로 빈 배열
+        }
+      }
+
+    @Test
+    fun `Spring AI Chat Memory 데이터로 메시지 조회 테스트`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // Spring AI Chat Memory 테이블에 ASSISTANT 메시지 추가
+        val assistantContent =
+          """
+          {"responses":[
+            {"messages":["경제적 자유를 목표로 하셨군요! SMART 목표를 설정해볼까요?"],"type":"TEXT"},
+            {"messages":["매월 300만 원 수입 💸","빚 청산 🎯","주식 투자 수익 목표 📈"],"type":"QUICK_REPLIES"}
+          ]}
+          """.trimIndent().replace("\n", "").replace("  ", "")
+
+        jdbcTemplate.update(
+          """
+          INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
+          VALUES (?, ?, ?, ?)
+          """.trimIndent(),
+          conversation.id.toString(),
+          assistantContent,
+          "ASSISTANT",
+          LocalDateTime.now().minusMinutes(2),
+        )
+
+        // Spring AI Chat Memory 테이블에 USER 메시지 추가
+        jdbcTemplate.update(
+          """
+          INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
+          VALUES (?, ?, ?, ?)
+          """.trimIndent(),
+          conversation.id.toString(),
+          "매월 300만 원 수입 💸",
+          "USER",
+          LocalDateTime.now().minusMinutes(1),
+        )
+
+        // when - 메시지 조회
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<ChatResponse>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 메시지 조회 결과 검증
+        response.also {
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data).hasSize(2)
+
+          // 첫 번째 메시지는 USER 메시지 (최신순 정렬)
+          val userMessage = it.data?.get(0)
+          assertThat(userMessage?.conversationId).isEqualTo(conversation.id)
+          assertThat(userMessage?.chatType?.name).isEqualTo("USER")
+          assertThat(userMessage?.chat).hasSize(1)
+          assertThat(userMessage?.chat?.get(0)?.type?.name).isEqualTo("TEXT")
+          assertThat(userMessage?.chat?.get(0)?.messages).containsExactly("매월 300만 원 수입 💸")
+
+          // 두 번째 메시지는 ASSISTANT 메시지
+          val assistantMessage = it.data?.get(1)
+          assertThat(assistantMessage?.conversationId).isEqualTo(conversation.id)
+          assertThat(assistantMessage?.chatType?.name).isEqualTo("ASSISTANT")
+          assertThat(assistantMessage?.chat).hasSize(2)
+          assertThat(assistantMessage?.chat?.get(0)?.type?.name).isEqualTo("TEXT")
+          assertThat(assistantMessage?.chat?.get(0)?.messages).hasSize(1)
+          assertThat(assistantMessage?.chat?.get(0)?.messages?.get(0)).contains("경제적 자유를 목표로 하셨군요")
+          assertThat(assistantMessage?.chat?.get(1)?.type?.name).isEqualTo("QUICK_REPLIES")
+          assertThat(assistantMessage?.chat?.get(1)?.messages).hasSize(3)
+          assertThat(assistantMessage?.chat?.get(1)?.messages).contains("매월 300만 원 수입 💸", "빚 청산 🎯", "주식 투자 수익 목표 📈")
+        }
+      }
+
+    @Test
+    fun `Spring AI Chat Memory 페이징 테스트`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // 여러 메시지 추가 (5개)
+        repeat(5) { index ->
+          val content =
+            if (index % 2 == 0) {
+              "메시지 내용 $index" // USER 메시지는 단순 텍스트
+            } else {
+              // ASSISTANT 메시지는 JSON 형태
+              """{"responses":[{"messages":["메시지 내용 $index"],"type":"TEXT"}]}"""
+            }
+
+          jdbcTemplate.update(
+            """
+            INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
+            VALUES (?, ?, ?, ?)
+            """.trimIndent(),
+            conversation.id.toString(),
+            content,
+            if (index % 2 == 0) "USER" else "ASSISTANT",
+            LocalDateTime.now().minusMinutes((5 - index).toLong()),
+          )
+        }
+
+        // when - 첫 번째 페이지 조회 (page=0, size=3)
+        val firstPageResponse =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat?page=0&size=3")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<ChatResponse>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 첫 번째 페이지 검증
+        firstPageResponse.also {
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data).hasSize(3)
+          // 최신순 정렬이므로 마지막 3개 메시지가 조회됨
+          assertThat(it.data?.get(0)?.chat?.get(0)?.messages?.get(0)).isEqualTo("메시지 내용 4")
+          assertThat(it.data?.get(1)?.chat?.get(0)?.messages?.get(0)).isEqualTo("메시지 내용 3")
+          assertThat(it.data?.get(2)?.chat?.get(0)?.messages?.get(0)).isEqualTo("메시지 내용 2")
+        }
+
+        // when - 두 번째 페이지 조회 (page=1, size=3)
+        val secondPageResponse =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat?page=1&size=3")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<ChatResponse>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 두 번째 페이지 검증
+        secondPageResponse.also {
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data).hasSize(2) // 남은 2개 메시지
+          assertThat(it.data?.get(0)?.chat?.get(0)?.messages?.get(0)).isEqualTo("메시지 내용 1")
+          assertThat(it.data?.get(1)?.chat?.get(0)?.messages?.get(0)).isEqualTo("메시지 내용 0")
+        }
+      }
+
+    @Test
+    fun `Spring AI Chat Memory 시간순 정렬 확인 테스트`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // 메시지 2개만 추가하여 단순화
+        jdbcTemplate.update(
+          """
+          INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
+          VALUES (?, ?, ?, ?)
+          """.trimIndent(),
+          conversation.id.toString(),
+          "첫 번째 메시지",
+          "USER",
+          LocalDateTime.now().minusMinutes(2),
+        )
+
+        jdbcTemplate.update(
+          """
+          INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
+          VALUES (?, ?, ?, ?)
+          """.trimIndent(),
+          conversation.id.toString(),
+          "두 번째 메시지",
+          "USER",
+          LocalDateTime.now().minusMinutes(1),
+        )
+
+        // when - 메시지 조회
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .get()
+            .uri("/api/v1/conversations/${conversation.id}/chat")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<ChatResponse>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 메시지가 조회되고 최신순 정렬 확인
+        response.also {
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data).hasSize(2)
+          // 최신 메시지가 먼저 오도록 정렬
+          assertThat(it.data?.get(0)?.chat?.get(0)?.messages?.get(0)).isEqualTo("두 번째 메시지")
+          assertThat(it.data?.get(1)?.chat?.get(0)?.messages?.get(0)).isEqualTo("첫 번째 메시지")
         }
       }
   }
