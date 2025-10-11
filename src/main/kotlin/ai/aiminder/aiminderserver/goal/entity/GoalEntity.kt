@@ -1,5 +1,6 @@
 package ai.aiminder.aiminderserver.goal.entity
 
+import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.domain.GoalStatus
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
 import org.springframework.data.annotation.Id
@@ -31,6 +32,21 @@ data class GoalEntity(
   override fun isNew(): Boolean = id == null
 
   companion object {
+    fun from(goal: Goal): GoalEntity =
+      GoalEntity(
+        id = goal.id,
+        userId = goal.userId,
+        title = goal.title,
+        targetDate = goal.targetDate,
+        description = goal.description,
+        isAiGenerated = goal.isAiGenerated,
+        status = goal.status,
+        imageId = goal.imageId,
+        createdAt = goal.createdAt,
+        updatedAt = goal.updatedAt,
+        deletedAt = goal.deletedAt,
+      )
+
     fun from(dto: CreateGoalRequestDto): GoalEntity =
       GoalEntity(
         userId = dto.userId,
