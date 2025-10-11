@@ -9,6 +9,7 @@ import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.domain.GoalStatus
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
 import ai.aiminder.aiminderserver.goal.dto.GoalResponse
+import ai.aiminder.aiminderserver.goal.dto.UpdateGoalRequest
 import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import ai.aiminder.aiminderserver.goal.repository.GoalRepository
 import ai.aiminder.aiminderserver.user.domain.User
@@ -37,6 +38,7 @@ class GoalControllerTest
   ) : BaseIntegrationTest() {
     private lateinit var testUser: User
     private lateinit var authentication: UsernamePasswordAuthenticationToken
+    private lateinit var otherUser: User
 
     @BeforeEach
     fun setUp() =
@@ -55,6 +57,16 @@ class GoalControllerTest
             null,
             listOf(SimpleGrantedAuthority(Role.USER.name)),
           )
+
+        // 다른 사용자 생성 (권한 테스트용)
+        val savedOtherUser =
+          userRepository.save(
+            UserEntity(
+              provider = OAuth2Provider.GOOGLE,
+              providerId = "other-provider-456",
+            ),
+          )
+        otherUser = User.from(savedOtherUser)
       }
 
     @Test
@@ -464,5 +476,572 @@ class GoalControllerTest
           .returnResult()
           .responseBody!!
       return Pair(request, response)
+    }
+
+    @Test
+    fun `목표의 모든 필드를 정상적으로 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val request =
+          UpdateGoalRequest(
+            title = "Updated Title",
+            description = "Updated Description",
+            targetDate = Instant.now().plusSeconds(86400 * 60),
+            status = GoalStatus.INPROGRESS,
+          )
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          verifyGoalUpdate(testGoal, updated, request)
+        }
+      }
+
+    @Test
+    fun `목표 제목만 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val request = UpdateGoalRequest(title = "Updated Title Only")
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          verifyGoalUpdate(testGoal, updated, request)
+        }
+      }
+
+    @Test
+    fun `목표 설명만 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val request = UpdateGoalRequest(description = "Updated Description Only")
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          verifyGoalUpdate(testGoal, updated, request)
+        }
+      }
+
+    @Test
+    fun `목표 날짜만 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val request = UpdateGoalRequest(targetDate = Instant.now().plusSeconds(86400 * 90))
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          verifyGoalUpdate(testGoal, updated, request)
+        }
+      }
+
+    @Test
+    fun `목표 상태만 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val request = UpdateGoalRequest(status = GoalStatus.COMPLETED)
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          verifyGoalUpdate(testGoal, updated, request)
+        }
+      }
+
+    @Test
+    fun `이미지 ID를 null로 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val request = UpdateGoalRequest(imageId = null)
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          verifyGoalUpdate(testGoal, updated, request)
+          // imageId가 null로 업데이트되면 imagePath도 null이어야 함
+          assertThat(updated.imagePath).isNull()
+        }
+      }
+
+    @Test
+    fun `목표 상태를 READY에서 INPROGRESS로 변경할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val request = UpdateGoalRequest(status = GoalStatus.INPROGRESS)
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          assertThat(updated.status).isEqualTo(GoalStatus.INPROGRESS)
+        }
+      }
+
+    @Test
+    fun `목표 상태를 INPROGRESS에서 COMPLETED로 변경할 수 있다`() =
+      runTest {
+        // given - INPROGRESS 상태의 목표 생성
+        val inProgressGoal =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "In Progress Goal",
+              targetDate = Instant.now().plusSeconds(86400),
+              status = GoalStatus.INPROGRESS,
+            ),
+          )
+        val request = UpdateGoalRequest(status = GoalStatus.COMPLETED)
+
+        // when
+        val response = putUpdateGoal(inProgressGoal.id!!, request)
+
+        // then
+        response.data?.also { updated ->
+          assertThat(updated.status).isEqualTo(GoalStatus.COMPLETED)
+        }
+      }
+
+    @Test
+    fun `목표 상태를 COMPLETED에서 READY로 되돌릴 수 있다`() =
+      runTest {
+        // given - COMPLETED 상태의 목표 생성
+        val completedGoal =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Completed Goal",
+              targetDate = Instant.now().plusSeconds(86400),
+              status = GoalStatus.COMPLETED,
+            ),
+          )
+        val request = UpdateGoalRequest(status = GoalStatus.READY)
+
+        // when
+        val response = putUpdateGoal(completedGoal.id!!, request)
+
+        // then
+        response.data?.also { updated ->
+          assertThat(updated.status).isEqualTo(GoalStatus.READY)
+        }
+      }
+
+    @Test
+    fun `모든 필드가 null인 요청으로도 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val request = UpdateGoalRequest()
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          // 모든 필드는 기존값 유지, updatedAt만 갱신
+          assertThat(updated.title).isEqualTo(testGoal.title)
+          assertThat(updated.description).isEqualTo(testGoal.description)
+          assertThat(updated.targetDate.truncatedTo(MILLIS))
+            .isEqualTo(testGoal.targetDate.truncatedTo(MILLIS))
+          assertThat(updated.imagePath).isEqualTo(testGoal.imagePath)
+          assertThat(updated.status).isEqualTo(testGoal.status)
+          assertThat(updated.updatedAt).isAfter(testGoal.updatedAt)
+        }
+      }
+
+    @Test
+    fun `존재하지 않는 목표 ID로 업데이트 시도 시 404 반환`() {
+      // given
+      val nonExistentGoalId = UUID.randomUUID()
+      val request = UpdateGoalRequest(title = "Updated Title")
+
+      // when
+      val response = putUpdateGoalExpectingError(nonExistentGoalId, request)
+
+      // then
+      verifyErrorResponse(response, 404, "GOAL:GOALNOTFOUND")
+    }
+
+    @Test
+    fun `다른 사용자의 목표를 업데이트 시도 시 403 반환`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val request = UpdateGoalRequest(title = "Hacked Title")
+        val otherUserAuth =
+          UsernamePasswordAuthenticationToken(
+            otherUser,
+            null,
+            listOf(SimpleGrantedAuthority(Role.USER.name)),
+          )
+
+        // when
+        val response = putUpdateGoalExpectingError(testGoal.id, request, otherUserAuth)
+
+        // then
+        verifyErrorResponse(response, 403, "GOAL:ACCESSDENIED")
+      }
+
+    @Test
+    fun `인증되지 않은 사용자의 업데이트 시도 시 401 반환`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val request = UpdateGoalRequest(title = "Unauthorized Update")
+
+        // when
+        val response = putUpdateGoalExpectingError(testGoal.id, request, null)
+
+        // then
+        verifyErrorResponse(response, 401, "AUTH:UNAUTHORIZED")
+      }
+
+    @Test
+    fun `잘못된 UUID 형식의 goalId로 요청 시 400 반환`() {
+      // given
+      val request = UpdateGoalRequest(title = "Valid Title")
+
+      // when & then
+      webTestClient
+        .mutateWith(mockAuthentication(authentication))
+        .put()
+        .uri("/api/v1/goals/invalid-uuid-format")
+        .accept(MediaType.APPLICATION_JSON)
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+    }
+
+    @Test
+    fun `잘못된 날짜 형식으로 업데이트 시도 시 400 반환`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val invalidRequest =
+          mapOf(
+            "title" to "Valid Title",
+            "targetDate" to "invalid-date-format",
+          )
+
+        // when & then
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .put()
+          .uri("/api/v1/goals/${testGoal.id}")
+          .accept(MediaType.APPLICATION_JSON)
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(invalidRequest)
+          .exchange()
+          .expectStatus()
+          .isBadRequest
+      }
+
+    @Test
+    fun `존재하지 않는 GoalStatus 값으로 업데이트 시도 시 400 반환`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val invalidRequest =
+          mapOf(
+            "title" to "Valid Title",
+            "status" to "INVALID_STATUS",
+          )
+
+        // when & then
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .put()
+          .uri("/api/v1/goals/${testGoal.id}")
+          .accept(MediaType.APPLICATION_JSON)
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(invalidRequest)
+          .exchange()
+          .expectStatus()
+          .isBadRequest
+      }
+
+    @Test
+    fun `잘못된 JSON 형식으로 요청 시 400 반환`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val invalidJson = "{ invalid json }"
+
+        // when & then
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .put()
+          .uri("/api/v1/goals/${testGoal.id}")
+          .accept(MediaType.APPLICATION_JSON)
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(invalidJson)
+          .exchange()
+          .expectStatus()
+          .isBadRequest
+      }
+
+    @Test
+    fun `삭제된 목표를 업데이트 시도 시 404 반환`() =
+      runTest {
+        // given - 삭제된 목표 생성
+        val deletedGoal =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Deleted Goal",
+              targetDate = Instant.now().plusSeconds(86400),
+              deletedAt = Instant.now(),
+            ),
+          )
+        val request = UpdateGoalRequest(title = "Updated Title")
+
+        // when
+        val response = putUpdateGoalExpectingError(deletedGoal.id!!, request)
+
+        // then
+        verifyErrorResponse(response, 404, "GOAL:GOALNOTFOUND")
+      }
+
+    @Test
+    fun `긴 제목으로 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val longTitle = "A".repeat(255) // 255자로 제한하여 테스트
+        val request = UpdateGoalRequest(title = longTitle)
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          assertThat(updated.title).isEqualTo(longTitle)
+        }
+      }
+
+    @Test
+    fun `매우 긴 설명으로 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val longDescription = "B".repeat(2000)
+        val request = UpdateGoalRequest(description = longDescription)
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          assertThat(updated.description).isEqualTo(longDescription)
+        }
+      }
+
+    @Test
+    fun `과거 날짜로 목표 날짜를 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val pastDate = Instant.now().minusSeconds(86400 * 30)
+        val request = UpdateGoalRequest(targetDate = pastDate)
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          assertThat(updated.targetDate.truncatedTo(MILLIS))
+            .isEqualTo(pastDate.truncatedTo(MILLIS))
+        }
+      }
+
+    @Test
+    fun `먼 미래 날짜로 목표 날짜를 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val futureDate = Instant.now().plusSeconds(86400 * 365 * 10) // 10년 후
+        val request = UpdateGoalRequest(targetDate = futureDate)
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          assertThat(updated.targetDate.truncatedTo(MILLIS))
+            .isEqualTo(futureDate.truncatedTo(MILLIS))
+        }
+      }
+
+    @Test
+    fun `특수문자가 포함된 제목으로 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val specialCharTitle = "!@#\$%^&*()_+-=[]{}|;':\",./<>?"
+        val request = UpdateGoalRequest(title = specialCharTitle)
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          assertThat(updated.title).isEqualTo(specialCharTitle)
+        }
+      }
+
+    @Test
+    fun `이모지가 포함된 제목으로 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val emojiTitle = "🎯 달성해야 할 목표 🚀 화이팅! 💪"
+        val request = UpdateGoalRequest(title = emojiTitle)
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          assertThat(updated.title).isEqualTo(emojiTitle)
+        }
+      }
+
+    @Test
+    fun `다국어 텍스트로 업데이트할 수 있다`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val multilingualTitle = "English 한국어 日本語 中文 العربية Русский"
+        val request = UpdateGoalRequest(title = multilingualTitle)
+
+        // when
+        val response = putUpdateGoal(testGoal.id, request)
+
+        // then
+        response.data?.also { updated ->
+          assertThat(updated.title).isEqualTo(multilingualTitle)
+        }
+      }
+
+    private suspend fun createTestGoal(user: User): GoalResponse {
+      val goalEntity =
+        goalRepository.save(
+          GoalEntity(
+            userId = user.id,
+            title = "Original Title",
+            description = "Original Description",
+            targetDate = Instant.now().plusSeconds(86400 * 30),
+          ),
+        )
+      return GoalResponse.from(Goal.from(goalEntity))
+    }
+
+    private fun putUpdateGoal(
+      goalId: UUID,
+      request: UpdateGoalRequest,
+      auth: UsernamePasswordAuthenticationToken = authentication,
+    ): ServiceResponse<GoalResponse> =
+      webTestClient
+        .mutateWith(mockAuthentication(auth))
+        .put()
+        .uri("/api/v1/goals/$goalId")
+        .accept(MediaType.APPLICATION_JSON)
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<ServiceResponse<GoalResponse>>()
+        .returnResult()
+        .responseBody!!
+
+    private fun putUpdateGoalExpectingError(
+      goalId: UUID,
+      request: UpdateGoalRequest,
+      auth: UsernamePasswordAuthenticationToken? = authentication,
+    ): ServiceResponse<Unit> {
+      val testClient =
+        if (auth != null) {
+          webTestClient.mutateWith(mockAuthentication(auth))
+        } else {
+          webTestClient
+        }
+
+      return testClient
+        .put()
+        .uri("/api/v1/goals/$goalId")
+        .accept(MediaType.APPLICATION_JSON)
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
+        .exchange()
+        .expectStatus()
+        .is4xxClientError
+        .expectBody<ServiceResponse<Unit>>()
+        .returnResult()
+        .responseBody!!
+    }
+
+    private fun verifyGoalUpdate(
+      original: GoalResponse,
+      updated: GoalResponse,
+      request: UpdateGoalRequest,
+    ) {
+      assertThat(updated.id).isEqualTo(original.id)
+      assertThat(updated.userId).isEqualTo(original.userId)
+      assertThat(updated.title).isEqualTo(request.title ?: original.title)
+      assertThat(updated.description).isEqualTo(request.description ?: original.description)
+
+      val requestTargetDate = request.targetDate
+      if (requestTargetDate != null) {
+        assertThat(updated.targetDate.truncatedTo(MILLIS))
+          .isEqualTo(requestTargetDate.truncatedTo(MILLIS))
+      } else {
+        assertThat(updated.targetDate.truncatedTo(MILLIS))
+          .isEqualTo(original.targetDate.truncatedTo(MILLIS))
+      }
+
+      // imagePath는 imageId 업데이트 시 변경될 수 있지만, 직접 비교는 어려우므로
+      // imageId가 요청에 포함된 경우 imagePath가 변경되었는지만 확인
+      if (request.imageId != null) {
+        // imageId가 업데이트되었다면 imagePath도 변경되거나 null이어야 함
+        // 실제 이미지 파일이 없을 수 있으므로 null도 허용
+      } else {
+        assertThat(updated.imagePath).isEqualTo(original.imagePath)
+      }
+
+      assertThat(updated.status).isEqualTo(request.status ?: original.status)
+      assertThat(updated.updatedAt).isAfter(original.updatedAt)
+    }
+
+    private fun verifyErrorResponse(
+      response: ServiceResponse<Unit>,
+      expectedStatus: Int,
+      expectedErrorCode: String,
+    ) {
+      assertThat(response.statusCode).isEqualTo(expectedStatus)
+      assertThat(response.errorCode).isEqualTo(expectedErrorCode)
+      assertThat(response.data).isNull()
     }
   }
