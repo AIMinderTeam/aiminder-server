@@ -79,8 +79,7 @@ class ConversationService(
     val chatRows: Flow<ChatResponse> =
       conversationQueryRepository
         .findChatBy(dto)
-        .map { row -> formatChat(row) }
-        .map { chatResponses -> ChatResponse(dto.conversationId, chatResponses) }
+        .map { row -> formatChat(row, dto.conversationId) }
 
     val totalCount = conversationQueryRepository.countBy(dto)
 
@@ -108,13 +107,20 @@ class ConversationService(
     return conversation.copy(recentChat = recentChat)
   }
 
-  private fun formatChat(chat: ChatRow): List<ChatResponseDto> =
-    when (ChatType.valueOf(chat.type)) {
-      ChatType.ASSISTANT ->
-        objectMapper
-          .readValue(chat.content, AssistantResponse::class.java)
-          .responses
-      ChatType.USER ->
-        listOf(ChatResponseDto(AssistantResponseType.TEXT, listOf(chat.content)))
-    }
+  private fun formatChat(
+    chat: ChatRow,
+    conversationId: UUID,
+  ): ChatResponse {
+    val chatResponses: List<ChatResponseDto> =
+      when (ChatType.valueOf(chat.type)) {
+        ChatType.ASSISTANT ->
+          objectMapper
+            .readValue(chat.content, AssistantResponse::class.java)
+            .responses
+
+        ChatType.USER ->
+          listOf(ChatResponseDto(AssistantResponseType.TEXT, listOf(chat.content)))
+      }
+    return ChatResponse(conversationId, chatResponses, ChatType.valueOf(chat.type))
+  }
 }

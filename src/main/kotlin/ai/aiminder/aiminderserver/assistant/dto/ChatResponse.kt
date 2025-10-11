@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.assistant.dto
 
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.domain.ChatResponseDto
+import ai.aiminder.aiminderserver.assistant.domain.ChatType
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
 import io.swagger.v3.oas.annotations.media.Schema
 import java.util.UUID
@@ -18,6 +19,7 @@ data class ChatResponse(
         "[\"다이어트 \uD83D\uDCAA\", \"경제적 자유 \uD83D\uDCB0\", \"자격증 취득 \uD83C\uDFC5\" ] }]",
   )
   val chat: List<ChatResponseDto>,
+  val chatType: ChatType,
 ) {
   companion object {
     fun from(
@@ -27,6 +29,7 @@ data class ChatResponse(
       ChatResponse(
         conversationId = conversation.id,
         chat = assistantResponse.responses,
+        chatType = ChatType.ASSISTANT,
       )
   }
 }
