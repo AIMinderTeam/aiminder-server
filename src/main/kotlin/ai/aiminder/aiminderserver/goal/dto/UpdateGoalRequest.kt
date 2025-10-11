@@ -14,7 +14,7 @@ data class UpdateGoalRequest(
 )
 
 data class UpdateGoalRequestDto(
-  val id: UUID,
+  val goalId: UUID,
   val userId: UUID,
   val title: String? = null,
   val description: String? = null,
@@ -29,7 +29,7 @@ data class UpdateGoalRequestDto(
       user: User,
     ): UpdateGoalRequestDto =
       UpdateGoalRequestDto(
-        id = goalId,
+        goalId = goalId,
         userId = user.id,
         title = request.title,
         description = request.description,

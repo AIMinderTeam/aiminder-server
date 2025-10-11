@@ -1,5 +1,6 @@
 package ai.aiminder.aiminderserver.goal.domain
 
+import ai.aiminder.aiminderserver.goal.dto.DeleteGoalRequestDto
 import ai.aiminder.aiminderserver.goal.dto.UpdateGoalRequestDto
 import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import ai.aiminder.aiminderserver.goal.error.GoalError
@@ -28,6 +29,14 @@ data class Goal(
       imageId = dto.imageId ?: imageId,
       status = dto.status ?: status,
       updatedAt = Instant.now(),
+    )
+  }
+
+  fun delete(dto: DeleteGoalRequestDto): Goal {
+    if (userId != dto.userId) throw GoalError.AccessDenied()
+    return copy(
+      updatedAt = Instant.now(),
+      deletedAt = Instant.now(),
     )
   }
 

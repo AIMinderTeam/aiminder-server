@@ -4,6 +4,7 @@ import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequest
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
+import ai.aiminder.aiminderserver.goal.dto.DeleteGoalRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GetGoalsRequest
 import ai.aiminder.aiminderserver.goal.dto.GetGoalsRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GoalResponse
@@ -12,6 +13,7 @@ import ai.aiminder.aiminderserver.goal.dto.UpdateGoalRequestDto
 import ai.aiminder.aiminderserver.goal.service.GoalService
 import ai.aiminder.aiminderserver.user.domain.User
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -71,5 +73,17 @@ class GoalController(
   ): ServiceResponse<GoalResponse> {
     val updatedGoal: GoalResponse = goalService.update(UpdateGoalRequestDto.from(goalId, request, user))
     return ServiceResponse.from(updatedGoal)
+  }
+
+  @DeleteMapping("/{goalId}")
+  suspend fun deleteGoal(
+    @PathVariable
+    goalId: UUID,
+    @AuthenticationPrincipal
+    user: User,
+  ): ServiceResponse<String> {
+    val dto = DeleteGoalRequestDto(goalId, user.id)
+    goalService.delete(dto)
+    return ServiceResponse.from("Goal deleted successfully")
   }
 }
