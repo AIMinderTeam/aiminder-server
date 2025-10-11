@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/conversations")
 class ConversationController(
   private val conversationService: ConversationService,
-) {
+) : ConversationControllerDocs {
   @GetMapping
-  suspend fun getConversations(
+  override suspend fun getConversations(
     pageable: PageableRequest,
     @AuthenticationPrincipal
     user: User,
