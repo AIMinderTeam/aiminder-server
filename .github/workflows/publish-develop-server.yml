@@ -3,6 +3,8 @@ name: Publish Develop Server
 on:
   push:
     branches: [ develop ]
+    paths-ignore:
+      - 'ui/**'
   workflow_dispatch:
 
 env:
