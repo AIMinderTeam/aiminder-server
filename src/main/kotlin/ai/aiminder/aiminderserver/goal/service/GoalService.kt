@@ -3,8 +3,10 @@ package ai.aiminder.aiminderserver.goal.service
 import ai.aiminder.aiminderserver.common.util.logger
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.dto.CreateGoalRequestDto
+import ai.aiminder.aiminderserver.goal.dto.DeleteGoalRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GetGoalsRequestDto
 import ai.aiminder.aiminderserver.goal.dto.GoalResponse
+import ai.aiminder.aiminderserver.goal.dto.UpdateGoalRequestDto
 import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import ai.aiminder.aiminderserver.goal.error.GoalError
 import ai.aiminder.aiminderserver.goal.repository.GoalRepository
@@ -62,8 +64,24 @@ class GoalService(
   suspend fun get(goalId: UUID): Goal =
     goalRepository
       .findById(goalId)
+      ?.takeIf { it.deletedAt == null }
       ?.let { Goal.from(it) }
       ?: throw GoalError.GoalNotFound(goalId)
+
+  suspend fun update(dto: UpdateGoalRequestDto): GoalResponse =
+    get(dto.goalId)
+      .update(dto)
+      .let { GoalEntity.from(it) }
+      .let { goalRepository.save(it) }
+      .let { Goal.from(it) }
+      .let { GoalResponse.from(it) }
+
+  suspend fun delete(dto: DeleteGoalRequestDto) {
+    get(dto.goalId)
+      .delete(dto)
+      .let { GoalEntity.from(it) }
+      .let { goalRepository.save(it) }
+  }
 
   private suspend fun getImagePath(imageId: UUID?): String? =
     imageId?.let { id ->

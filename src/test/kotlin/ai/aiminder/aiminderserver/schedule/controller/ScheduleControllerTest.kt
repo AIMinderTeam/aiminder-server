@@ -77,7 +77,6 @@ class ScheduleControllerTest
         // given
         val request =
           CreateScheduleRequest(
-            goalId = testGoal.id!!,
             title = "Test Schedule",
             description = "Test Schedule Content",
             startDate = Instant.parse("2024-03-15T00:00:00Z"),
@@ -88,7 +87,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .post()
-          .uri("/api/v1/schedules")
+          .uri("/api/v1/goals/{goalId}/schedules", testGoal.id!!)
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(request)
           .exchange()
@@ -138,7 +137,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules")
+          .uri("/api/v1/goals/{goalId}/schedules", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -177,7 +176,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .put()
-          .uri("/api/v1/schedules/${schedule.id}")
+          .uri("/api/v1/goals/schedules/${schedule.id}", testGoal.id!!)
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(updateRequest)
           .exchange()
@@ -212,7 +211,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .delete()
-          .uri("/api/v1/schedules/${schedule.id}")
+          .uri("/api/v1/goals/schedules/${schedule.id}", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -243,7 +242,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules/${schedule.id}")
+          .uri("/api/v1/goals/schedules/${schedule.id}", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -265,7 +264,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules/$nonExistentId")
+          .uri("/api/v1/goals/{goalId}/schedules/$nonExistentId", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isNotFound
@@ -277,7 +276,7 @@ class ScheduleControllerTest
         // when & then
         webTestClient
           .get()
-          .uri("/api/v1/schedules")
+          .uri("/api/v1/goals/{goalId}/schedules", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isUnauthorized
@@ -326,7 +325,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?goalId=${testGoal.id}")
+          .uri("/api/v1/goals/{goalId}/schedules", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -341,7 +340,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?goalId=${anotherGoal.id}")
+          .uri("/api/v1/goals/{goalId}/schedules", anotherGoal.id)
           .exchange()
           .expectStatus()
           .isOk
@@ -385,7 +384,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?status=READY")
+          .uri("/api/v1/goals/{goalId}/schedules?status=READY", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -400,7 +399,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?status=COMPLETED")
+          .uri("/api/v1/goals/{goalId}/schedules?status=COMPLETED", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -459,7 +458,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?startDate=$startDate&endDate=$endDate")
+          .uri("/api/v1/goals/{goalId}/schedules?startDate=$startDate&endDate=$endDate", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -549,7 +548,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?goalId=${goalA.id}&status=READY")
+          .uri("/api/v1/goals/{goalId}/schedules?status=READY", goalA.id)
           .exchange()
           .expectStatus()
           .isOk
@@ -643,7 +642,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?goalId=${goalA.id}&startDate=$startDate&endDate=$endDate")
+          .uri("/api/v1/goals/{goalId}/schedules?startDate=$startDate&endDate=$endDate", goalA.id)
           .exchange()
           .expectStatus()
           .isOk
@@ -714,7 +713,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?status=READY&startDate=$startDate&endDate=$endDate")
+          .uri("/api/v1/goals/{goalId}/schedules?status=READY&startDate=$startDate&endDate=$endDate", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -809,8 +808,10 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?goalId=${goalA.id}&status=READY&startDate=$startDate&endDate=$endDate")
-          .exchange()
+          .uri(
+            "/api/v1/goals/{goalId}/schedules?status=READY&startDate=$startDate&endDate=$endDate",
+            goalA.id,
+          ).exchange()
           .expectStatus()
           .isOk
           .expectBody<ServiceResponse<List<ScheduleResponse>>>()
@@ -843,7 +844,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?goalId=$nonExistentGoalId")
+          .uri("/api/v1/goals/{goalId}/schedules", nonExistentGoalId)
           .exchange()
           .expectStatus()
           .isOk
@@ -858,7 +859,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?startDate=$futureStartDate&endDate=$futureEndDate")
+          .uri("/api/v1/goals/{goalId}/schedules?startDate=$futureStartDate&endDate=$futureEndDate", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -915,7 +916,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?startDate=$startDate&endDate=$endDate")
+          .uri("/api/v1/goals/{goalId}/schedules?startDate=$startDate&endDate=$endDate", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -962,7 +963,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?status=READY&page=0&size=2")
+          .uri("/api/v1/goals/{goalId}/schedules?status=READY&page=0&size=2", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -978,7 +979,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?status=READY&page=1&size=2")
+          .uri("/api/v1/goals/{goalId}/schedules?status=READY&page=1&size=2", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk
@@ -994,7 +995,7 @@ class ScheduleControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .get()
-          .uri("/api/v1/schedules?status=READY&page=2&size=2")
+          .uri("/api/v1/goals/{goalId}/schedules?status=READY&page=2&size=2", testGoal.id!!)
           .exchange()
           .expectStatus()
           .isOk

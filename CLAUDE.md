@@ -67,7 +67,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Database & Migrations
 - **Migration Tool**: Flyway for database schema versioning
 - **Location**: `src/main/resources/db/migration/V*__*.sql`
-- **Entities**: User, RefreshToken, Goal, AiGoal, AiSchedule, Image, Schedule
+- **Entities**: User, RefreshToken, Goal, GoalDraft, ScheduleDraft, Image, Schedule
 - **Testing**: Uses TestContainers for integration tests with PostgreSQL
 
 ### Authentication Flow

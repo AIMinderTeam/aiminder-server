@@ -1,7 +1,7 @@
 package ai.aiminder.aiminderserver.goal.dto
 
-import ai.aiminder.aiminderserver.assistant.domain.GoalDraft
 import ai.aiminder.aiminderserver.assistant.domain.ServiceToolContext
+import ai.aiminder.aiminderserver.goal.domain.GoalDraft
 import java.time.Instant
 import java.util.UUID
 

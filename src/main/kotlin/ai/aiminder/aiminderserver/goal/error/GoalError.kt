@@ -13,4 +13,10 @@ sealed class GoalError(
   class GoalNotFound(
     goalId: UUID,
   ) : GoalError(HttpStatus.NOT_FOUND, "해당 ID: $goalId 를 가진 목표를 찾을 수 없습니다")
+
+  class AccessDenied :
+    GoalError(
+      HttpStatus.FORBIDDEN,
+      "해당 목표에 접근할 권한이 없습니다.",
+    )
 }

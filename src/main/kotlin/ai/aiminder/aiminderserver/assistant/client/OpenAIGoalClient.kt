@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.assistant.client
 
-import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.tool.GoalTool
 import ai.aiminder.aiminderserver.assistant.tool.TodayTool
@@ -17,8 +17,8 @@ class OpenAIGoalClient(
   private val todayTool: TodayTool,
 ) : OpenAIClient(),
   AssistantClient {
-  override suspend fun chat(dto: AssistantRequestDto): AssistantResponseDto =
-    requestStructuredResponse<AssistantResponseDto>(
+  override suspend fun chat(dto: AssistantRequestDto): AssistantResponse =
+    requestStructuredResponse<AssistantResponse>(
       dto = dto,
       systemMessage = systemPrompt,
     )

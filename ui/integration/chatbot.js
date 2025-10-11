@@ -203,7 +203,7 @@ class ChatBot {
      */
     async requestNewConversationFromServer() {
         const response = await authManager.makeAuthenticatedRequest(
-            `${CONFIG.API_BASE_URL}/api/v1/chat`,
+            `${CONFIG.API_BASE_URL}/api/v1/conversations/chat`,
             {
                 method: 'POST',
                 headers: {
@@ -480,7 +480,7 @@ class ChatBot {
         }
 
         const response = await authManager.makeAuthenticatedRequest(
-            `${CONFIG.API_BASE_URL}/api/v1/chat/${this.conversationId}`,
+            `${CONFIG.API_BASE_URL}/api/v1/conversations/${this.conversationId}/chat`,
             {
                 method: 'POST',
                 headers: {

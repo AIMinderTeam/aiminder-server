@@ -3,6 +3,8 @@ name: Versioning Server And Publish NPM
 on:
   push:
     branches: [ develop ]
+    paths:
+      - 'src/**'
   workflow_dispatch:
 
 jobs:

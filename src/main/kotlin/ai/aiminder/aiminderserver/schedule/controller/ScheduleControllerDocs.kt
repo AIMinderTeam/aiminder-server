@@ -110,6 +110,7 @@ interface ScheduleControllerDocs {
     ],
   )
   suspend fun createSchedule(
+    goalId: UUID,
     request: CreateScheduleRequest,
     @Parameter(hidden = true) user: User,
   ): ServiceResponse<ScheduleResponse>
@@ -175,6 +176,7 @@ interface ScheduleControllerDocs {
     ],
   )
   suspend fun getSchedules(
+    goalId: UUID,
     request: GetSchedulesRequest,
     pageable: PageableRequest,
     @Parameter(hidden = true) user: User,
