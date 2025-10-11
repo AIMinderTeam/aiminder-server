@@ -83,7 +83,7 @@ class ConversationService(
 
     val totalCount = conversationQueryRepository.countBy(dto)
 
-    return PageImpl(chatRows.toList(), dto.pageable, totalCount)
+    return PageImpl(chatRows.toList().reversed(), dto.pageable, totalCount)
   }
 
   private fun formatRecentChat(conversation: ConversationRow): ConversationRow {

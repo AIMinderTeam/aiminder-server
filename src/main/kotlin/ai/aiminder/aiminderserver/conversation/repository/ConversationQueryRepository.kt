@@ -82,7 +82,7 @@ class ConversationQueryRepository : JooqR2dbcRepository() {
         SPRING_AI_CHAT_MEMORY.TYPE,
       ).from(SPRING_AI_CHAT_MEMORY)
         .where(SPRING_AI_CHAT_MEMORY.CONVERSATION_ID.eq(dto.conversationId.toString()))
-        .orderBy(SPRING_AI_CHAT_MEMORY.MESSAGE_INDEX.desc())
+        .orderBy(SPRING_AI_CHAT_MEMORY.TIMESTAMP.desc())
         .offset(dto.pageable.offset.toInt())
         .limit(dto.pageable.pageSize)
     }.map { record ->

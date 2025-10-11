@@ -887,25 +887,49 @@ class AssistantControllerTest
           assertThat(it.data).isNotNull
           assertThat(it.data).hasSize(2)
 
-          // 첫 번째 메시지는 USER 메시지 (최신순 정렬)
-          val userMessage = it.data?.get(0)
-          assertThat(userMessage?.conversationId).isEqualTo(conversation.id)
-          assertThat(userMessage?.chatType?.name).isEqualTo("USER")
-          assertThat(userMessage?.chat).hasSize(1)
-          assertThat(userMessage?.chat?.get(0)?.type?.name).isEqualTo("TEXT")
-          assertThat(userMessage?.chat?.get(0)?.messages).containsExactly("매월 300만 원 수입 💸")
-
-          // 두 번째 메시지는 ASSISTANT 메시지
-          val assistantMessage = it.data?.get(1)
+          // 첫 번째 메시지는 ASSISTANT 메시지
+          val assistantMessage = it.data?.get(0)
           assertThat(assistantMessage?.conversationId).isEqualTo(conversation.id)
           assertThat(assistantMessage?.chatType?.name).isEqualTo("ASSISTANT")
           assertThat(assistantMessage?.chat).hasSize(2)
-          assertThat(assistantMessage?.chat?.get(0)?.type?.name).isEqualTo("TEXT")
+          assertThat(
+            assistantMessage
+              ?.chat
+              ?.get(0)
+              ?.type
+              ?.name,
+          ).isEqualTo("TEXT")
           assertThat(assistantMessage?.chat?.get(0)?.messages).hasSize(1)
-          assertThat(assistantMessage?.chat?.get(0)?.messages?.get(0)).contains("경제적 자유를 목표로 하셨군요")
-          assertThat(assistantMessage?.chat?.get(1)?.type?.name).isEqualTo("QUICK_REPLIES")
+          assertThat(
+            assistantMessage
+              ?.chat
+              ?.get(0)
+              ?.messages
+              ?.get(0),
+          ).contains("경제적 자유를 목표로 하셨군요")
+          assertThat(
+            assistantMessage
+              ?.chat
+              ?.get(1)
+              ?.type
+              ?.name,
+          ).isEqualTo("QUICK_REPLIES")
           assertThat(assistantMessage?.chat?.get(1)?.messages).hasSize(3)
           assertThat(assistantMessage?.chat?.get(1)?.messages).contains("매월 300만 원 수입 💸", "빚 청산 🎯", "주식 투자 수익 목표 📈")
+
+          // 두 번째 메시지는 USER 메시지 (최신순 정렬)
+          val userMessage = it.data?.get(1)
+          assertThat(userMessage?.conversationId).isEqualTo(conversation.id)
+          assertThat(userMessage?.chatType?.name).isEqualTo("USER")
+          assertThat(userMessage?.chat).hasSize(1)
+          assertThat(
+            userMessage
+              ?.chat
+              ?.get(0)
+              ?.type
+              ?.name,
+          ).isEqualTo("TEXT")
+          assertThat(userMessage?.chat?.get(0)?.messages).containsExactly("매월 300만 원 수입 💸")
         }
       }
 
@@ -960,9 +984,30 @@ class AssistantControllerTest
           assertThat(it.data).isNotNull
           assertThat(it.data).hasSize(3)
           // 최신순 정렬이므로 마지막 3개 메시지가 조회됨
-          assertThat(it.data?.get(0)?.chat?.get(0)?.messages?.get(0)).isEqualTo("메시지 내용 4")
-          assertThat(it.data?.get(1)?.chat?.get(0)?.messages?.get(0)).isEqualTo("메시지 내용 3")
-          assertThat(it.data?.get(2)?.chat?.get(0)?.messages?.get(0)).isEqualTo("메시지 내용 2")
+          assertThat(
+            it.data
+              ?.get(0)
+              ?.chat
+              ?.get(0)
+              ?.messages
+              ?.get(0),
+          ).isEqualTo("메시지 내용 2")
+          assertThat(
+            it.data
+              ?.get(1)
+              ?.chat
+              ?.get(0)
+              ?.messages
+              ?.get(0),
+          ).isEqualTo("메시지 내용 3")
+          assertThat(
+            it.data
+              ?.get(2)
+              ?.chat
+              ?.get(0)
+              ?.messages
+              ?.get(0),
+          ).isEqualTo("메시지 내용 4")
         }
 
         // when - 두 번째 페이지 조회 (page=1, size=3)
@@ -984,8 +1029,22 @@ class AssistantControllerTest
           assertThat(it.statusCode).isEqualTo(200)
           assertThat(it.data).isNotNull
           assertThat(it.data).hasSize(2) // 남은 2개 메시지
-          assertThat(it.data?.get(0)?.chat?.get(0)?.messages?.get(0)).isEqualTo("메시지 내용 1")
-          assertThat(it.data?.get(1)?.chat?.get(0)?.messages?.get(0)).isEqualTo("메시지 내용 0")
+          assertThat(
+            it.data
+              ?.get(0)
+              ?.chat
+              ?.get(0)
+              ?.messages
+              ?.get(0),
+          ).isEqualTo("메시지 내용 0")
+          assertThat(
+            it.data
+              ?.get(1)
+              ?.chat
+              ?.get(0)
+              ?.messages
+              ?.get(0),
+          ).isEqualTo("메시지 내용 1")
         }
       }
 
@@ -1041,8 +1100,22 @@ class AssistantControllerTest
           assertThat(it.data).isNotNull
           assertThat(it.data).hasSize(2)
           // 최신 메시지가 먼저 오도록 정렬
-          assertThat(it.data?.get(0)?.chat?.get(0)?.messages?.get(0)).isEqualTo("두 번째 메시지")
-          assertThat(it.data?.get(1)?.chat?.get(0)?.messages?.get(0)).isEqualTo("첫 번째 메시지")
+          assertThat(
+            it.data
+              ?.get(0)
+              ?.chat
+              ?.get(0)
+              ?.messages
+              ?.get(0),
+          ).isEqualTo("첫 번째 메시지")
+          assertThat(
+            it.data
+              ?.get(1)
+              ?.chat
+              ?.get(0)
+              ?.messages
+              ?.get(0),
+          ).isEqualTo("두 번째 메시지")
         }
       }
   }
