@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.single
 import org.jooq.Condition
 import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
+import java.time.LocalDateTime
 
 @Repository
 class ConversationQueryRepository : JooqR2dbcRepository() {
@@ -19,28 +20,42 @@ class ConversationQueryRepository : JooqR2dbcRepository() {
     query {
       select(
         CONVERSATIONS.CONVERSATION_ID,
-        DSL.field(
-          "({0})",
-          String::class.java,
-          DSL.select(SPRING_AI_CHAT_MEMORY.CONTENT)
-            .from(SPRING_AI_CHAT_MEMORY)
-            .where(SPRING_AI_CHAT_MEMORY.CONVERSATION_ID.eq(CONVERSATIONS.CONVERSATION_ID.cast(String::class.java)))
-            .orderBy(SPRING_AI_CHAT_MEMORY.TIMESTAMP.desc())
-            .limit(1),
-        ).`as`("recent_chat"),
-        DSL.field(
-          "({0})",
-          java.time.LocalDateTime::class.java,
-          DSL.select(SPRING_AI_CHAT_MEMORY.TIMESTAMP)
-            .from(SPRING_AI_CHAT_MEMORY)
-            .where(SPRING_AI_CHAT_MEMORY.CONVERSATION_ID.eq(CONVERSATIONS.CONVERSATION_ID.cast(String::class.java)))
-            .orderBy(SPRING_AI_CHAT_MEMORY.TIMESTAMP.desc())
-            .limit(1),
-        ).`as`("recent_at"),
+        DSL
+          .field(
+            "({0})",
+            String::class.java,
+            DSL
+              .select(SPRING_AI_CHAT_MEMORY.CONTENT)
+              .from(SPRING_AI_CHAT_MEMORY)
+              .where(SPRING_AI_CHAT_MEMORY.CONVERSATION_ID.eq(CONVERSATIONS.CONVERSATION_ID.cast(String::class.java)))
+              .orderBy(SPRING_AI_CHAT_MEMORY.TIMESTAMP.desc())
+              .limit(1),
+          ).`as`("recent_chat"),
+        DSL
+          .field(
+            "({0})",
+            LocalDateTime::class.java,
+            DSL
+              .select(SPRING_AI_CHAT_MEMORY.TIMESTAMP)
+              .from(SPRING_AI_CHAT_MEMORY)
+              .where(SPRING_AI_CHAT_MEMORY.CONVERSATION_ID.eq(CONVERSATIONS.CONVERSATION_ID.cast(String::class.java)))
+              .orderBy(SPRING_AI_CHAT_MEMORY.TIMESTAMP.desc())
+              .limit(1),
+          ).`as`("recent_at"),
+        DSL
+          .field(
+            "({0})",
+            String::class.java,
+            DSL
+              .select(SPRING_AI_CHAT_MEMORY.TYPE)
+              .from(SPRING_AI_CHAT_MEMORY)
+              .where(SPRING_AI_CHAT_MEMORY.CONVERSATION_ID.eq(CONVERSATIONS.CONVERSATION_ID.cast(String::class.java)))
+              .orderBy(SPRING_AI_CHAT_MEMORY.TIMESTAMP.desc())
+              .limit(1),
+          ).`as`("type"),
         CONVERSATIONS.GOAL_ID,
         GOALS.TITLE.`as`("goal_title"),
-      )
-        .from(CONVERSATIONS)
+      ).from(CONVERSATIONS)
         .leftJoin(GOALS)
         .on(CONVERSATIONS.GOAL_ID.eq(GOALS.GOAL_ID).and(GOALS.DELETED_AT.isNull))
         .where(buildConversationConditions(dto))
@@ -51,7 +66,8 @@ class ConversationQueryRepository : JooqR2dbcRepository() {
       ConversationRow(
         conversationId = record.get(CONVERSATIONS.CONVERSATION_ID)!!,
         recentChat = record.get("recent_chat", String::class.java) ?: "",
-        recentAt = record.get("recent_at", java.time.LocalDateTime::class.java),
+        type = record.get("type", String::class.java),
+        recentAt = record.get("recent_at", LocalDateTime::class.java),
         goalId = record.get(CONVERSATIONS.GOAL_ID),
         goalTitle = record.get("goal_title", String::class.java),
       )

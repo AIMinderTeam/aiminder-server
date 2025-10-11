@@ -1,15 +1,20 @@
 package ai.aiminder.aiminderserver.conversation.service
 
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseDto
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.dto.UpdateConversationDto
 import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
+import ai.aiminder.aiminderserver.conversation.domain.ConversationType
 import ai.aiminder.aiminderserver.conversation.dto.ConversationResponse
 import ai.aiminder.aiminderserver.conversation.dto.GetConversationRequestDto
 import ai.aiminder.aiminderserver.conversation.entity.ConversationEntity
 import ai.aiminder.aiminderserver.conversation.repository.ConversationQueryRepository
 import ai.aiminder.aiminderserver.conversation.repository.ConversationRepository
+import ai.aiminder.aiminderserver.conversation.repository.row.ConversationRow
 import ai.aiminder.aiminderserver.user.domain.User
+import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.springframework.data.domain.Page
@@ -21,6 +26,7 @@ import java.util.UUID
 class ConversationService(
   private val conversationRepository: ConversationRepository,
   private val conversationQueryRepository: ConversationQueryRepository,
+  private val objectMapper: ObjectMapper,
 ) {
   suspend fun create(user: User): Conversation =
     ConversationEntity
@@ -55,10 +61,32 @@ class ConversationService(
     val conversations =
       conversationQueryRepository
         .findAllBy(dto)
+        .map { conversation -> formatRecentChat(conversation) }
         .map { ConversationResponse.fromRow(it) }
 
     val totalCount = conversationQueryRepository.countBy(dto)
 
     return PageImpl(conversations.toList(), dto.pageable, totalCount)
+  }
+
+  private fun formatRecentChat(conversation: ConversationRow): ConversationRow {
+    val recentChat =
+      when (conversation.type) {
+        null -> ""
+        else ->
+          when (ConversationType.valueOf(conversation.type)) {
+            ConversationType.ASSISTANT ->
+              objectMapper
+                .readValue(conversation.recentChat, AssistantResponseDto::class.java)
+                .responses
+                .firstOrNull { it.type == AssistantResponseType.TEXT }
+                ?.messages
+                ?.firstOrNull()
+                ?: ""
+
+            ConversationType.USER -> conversation.recentChat
+          }
+      }
+    return conversation.copy(recentChat = recentChat)
   }
 }

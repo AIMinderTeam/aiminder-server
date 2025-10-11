@@ -6,6 +6,7 @@ import java.util.UUID
 data class ConversationRow(
   val conversationId: UUID,
   val recentChat: String,
+  val type: String?,
   val recentAt: LocalDateTime?,
   val goalId: UUID?,
   val goalTitle: String?,
