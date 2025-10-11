@@ -8,7 +8,6 @@ import java.time.Instant
 import java.util.UUID
 
 data class GetSchedulesRequest(
-  val goalId: UUID? = null,
   val status: ScheduleStatus? = null,
   val startDate: Instant? = null,
   val endDate: Instant? = null,
@@ -16,7 +15,7 @@ data class GetSchedulesRequest(
 
 data class GetSchedulesRequestDto(
   val userId: UUID,
-  val goalId: UUID? = null,
+  val goalId: UUID,
   val status: ScheduleStatus? = null,
   val startDate: Instant? = null,
   val endDate: Instant? = null,
@@ -24,13 +23,14 @@ data class GetSchedulesRequestDto(
 ) {
   companion object {
     fun from(
+      goalId: UUID,
       getSchedulesRequest: GetSchedulesRequest,
       user: User,
       pageable: PageableRequest,
     ): GetSchedulesRequestDto =
       GetSchedulesRequestDto(
         userId = user.id,
-        goalId = getSchedulesRequest.goalId,
+        goalId = goalId,
         status = getSchedulesRequest.status,
         startDate = getSchedulesRequest.startDate,
         endDate = getSchedulesRequest.endDate,

@@ -23,12 +23,14 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/v1/schedules")
+@RequestMapping("/api/v1/goals")
 class ScheduleController(
   private val scheduleService: ScheduleService,
 ) : ScheduleControllerDocs {
-  @PostMapping
+  @PostMapping("/{goalId}/schedules")
   override suspend fun createSchedule(
+    @PathVariable
+    goalId: UUID,
     @RequestBody
     request: CreateScheduleRequest,
     @AuthenticationPrincipal
@@ -37,7 +39,7 @@ class ScheduleController(
     scheduleService
       .create(
         CreateScheduleRequestDto(
-          goalId = request.goalId,
+          goalId = goalId,
           userId = user.id,
           title = request.title,
           description = request.description,
@@ -46,8 +48,10 @@ class ScheduleController(
         ),
       ).let { schedule -> ServiceResponse.from(schedule) }
 
-  @GetMapping
+  @GetMapping("/{goalId}/schedules")
   override suspend fun getSchedules(
+    @PathVariable
+    goalId: UUID,
     request: GetSchedulesRequest,
     pageable: PageableRequest,
     @AuthenticationPrincipal
@@ -56,13 +60,14 @@ class ScheduleController(
     scheduleService
       .get(
         GetSchedulesRequestDto.from(
+          goalId = goalId,
           getSchedulesRequest = request,
           user = user,
           pageable = pageable,
         ),
       ).let { schedules -> ServiceResponse.from(schedules) }
 
-  @PutMapping("/{scheduleId}")
+  @PutMapping("/schedules/{scheduleId}")
   override suspend fun updateSchedule(
     @PathVariable
     scheduleId: UUID,
@@ -87,7 +92,7 @@ class ScheduleController(
     return ServiceResponse.from(updatedSchedule)
   }
 
-  @DeleteMapping("/{scheduleId}")
+  @DeleteMapping("/schedules/{scheduleId}")
   override suspend fun deleteSchedule(
     @PathVariable
     scheduleId: UUID,
@@ -98,7 +103,7 @@ class ScheduleController(
     return ServiceResponse.from("Schedule deleted successfully")
   }
 
-  @GetMapping("/{scheduleId}")
+  @GetMapping("/schedules/{scheduleId}")
   override suspend fun getScheduleById(
     @PathVariable
     scheduleId: UUID,

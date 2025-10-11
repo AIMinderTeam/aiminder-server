@@ -63,7 +63,7 @@ class ScheduleQueryRepository : JooqR2dbcRepository() {
     conditions.add(SCHEDULES.DELETED_AT.isNull)
     conditions.add(SCHEDULES.USER_ID.eq(dto.userId))
 
-    dto.goalId?.let { conditions.add(SCHEDULES.GOAL_ID.eq(it)) }
+    dto.goalId.let { conditions.add(SCHEDULES.GOAL_ID.eq(it)) }
     dto.status?.let { conditions.add(SCHEDULES.STATUS.eq(it.name)) }
 
     if (dto.startDate != null && dto.endDate != null) {

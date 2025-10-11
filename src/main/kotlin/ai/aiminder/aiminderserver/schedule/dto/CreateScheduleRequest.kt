@@ -6,7 +6,6 @@ import java.time.Instant
 import java.util.UUID
 
 data class CreateScheduleRequest(
-  val goalId: UUID,
   val title: String,
   val description: String? = null,
   val startDate: Instant,
