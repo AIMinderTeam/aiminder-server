@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/conversations")
 class AssistantController(
   private val assistantService: AssistantService,
   private val conversationService: ConversationService,
@@ -47,7 +47,7 @@ class AssistantController(
   }
 
   @Transactional
-  @PostMapping("/chat/{conversationId}")
+  @PostMapping("/{conversationId}/chat")
   override suspend fun sendMessage(
     @PathVariable
     conversationId: UUID,

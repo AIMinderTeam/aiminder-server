@@ -73,7 +73,7 @@ class AssistantControllerTest
           webTestClient
             .mutateWith(mockAuthentication(authentication))
             .post()
-            .uri("/api/v1/chat")
+            .uri("/api/v1/conversations/chat")
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus()
@@ -107,7 +107,7 @@ class AssistantControllerTest
       val response =
         webTestClient
           .post()
-          .uri("/api/v1/chat")
+          .uri("/api/v1/conversations/chat")
           .accept(MediaType.APPLICATION_JSON)
           .exchange()
           .expectStatus()
@@ -147,7 +147,7 @@ class AssistantControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .post()
-          .uri("/api/v1/chat")
+          .uri("/api/v1/conversations/chat")
           .accept(MediaType.APPLICATION_JSON)
           .exchange()
           .expectStatus()
@@ -180,7 +180,7 @@ class AssistantControllerTest
           webTestClient
             .mutateWith(mockAuthentication(authentication))
             .post()
-            .uri("/api/v1/chat/${conversation.id}")
+            .uri("/api/v1/conversations/${conversation.id}/chat")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .exchange()
@@ -241,7 +241,7 @@ class AssistantControllerTest
         webTestClient
           .mutateWith(mockAuthentication(authentication))
           .post()
-          .uri("/api/v1/chat/$nonExistentConversationId")
+          .uri("/api/v1/conversations/$nonExistentConversationId/chat")
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(request)
           .exchange()
@@ -272,7 +272,7 @@ class AssistantControllerTest
           webTestClient
             .mutateWith(mockAuthentication(authentication))
             .post()
-            .uri("/api/v1/chat/${conversation.id}")
+            .uri("/api/v1/conversations/${conversation.id}/chat")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(requestMissingText)
             .exchange()
@@ -304,7 +304,7 @@ class AssistantControllerTest
           webTestClient
             .mutateWith(mockAuthentication(authentication))
             .post()
-            .uri("/api/v1/chat/${conversation.id}")
+            .uri("/api/v1/conversations/${conversation.id}/chat")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(emptyTextRequest)
             .exchange()
@@ -337,7 +337,7 @@ class AssistantControllerTest
           webTestClient
             .mutateWith(mockAuthentication(authentication))
             .post()
-            .uri("/api/v1/chat/${conversation.id}")
+            .uri("/api/v1/conversations/${conversation.id}/chat")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(whitespaceOnlyRequest)
             .exchange()
@@ -369,7 +369,7 @@ class AssistantControllerTest
         val response =
           webTestClient
             .post()
-            .uri("/api/v1/chat/${conversation.id}")
+            .uri("/api/v1/conversations/${conversation.id}/chat")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .exchange()
@@ -411,7 +411,7 @@ class AssistantControllerTest
           webTestClient
             .mutateWith(mockAuthentication(authentication))
             .post()
-            .uri("/api/v1/chat/${anotherUserConversation.id}")
+            .uri("/api/v1/conversations/${anotherUserConversation.id}/chat")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .exchange()
@@ -436,7 +436,7 @@ class AssistantControllerTest
           webTestClient
             .mutateWith(mockAuthentication(authentication))
             .post()
-            .uri("/api/v1/chat")
+            .uri("/api/v1/conversations/chat")
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus()
@@ -465,7 +465,7 @@ class AssistantControllerTest
           webTestClient
             .mutateWith(mockAuthentication(authentication))
             .post()
-            .uri("/api/v1/chat/$conversationId")
+            .uri("/api/v1/conversations/$conversationId/chat")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .exchange()
@@ -506,7 +506,7 @@ class AssistantControllerTest
             webTestClient
               .mutateWith(mockAuthentication(authentication))
               .post()
-              .uri("/api/v1/chat/${conversation.id}")
+              .uri("/api/v1/conversations/${conversation.id}/chat")
               .contentType(MediaType.APPLICATION_JSON)
               .bodyValue(request)
               .exchange()
