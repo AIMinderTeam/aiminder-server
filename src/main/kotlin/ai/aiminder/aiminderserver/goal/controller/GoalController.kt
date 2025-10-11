@@ -63,7 +63,7 @@ class GoalController(
       ).let { goals -> ServiceResponse.from(goals) }
 
   @PutMapping("/{goalId}")
-  suspend fun updateGoal(
+  override suspend fun updateGoal(
     @PathVariable
     goalId: UUID,
     @RequestBody
@@ -76,7 +76,7 @@ class GoalController(
   }
 
   @DeleteMapping("/{goalId}")
-  suspend fun deleteGoal(
+  override suspend fun deleteGoal(
     @PathVariable
     goalId: UUID,
     @AuthenticationPrincipal
