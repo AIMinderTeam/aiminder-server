@@ -1,9 +1,7 @@
 package ai.aiminder.aiminderserver.conversation.repository
 
-import ai.aiminder.aiminderserver.assistant.domain.ChatRow
 import ai.aiminder.aiminderserver.common.config.JooqR2dbcRepository
 import ai.aiminder.aiminderserver.conversation.dto.GetConversationRequestDto
-import ai.aiminder.aiminderserver.conversation.dto.GetMessagesRequestDto
 import ai.aiminder.aiminderserver.conversation.repository.row.ConversationRow
 import ai.aiminder.aiminderserver.jooq.tables.Conversations.Companion.CONVERSATIONS
 import ai.aiminder.aiminderserver.jooq.tables.Goals.Companion.GOALS
@@ -75,35 +73,11 @@ class ConversationQueryRepository : JooqR2dbcRepository() {
       )
     }
 
-  suspend fun findChatBy(dto: GetMessagesRequestDto): Flow<ChatRow> =
-    query {
-      select(
-        SPRING_AI_CHAT_MEMORY.CONTENT,
-        SPRING_AI_CHAT_MEMORY.TYPE,
-      ).from(SPRING_AI_CHAT_MEMORY)
-        .where(SPRING_AI_CHAT_MEMORY.CONVERSATION_ID.eq(dto.conversationId.toString()))
-        .orderBy(SPRING_AI_CHAT_MEMORY.TIMESTAMP.desc())
-        .offset(dto.pageable.offset.toInt())
-        .limit(dto.pageable.pageSize)
-    }.map { record ->
-      ChatRow(
-        content = record.get(SPRING_AI_CHAT_MEMORY.CONTENT)!!,
-        type = record.get(SPRING_AI_CHAT_MEMORY.TYPE)!!,
-      )
-    }
-
   suspend fun countBy(dto: GetConversationRequestDto): Long =
     query {
       selectCount()
         .from(CONVERSATIONS)
         .where(buildConversationConditions(dto))
-    }.single().component1().toLong()
-
-  suspend fun countBy(dto: GetMessagesRequestDto): Long =
-    query {
-      selectCount()
-        .from(SPRING_AI_CHAT_MEMORY)
-        .where(SPRING_AI_CHAT_MEMORY.CONVERSATION_ID.eq(dto.conversationId.toString()))
     }.single().component1().toLong()
 
   private fun buildConversationConditions(dto: GetConversationRequestDto): List<Condition> {

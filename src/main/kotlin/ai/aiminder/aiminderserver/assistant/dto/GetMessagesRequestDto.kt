@@ -1,4 +1,4 @@
-package ai.aiminder.aiminderserver.conversation.dto
+package ai.aiminder.aiminderserver.assistant.dto
 
 import ai.aiminder.aiminderserver.common.request.PageableRequest
 import org.springframework.data.domain.Pageable

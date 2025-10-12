@@ -4,7 +4,10 @@ import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.domain.ChatResponseDto
 import ai.aiminder.aiminderserver.assistant.domain.ChatType
+import ai.aiminder.aiminderserver.assistant.entity.ChatEntity
+import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.media.Schema
 import java.util.UUID
 
@@ -38,6 +41,18 @@ data class ChatResponse(
         conversationId = dto.conversationId,
         chat = listOf(ChatResponseDto(AssistantResponseType.TEXT, listOf(dto.text))),
         chatType = ChatType.USER,
+      )
+
+    fun from(
+      chat: ChatEntity,
+      objectMapper: ObjectMapper,
+    ): ChatResponse =
+      ChatResponse(
+        conversationId = chat.conversationId,
+        chat =
+          objectMapper.readValue(chat.content, List::class.java) as? List<ChatResponseDto>
+            ?: throw AssistantError.ChatTransformError(chat.content),
+        chatType = ChatType.ASSISTANT,
       )
   }
 }
