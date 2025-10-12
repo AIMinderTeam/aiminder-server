@@ -11,7 +11,7 @@ class FeedbackScheduler(
 ) {
   private val logger = logger()
 
-  @Scheduled(cron = "0 0 12 * * *")
+  @Scheduled(cron = "0 0 9 * * *")
   suspend fun feedback() {
   }
 }
