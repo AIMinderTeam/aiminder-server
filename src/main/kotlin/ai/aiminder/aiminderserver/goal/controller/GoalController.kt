@@ -62,6 +62,18 @@ class GoalController(
         ),
       ).let { goals -> ServiceResponse.from(goals) }
 
+  @GetMapping("/{goalId}")
+  suspend fun getGoalDetail(
+    @PathVariable
+    goalId: UUID,
+    @AuthenticationPrincipal
+    user: User,
+  ): ServiceResponse<GoalResponse> =
+    goalService
+      .get(goalId, user.id)
+      .let { goal -> GoalResponse.from(goal) }
+      .let { goal -> ServiceResponse.from(goal) }
+
   @PutMapping("/{goalId}")
   override suspend fun updateGoal(
     @PathVariable

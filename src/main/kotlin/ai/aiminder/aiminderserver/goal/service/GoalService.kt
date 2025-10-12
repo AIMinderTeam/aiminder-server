@@ -61,15 +61,19 @@ class GoalService(
     return PageImpl(goalResponses, dto.pageable, totalCount)
   }
 
-  suspend fun get(goalId: UUID): Goal =
+  suspend fun get(
+    goalId: UUID,
+    userId: UUID,
+  ): Goal =
     goalRepository
       .findById(goalId)
+      ?.also { if (it.userId != userId) throw GoalError.AccessDenied() }
       ?.takeIf { it.deletedAt == null }
       ?.let { Goal.from(it) }
       ?: throw GoalError.GoalNotFound(goalId)
 
   suspend fun update(dto: UpdateGoalRequestDto): GoalResponse =
-    get(dto.goalId)
+    get(dto.goalId, dto.userId)
       .update(dto)
       .let { GoalEntity.from(it) }
       .let { goalRepository.save(it) }
@@ -77,7 +81,7 @@ class GoalService(
       .let { GoalResponse.from(it) }
 
   suspend fun delete(dto: DeleteGoalRequestDto) {
-    get(dto.goalId)
+    get(dto.goalId, dto.userId)
       .delete(dto)
       .let { GoalEntity.from(it) }
       .let { goalRepository.save(it) }
