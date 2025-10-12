@@ -29,7 +29,7 @@ class ChatService(
         .findAllByConversationIdOrderByIdDesc(dto.conversationId, dto.pageable)
         .map { chat -> ChatResponse.from(chat, objectMapper) }
 
-    val totalCount = chatRepository.countByConversationIdOrderByIdDesc(dto.conversationId, dto.pageable)
+    val totalCount = chatRepository.countByConversationId(dto.conversationId)
 
     return PageImpl(chatResponses.toList().reversed(), dto.pageable, totalCount)
   }

@@ -14,8 +14,5 @@ interface ChatRepository : CoroutineCrudRepository<ChatEntity, Long> {
     pageable: Pageable,
   ): Flow<ChatEntity>
 
-  suspend fun countByConversationIdOrderByIdDesc(
-    conversationId: UUID,
-    pageable: Pageable,
-  ): Long
+  suspend fun countByConversationId(conversationId: UUID): Long
 }
