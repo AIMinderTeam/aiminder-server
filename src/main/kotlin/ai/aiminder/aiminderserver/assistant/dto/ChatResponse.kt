@@ -1,6 +1,7 @@
 package ai.aiminder.aiminderserver.assistant.dto
 
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.domain.ChatResponseDto
 import ai.aiminder.aiminderserver.assistant.domain.ChatType
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
@@ -30,6 +31,13 @@ data class ChatResponse(
         conversationId = conversation.id,
         chat = assistantResponse.responses,
         chatType = ChatType.ASSISTANT,
+      )
+
+    fun from(dto: AssistantRequestDto): ChatResponse =
+      ChatResponse(
+        conversationId = dto.conversationId,
+        chat = listOf(ChatResponseDto(AssistantResponseType.TEXT, listOf(dto.text))),
+        chatType = ChatType.USER,
       )
   }
 }
