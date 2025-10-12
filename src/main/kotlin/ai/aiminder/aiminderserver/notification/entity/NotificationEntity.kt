@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.notification.entity
 
 import ai.aiminder.aiminderserver.notification.domain.NotificationType
 import org.springframework.data.annotation.Id
+import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
@@ -22,4 +23,8 @@ data class NotificationEntity(
   val createdAt: Instant = Instant.now(),
   val updatedAt: Instant = createdAt,
   val deletedAt: Instant? = null,
-)
+) : Persistable<UUID> {
+  override fun getId(): UUID? = id
+
+  override fun isNew(): Boolean = id == null
+}
