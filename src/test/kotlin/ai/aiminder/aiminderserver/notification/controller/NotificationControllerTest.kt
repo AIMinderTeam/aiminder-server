@@ -5,6 +5,7 @@ import ai.aiminder.aiminderserver.auth.domain.Role
 import ai.aiminder.aiminderserver.auth.service.TokenService
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
+import ai.aiminder.aiminderserver.notification.domain.Notification
 import ai.aiminder.aiminderserver.notification.domain.NotificationType
 import ai.aiminder.aiminderserver.notification.entity.NotificationEntity
 import ai.aiminder.aiminderserver.notification.repository.NotificationRepository
@@ -324,9 +325,314 @@ class NotificationControllerTest
         assertThat(response.errorCode).isNull()
       }
 
-    private fun getNotificationCount(
-      auth: UsernamePasswordAuthenticationToken = authentication,
-    ): ServiceResponse<Int> =
+    @Test
+    fun `정상적인 알림 목록 조회 테스트`() =
+      runTest {
+        // given - 읽지 않은 알림 3개 생성
+        val notification1 =
+          createTestNotification(
+            testUser,
+            NotificationType.TO_DO,
+            "Todo 1",
+            "Description 1",
+          )
+        val notification2 =
+          createTestNotification(
+            testUser,
+            NotificationType.MOTIVATION,
+            "Motivation 1",
+            "Description 2",
+          )
+        val notification3 =
+          createTestNotification(
+            testUser,
+            NotificationType.TO_DO,
+            "Todo 2",
+            "Description 3",
+          )
+
+        // when
+        val response = getNotifications("/api/v1/notifications?page=0&size=10")
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(3)
+        assertThat(response.errorCode).isNull()
+
+        // 페이지네이션 정보 확인
+        assertThat(response.pageable?.page).isEqualTo(0)
+        assertThat(response.pageable?.count).isEqualTo(3)
+        assertThat(response.pageable?.totalElements).isEqualTo(3)
+        assertThat(response.pageable?.totalPages).isEqualTo(1)
+
+        // 알림 데이터 일치성 확인 (생성일 기준 내림차순 정렬)
+        val notifications = response.data!!
+        verifyNotificationConsistency(notifications[0], notification3)
+        verifyNotificationConsistency(notifications[1], notification2)
+        verifyNotificationConsistency(notifications[2], notification1)
+      }
+
+    @Test
+    fun `빈 알림 목록 조회 테스트`() {
+      // given - 알림 없음
+
+      // when
+      val response = getNotifications("/api/v1/notifications?page=0&size=10")
+
+      // then
+      assertThat(response.statusCode).isEqualTo(200)
+      assertThat(response.data).isEmpty()
+      assertThat(response.errorCode).isNull()
+
+      // 페이지네이션 정보 확인
+      assertThat(response.pageable?.page).isEqualTo(0)
+      assertThat(response.pageable?.count).isEqualTo(0)
+      assertThat(response.pageable?.totalElements).isEqualTo(0)
+      assertThat(response.pageable?.totalPages).isEqualTo(0)
+    }
+
+    @Test
+    fun `삭제된 알림은 조회되지 않는지 확인`() =
+      runTest {
+        // given - 정상 알림 1개, 삭제된 알림 1개
+        val normalNotification = createTestNotification(testUser)
+        createTestNotification(
+          testUser,
+          deletedAt = Instant.now(),
+        ) // 삭제된 알림 (조회되지 않아야 함)
+
+        // when
+        val response = getNotifications("/api/v1/notifications?page=0&size=10")
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(1)
+        assertThat(response.pageable?.totalElements).isEqualTo(1)
+
+        // 조회된 알림이 삭제되지 않은 것인지 확인
+        val notification = response.data!!.first()
+        verifyNotificationConsistency(notification, normalNotification)
+        assertThat(notification.deletedAt).isNull()
+      }
+
+    @Test
+    fun `다른 사용자의 알림은 조회되지 않는지 확인`() =
+      runTest {
+        // given - testUser 알림 1개, otherUser 알림 1개
+        val myNotification = createTestNotification(testUser)
+        createTestNotification(otherUser) // 다른 사용자 알림 (조회되지 않아야 함)
+
+        // when
+        val response = getNotifications("/api/v1/notifications?page=0&size=10")
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(1)
+        assertThat(response.pageable?.totalElements).isEqualTo(1)
+
+        // 조회된 알림이 내 알림인지 확인
+        val notification = response.data!!.first()
+        verifyNotificationConsistency(notification, myNotification)
+        assertThat(notification.receiverId).isEqualTo(testUser.id)
+      }
+
+    @Test
+    fun `생성일 기준 내림차순 정렬 확인`() =
+      runTest {
+        // given - 시간 간격을 두고 3개 알림 생성
+        createTestNotification(
+          testUser,
+          title = "First Notification",
+        )
+
+        // 약간의 시간 간격
+        Thread.sleep(10)
+
+        createTestNotification(
+          testUser,
+          title = "Second Notification",
+        )
+
+        Thread.sleep(10)
+
+        val thirdNotification =
+          createTestNotification(
+            testUser,
+            title = "Third Notification",
+          )
+
+        // when
+        val response = getNotifications("/api/v1/notifications?page=0&size=10")
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(3)
+
+        val notifications = response.data!!
+        // 생성일 기준 내림차순으로 정렬되어야 함 (최신순)
+        assertThat(notifications[0].title).isEqualTo("Third Notification")
+        assertThat(notifications[1].title).isEqualTo("Second Notification")
+        assertThat(notifications[2].title).isEqualTo("First Notification")
+
+        // 생성일 확인
+        assertThat(notifications[0].createdAt).isAfterOrEqualTo(notifications[1].createdAt)
+        assertThat(notifications[1].createdAt).isAfterOrEqualTo(notifications[2].createdAt)
+      }
+
+    @Test
+    fun `인증되지 않은 사용자 요청 시 401 반환 - getNotifications`() {
+      // when
+      val response = getNotificationsExpectingError("/api/v1/notifications?page=0&size=10", null)
+
+      // then
+      verifyErrorResponse(response, 401, "AUTH:UNAUTHORIZED")
+    }
+
+    @Test
+    fun `Bearer Token으로 정상 요청 테스트 - getNotifications`() =
+      runTest {
+        // given - 알림 생성
+        createTestNotification(testUser, title = "Bearer Token Test")
+        val validAccessToken = tokenService.createAccessToken(testUser)
+
+        // when
+        val response =
+          webTestClient
+            .get()
+            .uri("/api/v1/notifications?page=0&size=10")
+            .accept(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer $validAccessToken")
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<Notification>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(1)
+        assertThat(response.data!!.first().title).isEqualTo("Bearer Token Test")
+        assertThat(response.errorCode).isNull()
+      }
+
+    @Test
+    fun `첫 번째 페이지 조회 테스트`() =
+      runTest {
+        // given - 5개 알림 생성
+        repeat(5) { index ->
+          createTestNotification(testUser, title = "Notification ${index + 1}")
+        }
+
+        // when - 첫 번째 페이지, 페이지 크기 3
+        val response = getNotifications("/api/v1/notifications?page=0&size=3")
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(3)
+
+        assertThat(response.pageable?.page).isEqualTo(0)
+        assertThat(response.pageable?.count).isEqualTo(3)
+        assertThat(response.pageable?.totalElements).isEqualTo(5)
+        assertThat(response.pageable?.totalPages).isEqualTo(2)
+      }
+
+    @Test
+    fun `두 번째 페이지 조회 테스트`() =
+      runTest {
+        // given - 5개 알림 생성
+        repeat(5) { index ->
+          createTestNotification(testUser, title = "Notification ${index + 1}")
+        }
+
+        // when - 두 번째 페이지, 페이지 크기 3
+        val response = getNotifications("/api/v1/notifications?page=1&size=3")
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(2) // 나머지 2개
+
+        assertThat(response.pageable?.page).isEqualTo(1)
+        assertThat(response.pageable?.count).isEqualTo(2)
+        assertThat(response.pageable?.totalElements).isEqualTo(5)
+        assertThat(response.pageable?.totalPages).isEqualTo(2)
+      }
+
+    @Test
+    fun `페이지 크기 변경 테스트`() =
+      runTest {
+        // given - 10개 알림 생성
+        repeat(10) { index ->
+          createTestNotification(testUser, title = "Notification ${index + 1}")
+        }
+
+        // when - 페이지 크기 5로 설정
+        val response = getNotifications("/api/v1/notifications?page=0&size=5")
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(5)
+
+        assertThat(response.pageable?.page).isEqualTo(0)
+        assertThat(response.pageable?.count).isEqualTo(5)
+        assertThat(response.pageable?.totalElements).isEqualTo(10)
+        assertThat(response.pageable?.totalPages).isEqualTo(2)
+      }
+
+    @Test
+    fun `페이지 번호 초과 시 빈 결과 반환`() =
+      runTest {
+        // given - 3개 알림 생성
+        repeat(3) { index ->
+          createTestNotification(testUser, title = "Notification ${index + 1}")
+        }
+
+        // when - 존재하지 않는 페이지 조회
+        val response = getNotifications("/api/v1/notifications?page=5&size=3")
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isEmpty()
+
+        assertThat(response.pageable?.page).isEqualTo(5)
+        assertThat(response.pageable?.count).isEqualTo(0)
+        assertThat(response.pageable?.totalElements).isEqualTo(3)
+        assertThat(response.pageable?.totalPages).isEqualTo(1)
+      }
+
+    @Test
+    fun `존재하지 않는 사용자로 요청 시 빈 결과 반환 - getNotifications`() =
+      runTest {
+        // given - 존재하지 않는 사용자
+        val nonExistentUser =
+          User(
+            id = UUID.randomUUID(),
+            provider = OAuth2Provider.GOOGLE,
+            providerId = "non-existent-user",
+            createdAt = Instant.now(),
+            updatedAt = Instant.now(),
+          )
+        val nonExistentAuth =
+          UsernamePasswordAuthenticationToken(
+            nonExistentUser,
+            null,
+            listOf(SimpleGrantedAuthority(Role.USER.name)),
+          )
+
+        // testUser의 알림 생성 (다른 사용자 알림이므로 조회되지 않아야 함)
+        createTestNotification(testUser)
+
+        // when
+        val response = getNotifications("/api/v1/notifications?page=0&size=10", nonExistentAuth)
+
+        // then - 존재하지 않는 사용자의 경우 빈 결과 반환
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isEmpty()
+        assertThat(response.pageable?.totalElements).isEqualTo(0)
+        assertThat(response.errorCode).isNull()
+      }
+
+    private fun getNotificationCount(auth: UsernamePasswordAuthenticationToken = authentication): ServiceResponse<Int> =
       webTestClient
         .mutateWith(mockAuthentication(auth))
         .get()
@@ -367,5 +673,78 @@ class NotificationControllerTest
       assertThat(response.statusCode).isEqualTo(expectedStatus)
       assertThat(response.errorCode).isEqualTo(expectedErrorCode)
       assertThat(response.data).isNull()
+    }
+
+    private fun getNotifications(
+      uri: String,
+      auth: UsernamePasswordAuthenticationToken = authentication,
+    ): ServiceResponse<List<Notification>> =
+      webTestClient
+        .mutateWith(mockAuthentication(auth))
+        .get()
+        .uri(uri)
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<ServiceResponse<List<Notification>>>()
+        .returnResult()
+        .responseBody!!
+
+    private fun getNotificationsExpectingError(
+      uri: String,
+      auth: UsernamePasswordAuthenticationToken?,
+    ): ServiceResponse<Unit> {
+      val testClient =
+        if (auth != null) {
+          webTestClient.mutateWith(mockAuthentication(auth))
+        } else {
+          webTestClient
+        }
+
+      return testClient
+        .get()
+        .uri(uri)
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .is4xxClientError
+        .expectBody<ServiceResponse<Unit>>()
+        .returnResult()
+        .responseBody!!
+    }
+
+    private suspend fun createTestNotification(
+      user: User,
+      type: NotificationType = NotificationType.TO_DO,
+      title: String = "Test Notification",
+      description: String = "Test Description",
+      checked: Boolean = false,
+      deletedAt: Instant? = null,
+    ): NotificationEntity =
+      notificationRepository.save(
+        NotificationEntity(
+          type = type,
+          title = title,
+          description = description,
+          metadata = mapOf("key" to "value"),
+          receiverId = user.id,
+          checked = checked,
+          deletedAt = deletedAt,
+        ),
+      )
+
+    private fun verifyNotificationConsistency(
+      actual: Notification,
+      expected: NotificationEntity,
+    ) {
+      assertThat(actual.id).isEqualTo(expected.id)
+      assertThat(actual.type).isEqualTo(expected.type)
+      assertThat(actual.title).isEqualTo(expected.title)
+      assertThat(actual.description).isEqualTo(expected.description)
+      assertThat(actual.metadata).isEqualTo(expected.metadata)
+      assertThat(actual.receiverId).isEqualTo(expected.receiverId)
+      assertThat(actual.checked).isEqualTo(expected.checked)
+      assertThat(actual.deletedAt).isEqualTo(expected.deletedAt)
     }
   }

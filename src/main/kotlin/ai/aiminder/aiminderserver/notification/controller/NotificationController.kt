@@ -27,7 +27,7 @@ class NotificationController(
   }
 
   @GetMapping
-  suspend fun getNotifications(
+  override suspend fun getNotifications(
     pageable: PageableRequest,
     @AuthenticationPrincipal
     user: User,
