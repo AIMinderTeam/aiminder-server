@@ -92,10 +92,10 @@ CREATE TABLE schedules
 
 CREATE TABLE spring_ai_chat_memory
 (
-  conversation_id VARCHAR(255)  NOT NULL NOT NULL,
-  message_index   SERIAL        NOT NULL NOT NULL,
-  content         VARCHAR(1000) NOT NULL NOT NULL,
-  type            VARCHAR(50)   NOT NULL NOT NULL,
+  conversation_id VARCHAR(255)  NOT NULL,
+  message_index   SERIAL,
+  content         VARCHAR(1000) NOT NULL,
+  type            VARCHAR(50)   NOT NULL,
   timestamp       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (conversation_id, message_index)
 );
@@ -120,7 +120,7 @@ CREATE TABLE chat
 (
   chat_id         UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
   conversation_id UUID             NOT NULL,
-  message_index   BIGSERIAL        NOT NULL,
+  message_index   BIGSERIAL,
   content         TEXT             NOT NULL,
   type            VARCHAR(50)      NOT NULL,
   created_at      TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP
