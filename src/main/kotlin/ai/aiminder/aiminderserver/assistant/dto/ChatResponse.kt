@@ -1,9 +1,13 @@
 package ai.aiminder.aiminderserver.assistant.dto
 
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.domain.ChatResponseDto
 import ai.aiminder.aiminderserver.assistant.domain.ChatType
+import ai.aiminder.aiminderserver.assistant.entity.ChatEntity
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.media.Schema
 import java.util.UUID
 
@@ -30,6 +34,27 @@ data class ChatResponse(
         conversationId = conversation.id,
         chat = assistantResponse.responses,
         chatType = ChatType.ASSISTANT,
+      )
+
+    fun from(dto: AssistantRequestDto): ChatResponse =
+      ChatResponse(
+        conversationId = dto.conversationId,
+        chat = listOf(ChatResponseDto(AssistantResponseType.TEXT, listOf(dto.text))),
+        chatType = ChatType.USER,
+      )
+
+    fun from(
+      chat: ChatEntity,
+      objectMapper: ObjectMapper,
+    ): ChatResponse =
+      ChatResponse(
+        conversationId = chat.conversationId,
+        chat =
+          objectMapper.readValue(
+            chat.content,
+            object : TypeReference<List<ChatResponseDto>>() {},
+          ),
+        chatType = chat.type,
       )
   }
 }

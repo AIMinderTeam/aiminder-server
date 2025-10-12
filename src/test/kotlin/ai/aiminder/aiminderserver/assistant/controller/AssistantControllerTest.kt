@@ -4,8 +4,11 @@ import ai.aiminder.aiminderserver.assistant.client.AssistantClient
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.domain.ChatResponseDto
+import ai.aiminder.aiminderserver.assistant.domain.ChatType
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
+import ai.aiminder.aiminderserver.assistant.entity.ChatEntity
+import ai.aiminder.aiminderserver.assistant.repository.ChatRepository
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.Role
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
@@ -15,6 +18,7 @@ import ai.aiminder.aiminderserver.conversation.repository.ConversationRepository
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.entity.UserEntity
 import ai.aiminder.aiminderserver.user.repository.UserRepository
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import io.mockk.coEvery
@@ -25,13 +29,11 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
-import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockAuthentication
 import org.springframework.test.web.reactive.server.expectBody
 import java.time.Instant
-import java.time.LocalDateTime
 import java.util.UUID
 
 class AssistantControllerTest
@@ -39,7 +41,8 @@ class AssistantControllerTest
   constructor(
     private val userRepository: UserRepository,
     private val conversationRepository: ConversationRepository,
-    private val jdbcTemplate: JdbcTemplate,
+    private val chatRepository: ChatRepository,
+    private val objectMapper: ObjectMapper,
   ) : BaseIntegrationTest() {
     @MockkBean
     private lateinit var assistantClient: AssistantClient
@@ -827,7 +830,7 @@ class AssistantControllerTest
       }
 
     @Test
-    fun `Spring AI Chat Memory 데이터로 메시지 조회 테스트`() =
+    fun `Chat 테이블 데이터로 메시지 조회 테스트`() =
       runTest {
         // given - 대화방 생성
         val conversation =
@@ -835,37 +838,26 @@ class AssistantControllerTest
             ConversationEntity.from(testUser),
           )
 
-        // Spring AI Chat Memory 테이블에 ASSISTANT 메시지 추가
-        val assistantContent =
-          """
-          {"responses":[
-            {"messages":["경제적 자유를 목표로 하셨군요! SMART 목표를 설정해볼까요?"],"type":"TEXT"},
-            {"messages":["매월 300만 원 수입 💸","빚 청산 🎯","주식 투자 수익 목표 📈"],"type":"QUICK_REPLIES"}
-          ]}
-          """.trimIndent().replace("\n", "").replace("  ", "")
+        // ASSISTANT 메시지 생성 (복합 응답)
+        val assistantChatResponses =
+          listOf(
+            ChatResponseDto(
+              type = AssistantResponseType.TEXT,
+              messages = listOf("경제적 자유를 목표로 하셨군요! SMART 목표를 설정해볼까요?"),
+            ),
+            ChatResponseDto(
+              type = AssistantResponseType.QUICK_REPLIES,
+              messages = listOf("매월 300만 원 수입 💸", "빚 청산 🎯", "주식 투자 수익 목표 📈"),
+            ),
+          )
+        val conversationId = conversation.id!!
+        createTestAssistantMessage(conversationId, assistantChatResponses)
 
-        jdbcTemplate.update(
-          """
-          INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
-          VALUES (?, ?, ?, ?)
-          """.trimIndent(),
-          conversation.id.toString(),
-          assistantContent,
-          "ASSISTANT",
-          LocalDateTime.now().minusMinutes(2),
-        )
+        // 시간 간격을 두기 위해 잠시 대기
+        kotlinx.coroutines.delay(10)
 
-        // Spring AI Chat Memory 테이블에 USER 메시지 추가
-        jdbcTemplate.update(
-          """
-          INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
-          VALUES (?, ?, ?, ?)
-          """.trimIndent(),
-          conversation.id.toString(),
-          "매월 300만 원 수입 💸",
-          "USER",
-          LocalDateTime.now().minusMinutes(1),
-        )
+        // USER 메시지 생성
+        createTestChatMessage(conversationId, "매월 300만 원 수입 💸", ChatType.USER)
 
         // when - 메시지 조회
         val response =
@@ -934,7 +926,7 @@ class AssistantControllerTest
       }
 
     @Test
-    fun `Spring AI Chat Memory 페이징 테스트`() =
+    fun `Chat 테이블 페이징 테스트`() =
       runTest {
         // given - 대화방 생성
         val conversation =
@@ -944,24 +936,22 @@ class AssistantControllerTest
 
         // 여러 메시지 추가 (5개)
         repeat(5) { index ->
-          val content =
-            if (index % 2 == 0) {
-              "메시지 내용 $index" // USER 메시지는 단순 텍스트
-            } else {
-              // ASSISTANT 메시지는 JSON 형태
-              """{"responses":[{"messages":["메시지 내용 $index"],"type":"TEXT"}]}"""
-            }
-
-          jdbcTemplate.update(
-            """
-            INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
-            VALUES (?, ?, ?, ?)
-            """.trimIndent(),
-            conversation.id.toString(),
-            content,
-            if (index % 2 == 0) "USER" else "ASSISTANT",
-            LocalDateTime.now().minusMinutes((5 - index).toLong()),
-          )
+          if (index % 2 == 0) {
+            // USER 메시지
+            createTestChatMessage(conversation.id!!, "메시지 내용 $index", ChatType.USER)
+          } else {
+            // ASSISTANT 메시지
+            val assistantChatResponses =
+              listOf(
+                ChatResponseDto(
+                  type = AssistantResponseType.TEXT,
+                  messages = listOf("메시지 내용 $index"),
+                ),
+              )
+            createTestAssistantMessage(conversation.id!!, assistantChatResponses)
+          }
+          // 시간 간격을 두기 위해 잠시 대기
+          kotlinx.coroutines.delay(10)
         }
 
         // when - 첫 번째 페이지 조회 (page=0, size=3)
@@ -1049,7 +1039,7 @@ class AssistantControllerTest
       }
 
     @Test
-    fun `Spring AI Chat Memory 시간순 정렬 확인 테스트`() =
+    fun `Chat 테이블 시간순 정렬 확인 테스트`() =
       runTest {
         // given - 대화방 생성
         val conversation =
@@ -1057,28 +1047,12 @@ class AssistantControllerTest
             ConversationEntity.from(testUser),
           )
 
-        // 메시지 2개만 추가하여 단순화
-        jdbcTemplate.update(
-          """
-          INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
-          VALUES (?, ?, ?, ?)
-          """.trimIndent(),
-          conversation.id.toString(),
-          "첫 번째 메시지",
-          "USER",
-          LocalDateTime.now().minusMinutes(2),
-        )
-
-        jdbcTemplate.update(
-          """
-          INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
-          VALUES (?, ?, ?, ?)
-          """.trimIndent(),
-          conversation.id.toString(),
-          "두 번째 메시지",
-          "USER",
-          LocalDateTime.now().minusMinutes(1),
-        )
+        // Chat 테이블에 메시지 2개 추가하여 단순화
+        val conversationId = conversation.id!!
+        createTestChatMessage(conversationId, "첫 번째 메시지", ChatType.USER)
+        // 시간 간격을 두기 위해 잠시 대기
+        kotlinx.coroutines.delay(100)
+        createTestChatMessage(conversationId, "두 번째 메시지", ChatType.USER)
 
         // when - 메시지 조회
         val response =
@@ -1118,4 +1092,261 @@ class AssistantControllerTest
           ).isEqualTo("두 번째 메시지")
         }
       }
+
+    // 채팅 데이터 저장 검증 테스트들
+    @Test
+    fun `채팅 시작 시 AI 응답이 데이터베이스에 저장되는지 확인`() =
+      runTest {
+        // given & when
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .post()
+            .uri("/api/v1/conversations/chat")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<ChatResponse>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 응답 검증
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isNotNull
+
+        // chat 테이블에 저장 검증
+        val chatEntities = chatRepository.findAll().toList()
+        assertThat(chatEntities).hasSize(1)
+
+        val chatEntity = chatEntities.first()
+        assertThat(chatEntity.type).isEqualTo(ChatType.ASSISTANT)
+        assertThat(chatEntity.conversationId).isEqualTo(response.data?.conversationId)
+        assertThat(chatEntity.content).isNotBlank()
+        assertThat(chatEntity.createdAt).isNotNull()
+
+        // JSON 내용 검증 - chat 필드는 배열 형태로 저장됨
+        assertThat(chatEntity.content).contains("\"type\"")
+        assertThat(chatEntity.content).contains("\"messages\"")
+        assertThat(chatEntity.content).startsWith("[")
+        assertThat(chatEntity.content).endsWith("]")
+      }
+
+    @Test
+    fun `메시지 전송 시 사용자 요청과 AI 응답이 모두 저장되는지 확인`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+        val request = AssistantRequest(text = "안녕하세요! 테스트 메시지입니다.")
+
+        mockAssistantChatResponse(conversation, request)
+
+        // when
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .post()
+            .uri("/api/v1/conversations/${conversation.id}/chat")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<ChatResponse>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 응답 검증
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isNotNull
+
+        // chat 테이블에 2개 레코드 저장 확인 (USER, ASSISTANT)
+        val chatEntities = chatRepository.findAll().toList()
+        assertThat(chatEntities).hasSize(2)
+
+        // 타입별로 분리하여 검증
+        val userMessage = chatEntities.find { it.type == ChatType.USER }
+        val assistantMessage = chatEntities.find { it.type == ChatType.ASSISTANT }
+
+        assertThat(userMessage).isNotNull
+        assertThat(assistantMessage).isNotNull
+
+        // 사용자 메시지 검증
+        userMessage?.let {
+          assertThat(it.conversationId).isEqualTo(conversation.id)
+          assertThat(it.content).contains("안녕하세요! 테스트 메시지입니다.")
+          assertThat(it.type).isEqualTo(ChatType.USER)
+        }
+
+        // AI 응답 메시지 검증
+        assistantMessage?.let {
+          assertThat(it.conversationId).isEqualTo(conversation.id)
+          assertThat(it.content).contains("\"type\"")
+          assertThat(it.content).contains("\"messages\"")
+          assertThat(it.type).isEqualTo(ChatType.ASSISTANT)
+        }
+
+        // 시간순 정렬 확인 (사용자 메시지가 먼저 저장되어야 함)
+        assertThat(userMessage?.createdAt).isBefore(assistantMessage?.createdAt)
+      }
+
+    @Test
+    fun `저장된 채팅 데이터의 JSON 직렬화가 올바른지 확인`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+        val request = AssistantRequest(text = "특수문자 테스트: \"{}\", 이모지: 😀🎉, 줄바꿈\n테스트")
+
+        mockAssistantChatResponse(conversation, request)
+
+        // when
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .post()
+          .uri("/api/v1/conversations/${conversation.id}/chat")
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(request)
+          .exchange()
+          .expectStatus()
+          .isOk
+
+        // then - JSON 직렬화 검증
+        val chatEntities = chatRepository.findAll().toList()
+        assertThat(chatEntities).hasSize(2)
+
+        val userMessage = chatEntities.find { it.type == ChatType.USER }
+        val assistantMessage = chatEntities.find { it.type == ChatType.ASSISTANT }
+
+        // 사용자 메시지 JSON 검증
+        userMessage?.let {
+          assertThat(
+            it.content.isValidJson(),
+          ).withFailMessage("User message content is not valid JSON: ${it.content}").isTrue()
+          assertThat(it.content).contains("특수문자 테스트")
+          assertThat(it.content).contains("😀🎉")
+          assertThat(it.content).contains("줄바꿈")
+        }
+
+        // AI 응답 메시지 JSON 검증
+        assistantMessage?.let {
+          assertThat(
+            it.content.isValidJson(),
+          ).withFailMessage("Assistant message content is not valid JSON: ${it.content}").isTrue()
+          assertThat(it.content).contains("\"type\"")
+          assertThat(it.content).contains("\"messages\"")
+        }
+      }
+
+    @Test
+    fun `연속된 메시지 교환 시 모든 데이터가 순서대로 저장되는지 확인`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        val messages =
+          listOf(
+            "첫 번째 메시지",
+            "두 번째 메시지",
+            "세 번째 메시지",
+          )
+
+        // when - 연속된 메시지 전송
+        messages.forEach { messageText ->
+          val request = AssistantRequest(text = messageText)
+          mockAssistantChatResponse(conversation, request)
+
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .post()
+            .uri("/api/v1/conversations/${conversation.id}/chat")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus()
+            .isOk
+        }
+
+        // then - 저장된 메시지 검증
+        val chatEntities = chatRepository.findAll().toList().sortedBy { it.createdAt }
+        assertThat(chatEntities).hasSize(6) // 3개 메시지 × 2 (USER + ASSISTANT)
+
+        // 메시지 순서 확인
+        messages.forEachIndexed { index, expectedText ->
+          val userMessageIndex = index * 2
+          val assistantMessageIndex = index * 2 + 1
+
+          // 사용자 메시지 확인
+          val userMessage = chatEntities[userMessageIndex]
+          assertThat(userMessage.type).isEqualTo(ChatType.USER)
+          assertThat(userMessage.content).contains(expectedText)
+
+          // AI 응답 메시지 확인
+          val assistantMessage = chatEntities[assistantMessageIndex]
+          assertThat(assistantMessage.type).isEqualTo(ChatType.ASSISTANT)
+          assertThat(assistantMessage.content).contains("\"type\"")
+          assertThat(assistantMessage.content).contains("\"messages\"")
+
+          // 시간순 확인
+          assertThat(userMessage.createdAt).isBefore(assistantMessage.createdAt)
+        }
+
+        // 전체 시간순 정렬 확인
+        for (i in 0 until chatEntities.size - 1) {
+          assertThat(chatEntities[i].createdAt).isBeforeOrEqualTo(chatEntities[i + 1].createdAt)
+        }
+      }
+
+    // JSON 유효성 검증을 위한 헬퍼 함수
+    private fun String.isValidJson(): Boolean =
+      try {
+        ObjectMapper()
+          .readTree(this)
+        true
+      } catch (_: Exception) {
+        false
+      }
+
+    // Chat 테이블 기반 테스트 데이터 생성 헬퍼 메서드
+    private suspend fun createTestChatMessage(
+      conversationId: UUID,
+      content: String,
+      type: ChatType,
+    ): ChatEntity {
+      val chatResponse =
+        ChatResponse(
+          conversationId = conversationId,
+          chatType = type,
+          chat =
+            listOf(
+              ChatResponseDto(
+                type = AssistantResponseType.TEXT,
+                messages = listOf(content),
+              ),
+            ),
+        )
+      return chatRepository.save(ChatEntity.from(chatResponse, objectMapper))
+    }
+
+    // ASSISTANT 타입 메시지 생성 헬퍼 (복합 응답 지원)
+    private suspend fun createTestAssistantMessage(
+      conversationId: UUID,
+      chatResponses: List<ChatResponseDto>,
+    ): ChatEntity {
+      val chatResponse =
+        ChatResponse(
+          conversationId = conversationId,
+          chatType = ChatType.ASSISTANT,
+          chat = chatResponses,
+        )
+      return chatRepository.save(ChatEntity.from(chatResponse, objectMapper))
+    }
   }

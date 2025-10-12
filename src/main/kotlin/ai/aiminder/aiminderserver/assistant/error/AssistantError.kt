@@ -22,4 +22,11 @@ sealed class AssistantError(
       status = HttpStatus.NOT_FOUND,
       message = "대화방을 찾을 수 없습니다. conversationId: $conversationId",
     )
+
+  class ChatTransformError(
+    chat: String,
+  ) : AssistantError(
+      status = HttpStatus.INTERNAL_SERVER_ERROR,
+      message = "채팅 변환을 실패했습니다. chat: $chat",
+    )
 }

@@ -4,12 +4,13 @@ import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
+import ai.aiminder.aiminderserver.assistant.dto.GetMessagesRequestDto
 import ai.aiminder.aiminderserver.assistant.service.AssistantService
+import ai.aiminder.aiminderserver.assistant.service.ChatService
 import ai.aiminder.aiminderserver.common.error.CommonError
 import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
-import ai.aiminder.aiminderserver.conversation.dto.GetMessagesRequestDto
 import ai.aiminder.aiminderserver.conversation.service.ConversationService
 import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.service.GoalService
@@ -29,6 +30,7 @@ import java.util.UUID
 @RequestMapping("/api/v1/conversations")
 class AssistantController(
   private val assistantService: AssistantService,
+  private val chatService: ChatService,
   private val conversationService: ConversationService,
   private val goalService: GoalService,
 ) : AssistantControllerDocs {
@@ -45,10 +47,10 @@ class AssistantController(
         conversation = conversation,
         assistantResponse = assistantResponse,
       )
+    chatService.create(response)
     return ServiceResponse.from(response)
   }
 
-  @Transactional
   @PostMapping("/{conversationId}/chat")
   override suspend fun sendMessage(
     @PathVariable
@@ -64,13 +66,16 @@ class AssistantController(
     conversationService.validateUserAuthorization(conversationId, user)
     val conversation: Conversation = conversationService.findById(conversationId)
     val goal: Goal? = conversation.goalId?.let { goalService.get(it) }
-    val requestDto: AssistantRequestDto = AssistantRequestDto.from(conversationId, user, request, goal)
-    val assistantResponse: AssistantResponse = assistantService.sendMessage(requestDto)
+    val dto: AssistantRequestDto = AssistantRequestDto.from(conversationId, user, request, goal)
+    val request: ChatResponse = ChatResponse.from(dto)
+    chatService.create(request)
+    val assistantResponse: AssistantResponse = assistantService.sendMessage(dto)
     val response: ChatResponse =
       ChatResponse.from(
         conversation = conversation,
         assistantResponse = assistantResponse,
       )
+    chatService.create(response)
     return ServiceResponse.from(response)
   }
 
@@ -84,7 +89,7 @@ class AssistantController(
   ): ServiceResponse<List<ChatResponse>> {
     conversationService.validateUserAuthorization(conversationId, user)
     val dto = GetMessagesRequestDto.from(conversationId, pageable)
-    val messages: Page<ChatResponse> = conversationService.get(dto)
+    val messages: Page<ChatResponse> = chatService.get(dto)
     return ServiceResponse.from(messages)
   }
 }
