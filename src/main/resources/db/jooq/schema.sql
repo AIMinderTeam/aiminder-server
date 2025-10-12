@@ -1,118 +1,128 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-create table users
+CREATE TABLE users
 (
-  user_id     uuid      default uuid_generate_v4() not null
-    primary key,
-  provider    varchar(50)                          not null,
-  provider_id varchar(255)                         not null,
-  created_at  timestamp default CURRENT_TIMESTAMP,
-  updated_at  timestamp default CURRENT_TIMESTAMP,
-  unique (provider, provider_id)
+  user_id     uuid      DEFAULT uuid_generate_v4() NOT NULL
+    PRIMARY KEY,
+  provider    VARCHAR(50)                          NOT NULL,
+  provider_id VARCHAR(255)                         NOT NULL,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (provider, provider_id)
 );
 
-create table refresh_token
+CREATE TABLE refresh_token
 (
-  refresh_token_id uuid      default uuid_generate_v4() not null
-    primary key,
-  user_id          uuid                                 not null
-    constraint fk_refresh_token_user
-      references users
-      on delete cascade,
-  token            varchar(1000)                        not null
-    constraint uq_refresh_token_token
-      unique,
-  created_at       timestamp default CURRENT_TIMESTAMP,
-  updated_at       timestamp default CURRENT_TIMESTAMP
+  refresh_token_id uuid      DEFAULT uuid_generate_v4() NOT NULL
+    PRIMARY KEY,
+  user_id          uuid                                 NOT NULL
+    CONSTRAINT fk_refresh_token_user
+      REFERENCES users
+      ON DELETE CASCADE,
+  token            VARCHAR(1000)                        NOT NULL
+    CONSTRAINT uq_refresh_token_token
+      UNIQUE,
+  created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-create table images
+CREATE TABLE images
 (
-  image_id           uuid      default uuid_generate_v4() not null
-    primary key,
-  user_id            uuid                                 not null
-    constraint fk_images_user
-      references users
-      on delete cascade,
-  original_file_name varchar(255)                         not null,
-  stored_file_name   varchar(255)                         not null,
-  file_path          varchar(500)                         not null,
-  file_size          bigint                               not null,
-  content_type       varchar(100)                         not null,
-  created_at         timestamp default CURRENT_TIMESTAMP  not null,
-  updated_at         timestamp default CURRENT_TIMESTAMP  not null,
-  deleted_at         timestamp
+  image_id           uuid      DEFAULT uuid_generate_v4() NOT NULL
+    PRIMARY KEY,
+  user_id            uuid                                 NOT NULL
+    CONSTRAINT fk_images_user
+      REFERENCES users
+      ON DELETE CASCADE,
+  original_file_name VARCHAR(255)                         NOT NULL,
+  stored_file_name   VARCHAR(255)                         NOT NULL,
+  file_path          VARCHAR(500)                         NOT NULL,
+  file_size          BIGINT                               NOT NULL,
+  content_type       VARCHAR(100)                         NOT NULL,
+  created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP  NOT NULL,
+  updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP  NOT NULL,
+  deleted_at         TIMESTAMP
 );
 
-create table goals
+CREATE TABLE goals
 (
-  goal_id         uuid      default uuid_generate_v4()          not null
-    primary key,
-  user_id         uuid                                          not null
-    constraint fk_goals_user
-      references users
-      on delete cascade,
-  title           varchar(500)                                  not null,
-  description     text,
-  target_date     timestamp                                     not null,
-  is_ai_generated boolean   default false                       not null,
-  status          varchar   default 'ACTIVE'::character varying not null,
-  created_at      timestamp default CURRENT_TIMESTAMP           not null,
-  updated_at      timestamp default CURRENT_TIMESTAMP           not null,
-  deleted_at      timestamp,
+  goal_id         uuid      DEFAULT uuid_generate_v4()          NOT NULL
+    PRIMARY KEY,
+  user_id         uuid                                          NOT NULL
+    CONSTRAINT fk_goals_user
+      REFERENCES users
+      ON DELETE CASCADE,
+  title           VARCHAR(500)                                  NOT NULL,
+  description     TEXT,
+  target_date     TIMESTAMP                                     NOT NULL,
+  is_ai_generated BOOLEAN   DEFAULT FALSE                       NOT NULL,
+  status          VARCHAR   DEFAULT 'ACTIVE'::CHARACTER VARYING NOT NULL,
+  created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP           NOT NULL,
+  updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP           NOT NULL,
+  deleted_at      TIMESTAMP,
   image_id        uuid
-    constraint fk_goals_image
-      references images
-      on delete set null
+    CONSTRAINT fk_goals_image
+      REFERENCES images
+      ON DELETE SET NULL
 );
 
-create table schedules
+CREATE TABLE schedules
 (
-  schedule_id uuid        default uuid_generate_v4()         not null
-    primary key,
-  goal_id     uuid                                           not null
-    constraint fk_schedules_goal
-      references goals
-      on delete cascade,
-  user_id     uuid                                           not null
-    constraint fk_schedules_user
-      references users
-      on delete cascade,
-  title       varchar(255)                                   not null,
-  description text,
-  status      varchar(20) default 'READY'::character varying not null,
-  start_date  timestamp                                      not null,
-  end_date    timestamp                                      not null,
-  created_at  timestamp   default CURRENT_TIMESTAMP          not null,
-  updated_at  timestamp   default CURRENT_TIMESTAMP          not null,
-  deleted_at  timestamp,
-  constraint chk_schedule_dates
-    check (start_date <= end_date)
+  schedule_id uuid        DEFAULT uuid_generate_v4()         NOT NULL
+    PRIMARY KEY,
+  goal_id     uuid                                           NOT NULL
+    CONSTRAINT fk_schedules_goal
+      REFERENCES goals
+      ON DELETE CASCADE,
+  user_id     uuid                                           NOT NULL
+    CONSTRAINT fk_schedules_user
+      REFERENCES users
+      ON DELETE CASCADE,
+  title       VARCHAR(255)                                   NOT NULL,
+  description TEXT,
+  status      VARCHAR(20) DEFAULT 'READY'::CHARACTER VARYING NOT NULL,
+  start_date  TIMESTAMP                                      NOT NULL,
+  end_date    TIMESTAMP                                      NOT NULL,
+  created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP          NOT NULL,
+  updated_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP          NOT NULL,
+  deleted_at  TIMESTAMP,
+  CONSTRAINT chk_schedule_dates
+    CHECK (start_date <= end_date)
 );
 
-create table spring_ai_chat_memory
+CREATE TABLE spring_ai_chat_memory
 (
-  conversation_id varchar(255)  not null,
-  message_index   serial,
-  content         varchar(1000) not null,
-  type            varchar(50)   not null,
-  timestamp       timestamp default CURRENT_TIMESTAMP,
-  primary key (conversation_id, message_index)
+  conversation_id VARCHAR(255)  NOT NULL NOT NULL,
+  message_index   SERIAL        NOT NULL NOT NULL,
+  content         VARCHAR(1000) NOT NULL NOT NULL,
+  type            VARCHAR(50)   NOT NULL NOT NULL,
+  timestamp       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (conversation_id, message_index)
 );
 
-
-create table conversations
+CREATE TABLE conversations
 (
-  conversation_id uuid      default uuid_generate_v4() not null
-    primary key,
-  user_id         uuid                                 not null
-    constraint fk_conversations_user
-      references users
-      on delete cascade,
+  conversation_id uuid      DEFAULT uuid_generate_v4() NOT NULL
+    PRIMARY KEY,
+  user_id         uuid                                 NOT NULL
+    CONSTRAINT fk_conversations_user
+      REFERENCES users
+      ON DELETE CASCADE,
   goal_id         uuid
-    constraint fk_conversations_goal
-      references goals
-      on delete set null,
-  created_at      timestamp default CURRENT_TIMESTAMP  not null,
-  deleted_at      timestamp
+    CONSTRAINT fk_conversations_goal
+      REFERENCES goals
+      ON DELETE SET NULL,
+  created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP  NOT NULL,
+  deleted_at      TIMESTAMP
 );
+
+CREATE TABLE chat
+(
+  chat_id         UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+  conversation_id UUID             NOT NULL,
+  message_index   BIGSERIAL        NOT NULL,
+  content         TEXT             NOT NULL,
+  type            VARCHAR(50)      NOT NULL,
+  created_at      TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
