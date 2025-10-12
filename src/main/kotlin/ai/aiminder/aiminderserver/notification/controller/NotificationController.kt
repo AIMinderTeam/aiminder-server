@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/notifications")
 class NotificationController(
   private val notificationService: NotificationService,
-) {
+) : NotificationControllerDocs {
   @GetMapping("/count")
-  suspend fun getCountOfUncheckedNotifications(
+  override suspend fun getCountOfUncheckedNotifications(
     @AuthenticationPrincipal
     user: User,
   ): ServiceResponse<Int> {

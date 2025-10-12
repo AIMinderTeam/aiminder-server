@@ -9,5 +9,5 @@ class NotificationService(
   private val notificationRepository: NotificationRepository,
 ) {
   suspend fun getCountOfUncheckedNotifications(user: User): Int =
-    notificationRepository.countByReceiverIdAndCheckedFalseAndDeletedAtIsNotNull(user.id)
+    notificationRepository.countByReceiverIdAndCheckedFalseAndDeletedAtIsNull(user.id)
 }

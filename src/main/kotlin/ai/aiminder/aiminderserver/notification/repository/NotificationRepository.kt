@@ -7,5 +7,5 @@ import java.util.UUID
 
 @Repository
 interface NotificationRepository : CoroutineCrudRepository<NotificationEntity, UUID> {
-  suspend fun countByReceiverIdAndCheckedFalseAndDeletedAtIsNotNull(receiverId: UUID): Int
+  suspend fun countByReceiverIdAndCheckedFalseAndDeletedAtIsNull(receiverId: UUID): Int
 }
