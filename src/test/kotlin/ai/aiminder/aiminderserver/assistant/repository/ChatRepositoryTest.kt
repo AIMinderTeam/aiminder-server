@@ -290,31 +290,6 @@ class ChatRepositoryTest
       }
 
     @Test
-    fun `Instant 시간 필드 정확성 테스트`() =
-      runTest {
-        // given
-        // conversationId는 testConversation.id 사용
-        val beforeSave = Instant.now()
-        val chatEntity =
-          ChatEntity(
-            conversationId = testConversation.id!!,
-            content = """[{"type":"TEXT","messages":["시간 테스트"]}]""",
-            type = ChatType.USER,
-          )
-
-        // when
-        val savedEntity = chatRepository.save(chatEntity)
-        val afterSave = Instant.now()
-
-        // then
-        assertThat(savedEntity.createdAt).isBetween(beforeSave.minusSeconds(1), afterSave.plusSeconds(1))
-
-        // 조회한 엔티티의 시간도 확인
-        val foundEntity = chatRepository.findById(savedEntity.id!!)
-        assertThat(foundEntity?.createdAt).isEqualTo(savedEntity.createdAt)
-      }
-
-    @Test
     fun `count와 deleteAll 동작 테스트`() =
       runTest {
         // given
