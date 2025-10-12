@@ -4,8 +4,10 @@ import ai.aiminder.aiminderserver.assistant.client.AssistantClient
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.domain.ChatResponseDto
+import ai.aiminder.aiminderserver.assistant.domain.ChatType
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
+import ai.aiminder.aiminderserver.assistant.repository.ChatRepository
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.Role
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
@@ -39,6 +41,7 @@ class AssistantControllerTest
   constructor(
     private val userRepository: UserRepository,
     private val conversationRepository: ConversationRepository,
+    private val chatRepository: ChatRepository,
     private val jdbcTemplate: JdbcTemplate,
   ) : BaseIntegrationTest() {
     @MockkBean
@@ -1117,5 +1120,226 @@ class AssistantControllerTest
               ?.get(0),
           ).isEqualTo("두 번째 메시지")
         }
+      }
+
+    // 채팅 데이터 저장 검증 테스트들
+    @Test
+    fun `채팅 시작 시 AI 응답이 데이터베이스에 저장되는지 확인`() =
+      runTest {
+        // given & when
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .post()
+            .uri("/api/v1/conversations/chat")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<ChatResponse>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 응답 검증
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isNotNull
+
+        // chat 테이블에 저장 검증
+        val chatEntities = chatRepository.findAll().toList()
+        assertThat(chatEntities).hasSize(1)
+
+        val chatEntity = chatEntities.first()
+        assertThat(chatEntity.type).isEqualTo(ChatType.ASSISTANT)
+        assertThat(chatEntity.conversationId).isEqualTo(response.data?.conversationId)
+        assertThat(chatEntity.content).isNotBlank()
+        assertThat(chatEntity.createdAt).isNotNull()
+
+        // JSON 내용 검증 - chat 필드는 배열 형태로 저장됨
+        assertThat(chatEntity.content).contains("\"type\"")
+        assertThat(chatEntity.content).contains("\"messages\"")
+        assertThat(chatEntity.content).startsWith("[")
+        assertThat(chatEntity.content).endsWith("]")
+      }
+
+    @Test
+    fun `메시지 전송 시 사용자 요청과 AI 응답이 모두 저장되는지 확인`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+        val request = AssistantRequest(text = "안녕하세요! 테스트 메시지입니다.")
+
+        mockAssistantChatResponse(conversation, request)
+
+        // when
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .post()
+            .uri("/api/v1/conversations/${conversation.id}/chat")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<ChatResponse>>()
+            .returnResult()
+            .responseBody!!
+
+        // then - 응답 검증
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isNotNull
+
+        // chat 테이블에 2개 레코드 저장 확인 (USER, ASSISTANT)
+        val chatEntities = chatRepository.findAll().toList()
+        assertThat(chatEntities).hasSize(2)
+
+        // 타입별로 분리하여 검증
+        val userMessage = chatEntities.find { it.type == ChatType.USER }
+        val assistantMessage = chatEntities.find { it.type == ChatType.ASSISTANT }
+
+        assertThat(userMessage).isNotNull
+        assertThat(assistantMessage).isNotNull
+
+        // 사용자 메시지 검증
+        userMessage?.let {
+          assertThat(it.conversationId).isEqualTo(conversation.id)
+          assertThat(it.content).contains("안녕하세요! 테스트 메시지입니다.")
+          assertThat(it.type).isEqualTo(ChatType.USER)
+        }
+
+        // AI 응답 메시지 검증
+        assistantMessage?.let {
+          assertThat(it.conversationId).isEqualTo(conversation.id)
+          assertThat(it.content).contains("\"type\"")
+          assertThat(it.content).contains("\"messages\"")
+          assertThat(it.type).isEqualTo(ChatType.ASSISTANT)
+        }
+
+        // 시간순 정렬 확인 (사용자 메시지가 먼저 저장되어야 함)
+        assertThat(userMessage?.createdAt).isBefore(assistantMessage?.createdAt)
+      }
+
+    @Test
+    fun `저장된 채팅 데이터의 JSON 직렬화가 올바른지 확인`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+        val request = AssistantRequest(text = "특수문자 테스트: \"{}\", 이모지: 😀🎉, 줄바꿈\n테스트")
+
+        mockAssistantChatResponse(conversation, request)
+
+        // when
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .post()
+          .uri("/api/v1/conversations/${conversation.id}/chat")
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(request)
+          .exchange()
+          .expectStatus()
+          .isOk
+
+        // then - JSON 직렬화 검증
+        val chatEntities = chatRepository.findAll().toList()
+        assertThat(chatEntities).hasSize(2)
+
+        val userMessage = chatEntities.find { it.type == ChatType.USER }
+        val assistantMessage = chatEntities.find { it.type == ChatType.ASSISTANT }
+
+        // 사용자 메시지 JSON 검증
+        userMessage?.let {
+          assertThat(
+            it.content.isValidJson(),
+          ).withFailMessage("User message content is not valid JSON: ${it.content}").isTrue()
+          assertThat(it.content).contains("특수문자 테스트")
+          assertThat(it.content).contains("😀🎉")
+          assertThat(it.content).contains("줄바꿈")
+        }
+
+        // AI 응답 메시지 JSON 검증
+        assistantMessage?.let {
+          assertThat(
+            it.content.isValidJson(),
+          ).withFailMessage("Assistant message content is not valid JSON: ${it.content}").isTrue()
+          assertThat(it.content).contains("\"type\"")
+          assertThat(it.content).contains("\"messages\"")
+        }
+      }
+
+    @Test
+    fun `연속된 메시지 교환 시 모든 데이터가 순서대로 저장되는지 확인`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        val messages =
+          listOf(
+            "첫 번째 메시지",
+            "두 번째 메시지",
+            "세 번째 메시지",
+          )
+
+        // when - 연속된 메시지 전송
+        messages.forEach { messageText ->
+          val request = AssistantRequest(text = messageText)
+          mockAssistantChatResponse(conversation, request)
+
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .post()
+            .uri("/api/v1/conversations/${conversation.id}/chat")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(request)
+            .exchange()
+            .expectStatus()
+            .isOk
+        }
+
+        // then - 저장된 메시지 검증
+        val chatEntities = chatRepository.findAll().toList().sortedBy { it.createdAt }
+        assertThat(chatEntities).hasSize(6) // 3개 메시지 × 2 (USER + ASSISTANT)
+
+        // 메시지 순서 확인
+        messages.forEachIndexed { index, expectedText ->
+          val userMessageIndex = index * 2
+          val assistantMessageIndex = index * 2 + 1
+
+          // 사용자 메시지 확인
+          val userMessage = chatEntities[userMessageIndex]
+          assertThat(userMessage.type).isEqualTo(ChatType.USER)
+          assertThat(userMessage.content).contains(expectedText)
+
+          // AI 응답 메시지 확인
+          val assistantMessage = chatEntities[assistantMessageIndex]
+          assertThat(assistantMessage.type).isEqualTo(ChatType.ASSISTANT)
+          assertThat(assistantMessage.content).contains("\"type\"")
+          assertThat(assistantMessage.content).contains("\"messages\"")
+
+          // 시간순 확인
+          assertThat(userMessage.createdAt).isBefore(assistantMessage.createdAt)
+        }
+
+        // 전체 시간순 정렬 확인
+        for (i in 0 until chatEntities.size - 1) {
+          assertThat(chatEntities[i].createdAt).isBeforeOrEqualTo(chatEntities[i + 1].createdAt)
+        }
+      }
+
+    // JSON 유효성 검증을 위한 헬퍼 함수
+    private fun String.isValidJson(): Boolean =
+      try {
+        com.fasterxml.jackson.databind.ObjectMapper().readTree(this)
+        true
+      } catch (e: Exception) {
+        false
       }
   }
