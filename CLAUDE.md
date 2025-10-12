@@ -60,6 +60,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `user/`: User profile management
 - `image/`: Image upload and management functionality
 - `schedule/`: Schedule management system
+- `notification/`: Notification management system
+- `conversation/`: Conversation history and memory management
 - `common/`: Shared utilities and configuration
 
 **Configuration Management**: Environment-driven configuration using `.env` files loaded via dotenv-java, with profile-specific YAML files.
