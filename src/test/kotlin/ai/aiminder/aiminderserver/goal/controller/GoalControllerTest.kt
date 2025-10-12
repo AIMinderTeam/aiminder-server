@@ -1180,4 +1180,212 @@ class GoalControllerTest
         .returnResult()
         .responseBody!!
     }
+
+    @Test
+    fun `정상적인 목표 상세 조회 테스트`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+
+        // when
+        val response = getGoalDetail(testGoal.id)
+
+        // then
+        response.data?.also { goalDetail ->
+          assertThat(goalDetail.id).isEqualTo(testGoal.id)
+          assertThat(goalDetail.title).isEqualTo(testGoal.title)
+          assertThat(goalDetail.description).isEqualTo(testGoal.description)
+          assertThat(goalDetail.userId).isEqualTo(testGoal.userId)
+          assertThat(goalDetail.status).isEqualTo(testGoal.status)
+          assertThat(goalDetail.targetDate.truncatedTo(MILLIS))
+            .isEqualTo(testGoal.targetDate.truncatedTo(MILLIS))
+          assertThat(goalDetail.imagePath).isEqualTo(testGoal.imagePath)
+        }
+      }
+
+    @Test
+    fun `인증되지 않은 사용자 요청 시 401 반환 - getGoalDetail`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+
+        // when
+        val response = getGoalDetailExpectingError(testGoal.id, null)
+
+        // then
+        verifyErrorResponse(response, 401, "AUTH:UNAUTHORIZED")
+      }
+
+    @Test
+    fun `다른 사용자의 목표 조회 시도 시 403 반환`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val otherUserAuth =
+          UsernamePasswordAuthenticationToken(
+            otherUser,
+            null,
+            listOf(SimpleGrantedAuthority(Role.USER.name)),
+          )
+
+        // when
+        val response = getGoalDetailExpectingError(testGoal.id, otherUserAuth)
+
+        // then
+        verifyErrorResponse(response, 403, "GOAL:ACCESSDENIED")
+      }
+
+    @Test
+    fun `존재하지 않는 목표 ID로 조회 시 404 반환`() {
+      // given
+      val nonExistentGoalId = UUID.randomUUID()
+
+      // when
+      val response = getGoalDetailExpectingError(nonExistentGoalId)
+
+      // then
+      verifyErrorResponse(response, 404, "GOAL:GOALNOTFOUND")
+    }
+
+    @Test
+    fun `잘못된 UUID 형식 요청 시 400 반환 - getGoalDetail`() {
+      // when & then
+      webTestClient
+        .mutateWith(mockAuthentication(authentication))
+        .get()
+        .uri("/api/v1/goals/invalid-uuid-format")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+    }
+
+    @Test
+    fun `삭제된 목표 조회 시도 시 404 반환`() =
+      runTest {
+        // given - 삭제된 목표 생성
+        val deletedGoal =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Deleted Goal",
+              targetDate = Instant.now().plusSeconds(86400),
+              deletedAt = Instant.now(),
+            ),
+          )
+
+        // when
+        val response = getGoalDetailExpectingError(deletedGoal.id!!)
+
+        // then
+        verifyErrorResponse(response, 404, "GOAL:GOALNOTFOUND")
+      }
+
+    @Test
+    fun `Bearer token으로 목표 상세 조회 테스트`() =
+      runTest {
+        // given
+        val testGoal = createTestGoal(testUser)
+        val validAccessToken = tokenService.createAccessToken(testUser)
+
+        // when
+        val response =
+          webTestClient
+            .get()
+            .uri("/api/v1/goals/${testGoal.id}")
+            .accept(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer $validAccessToken")
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<GoalResponse>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        response.data?.also { goalDetail ->
+          assertThat(goalDetail.id).isEqualTo(testGoal.id)
+          assertThat(goalDetail.title).isEqualTo(testGoal.title)
+          assertThat(goalDetail.userId).isEqualTo(testGoal.userId)
+        }
+      }
+
+    @Test
+    fun `존재하지 않는 사용자로 목표 조회 시 적절한 에러 처리 - getGoalDetail`() {
+      // given - 데이터베이스에 존재하지 않는 사용자
+      val nonExistentUser =
+        User(
+          id = UUID.randomUUID(),
+          provider = OAuth2Provider.GOOGLE,
+          providerId = "non-existent-user",
+          createdAt = Instant.now(),
+          updatedAt = Instant.now(),
+        )
+      val authentication =
+        UsernamePasswordAuthenticationToken(
+          nonExistentUser,
+          null,
+          listOf(SimpleGrantedAuthority(Role.USER.name)),
+        )
+      val anyGoalId = UUID.randomUUID()
+
+      // when
+      val response =
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/goals/$anyGoalId")
+          .accept(MediaType.APPLICATION_JSON)
+          .exchange()
+          .expectStatus()
+          .isNotFound
+          .expectBody<ServiceResponse<Unit>>()
+          .returnResult()
+          .responseBody!!
+
+      // then
+      response.also {
+        assertThat(it.statusCode).isEqualTo(404)
+        assertThat(it.errorCode).isEqualTo("GOAL:GOALNOTFOUND")
+      }
+    }
+
+    private fun getGoalDetail(
+      goalId: UUID,
+      auth: UsernamePasswordAuthenticationToken = authentication,
+    ): ServiceResponse<GoalResponse> =
+      webTestClient
+        .mutateWith(mockAuthentication(auth))
+        .get()
+        .uri("/api/v1/goals/$goalId")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<ServiceResponse<GoalResponse>>()
+        .returnResult()
+        .responseBody!!
+
+    private fun getGoalDetailExpectingError(
+      goalId: UUID,
+      auth: UsernamePasswordAuthenticationToken? = authentication,
+    ): ServiceResponse<Unit> {
+      val testClient =
+        if (auth != null) {
+          webTestClient.mutateWith(mockAuthentication(auth))
+        } else {
+          webTestClient
+        }
+
+      return testClient
+        .get()
+        .uri("/api/v1/goals/$goalId")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .is4xxClientError
+        .expectBody<ServiceResponse<Unit>>()
+        .returnResult()
+        .responseBody!!
+    }
   }

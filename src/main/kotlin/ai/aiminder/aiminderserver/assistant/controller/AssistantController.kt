@@ -65,7 +65,7 @@ class AssistantController(
     }
     conversationService.validateUserAuthorization(conversationId, user)
     val conversation: Conversation = conversationService.findById(conversationId)
-    val goal: Goal? = conversation.goalId?.let { goalService.get(it) }
+    val goal: Goal? = conversation.goalId?.let { goalService.get(it, user.id) }
     val dto: AssistantRequestDto = AssistantRequestDto.from(conversationId, user, request, goal)
     val request: ChatResponse = ChatResponse.from(dto)
     chatService.create(request)
