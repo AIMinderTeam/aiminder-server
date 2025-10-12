@@ -118,11 +118,10 @@ CREATE TABLE conversations
 
 CREATE TABLE chat
 (
-  chat_id         UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
-  conversation_id UUID             NOT NULL,
-  message_index   BIGSERIAL,
-  content         TEXT             NOT NULL,
-  type            VARCHAR(50)      NOT NULL,
-  created_at      TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP
+  chat_id         BIGSERIAL PRIMARY KEY NOT NULL,
+  conversation_id UUID                  NOT NULL,
+  content         TEXT                  NOT NULL,
+  type            VARCHAR(50)           NOT NULL,
+  created_at      TIMESTAMP             NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
