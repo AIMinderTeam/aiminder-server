@@ -63,7 +63,7 @@ class GoalController(
       ).let { goals -> ServiceResponse.from(goals) }
 
   @GetMapping("/{goalId}")
-  suspend fun getGoalDetail(
+  override suspend fun getGoalDetail(
     @PathVariable
     goalId: UUID,
     @AuthenticationPrincipal
