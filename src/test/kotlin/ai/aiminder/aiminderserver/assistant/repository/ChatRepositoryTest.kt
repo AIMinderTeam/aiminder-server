@@ -67,7 +67,8 @@ class ChatRepositoryTest
         assertThat(savedEntity.createdAt).isNotNull()
 
         // when - findById
-        val foundEntity = chatRepository.findById(savedEntity.id!!)
+        val chatId = savedEntity.id!!
+        val foundEntity = chatRepository.findById(chatId)
 
         // then - findById 검증
         assertThat(foundEntity).isNotNull()
@@ -76,18 +77,18 @@ class ChatRepositoryTest
         assertThat(foundEntity?.type).isEqualTo(ChatType.USER)
 
         // when - existsById
-        val exists = chatRepository.existsById(savedEntity.id!!)
+        val exists = chatRepository.existsById(chatId)
 
         // then - existsById 검증
         assertThat(exists).isTrue()
 
         // when - deleteById
-        chatRepository.deleteById(savedEntity.id!!)
+        chatRepository.deleteById(chatId)
 
         // then - delete 검증
-        val deletedEntity = chatRepository.findById(savedEntity.id!!)
+        val deletedEntity = chatRepository.findById(chatId)
         assertThat(deletedEntity).isNull()
-        assertThat(chatRepository.existsById(savedEntity.id!!)).isFalse()
+        assertThat(chatRepository.existsById(chatId)).isFalse()
       }
 
     @Test
@@ -266,9 +267,10 @@ class ChatRepositoryTest
             type = ChatType.USER,
           )
 
+        val conversationId = additionalConversation.id!!
         val chat2 =
           ChatEntity(
-            conversationId = additionalConversation.id!!,
+            conversationId = conversationId,
             content = """[{"type":"TEXT","messages":["대화방 2의 메시지"]}]""",
             type = ChatType.ASSISTANT,
           )
@@ -281,7 +283,7 @@ class ChatRepositoryTest
         // then
         assertThat(allChats).hasSizeGreaterThanOrEqualTo(2)
         val conversation1Chats = allChats.filter { it.conversationId == testConversation.id!! }
-        val conversation2Chats = allChats.filter { it.conversationId == additionalConversation.id!! }
+        val conversation2Chats = allChats.filter { it.conversationId == conversationId }
 
         assertThat(conversation1Chats).hasSize(1)
         assertThat(conversation2Chats).hasSize(1)
