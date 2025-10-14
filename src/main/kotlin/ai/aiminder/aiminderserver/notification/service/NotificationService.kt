@@ -1,7 +1,9 @@
 package ai.aiminder.aiminderserver.notification.service
 
 import ai.aiminder.aiminderserver.notification.domain.Notification
+import ai.aiminder.aiminderserver.notification.dto.CheckNotificationRequestDto
 import ai.aiminder.aiminderserver.notification.dto.GetNotificationsRequestDto
+import ai.aiminder.aiminderserver.notification.error.NotificationError
 import ai.aiminder.aiminderserver.notification.repository.NotificationRepository
 import ai.aiminder.aiminderserver.user.domain.User
 import kotlinx.coroutines.flow.Flow
@@ -28,4 +30,12 @@ class NotificationService(
 
     return PageImpl(notifications.toList(), dto.pageable, totalCount)
   }
+
+  suspend fun check(dto: CheckNotificationRequestDto): Notification =
+    notificationRepository
+      .findById(dto.notificationId)
+      ?.check()
+      ?.let { notificationRepository.save(it) }
+      ?.let { Notification.from(it) }
+      ?: throw NotificationError.NotFound(dto.notificationId)
 }
