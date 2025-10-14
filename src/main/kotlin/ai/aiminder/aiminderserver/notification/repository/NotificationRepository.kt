@@ -11,12 +11,14 @@ import java.util.UUID
 interface NotificationRepository : CoroutineCrudRepository<NotificationEntity, UUID> {
   suspend fun countByReceiverIdAndCheckedFalseAndDeletedAtIsNull(receiverId: UUID): Int
 
-  suspend fun findAllByReceiverIdAndDeletedAtIsNull(receiverId: UUID): Flow<NotificationEntity>
-
   suspend fun findAllByReceiverIdAndDeletedAtIsNull(
     receiverId: UUID,
     pageable: Pageable,
   ): Flow<NotificationEntity>
 
   suspend fun countByReceiverIdAndDeletedAtIsNull(receiverId: UUID): Long
+
+  suspend fun findAllByReceiverIdAndCheckedFalseAndDeletedAtIsNull(receiverId: UUID): Flow<NotificationEntity>
+
+  suspend fun findByIdAndDeletedAtIsNull(id: UUID): NotificationEntity?
 }

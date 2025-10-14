@@ -42,7 +42,7 @@ class NotificationController(
   }
 
   @PatchMapping("/{notificationId}/check")
-  suspend fun checkNotification(
+  override suspend fun checkNotification(
     @PathVariable
     notificationId: UUID,
     @AuthenticationPrincipal
@@ -54,7 +54,7 @@ class NotificationController(
   }
 
   @PatchMapping("/check")
-  suspend fun checkNotifications(
+  override suspend fun checkNotifications(
     @AuthenticationPrincipal
     user: User,
   ): ServiceResponse<List<Notification>> {
