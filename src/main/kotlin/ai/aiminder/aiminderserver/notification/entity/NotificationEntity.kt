@@ -27,4 +27,6 @@ data class NotificationEntity(
   override fun getId(): UUID? = id
 
   override fun isNew(): Boolean = id == null
+
+  fun check(): NotificationEntity = copy(checked = true, updatedAt = Instant.now())
 }

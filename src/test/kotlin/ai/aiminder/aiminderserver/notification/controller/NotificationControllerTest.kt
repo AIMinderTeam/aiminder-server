@@ -734,6 +734,508 @@ class NotificationControllerTest
         ),
       )
 
+    @Test
+    fun `정상적인 알림 확인 테스트 - checkNotification`() =
+      runTest {
+        // given - 미확인 알림 생성
+        val notificationEntity =
+          createTestNotification(
+            testUser,
+            NotificationType.TO_DO,
+            "Test Todo",
+            "Test Description",
+            checked = false,
+          )
+
+        // when
+        val response = checkNotification(notificationEntity.id!!)
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isNotNull
+        assertThat(response.data!!.id).isEqualTo(notificationEntity.id)
+        assertThat(response.data!!.checked).isTrue()
+        assertThat(response.errorCode).isNull()
+
+        // 데이터베이스에서 실제로 상태가 변경되었는지 확인
+        val updatedEntity = notificationRepository.findById(notificationEntity.id!!)
+        assertThat(updatedEntity).isNotNull
+        assertThat(updatedEntity!!.checked).isTrue()
+      }
+
+    @Test
+    fun `이미 확인된 알림 재확인 테스트`() =
+      runTest {
+        // given - 이미 확인된 알림 생성
+        val notificationEntity =
+          createTestNotification(
+            testUser,
+            NotificationType.MOTIVATION,
+            "Already Checked",
+            "Already checked notification",
+            checked = true,
+          )
+
+        // when
+        val response = checkNotification(notificationEntity.id!!)
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isNotNull
+        assertThat(response.data!!.id).isEqualTo(notificationEntity.id)
+        assertThat(response.data!!.checked).isTrue()
+        assertThat(response.errorCode).isNull()
+      }
+
+    @Test
+    fun `존재하지 않는 알림 확인 시 에러 테스트`() {
+      // given - 존재하지 않는 알림 ID
+      val nonExistentId = UUID.randomUUID()
+
+      // when
+      val response = checkNotificationExpectingError(nonExistentId)
+
+      // then
+      verifyErrorResponse(response, 404, "NOTIFICATION:NOTFOUND")
+    }
+
+    @Test
+    fun `다른 사용자의 알림 확인 시 권한 에러 테스트`() =
+      runTest {
+        // given - 다른 사용자의 알림 생성
+        val otherUserNotification =
+          createTestNotification(
+            otherUser,
+            NotificationType.TO_DO,
+            "Other User's Notification",
+            "This belongs to other user",
+            checked = false,
+          )
+
+        // when - testUser가 다른 사용자의 알림 확인 시도
+        val response = checkNotificationExpectingError(otherUserNotification.id!!)
+
+        // then
+        verifyErrorResponse(response, 404, "NOTIFICATION:NOTFOUND")
+
+        // 다른 사용자의 알림 상태는 변경되지 않았는지 확인
+        val unchangedEntity = notificationRepository.findById(otherUserNotification.id!!)
+        assertThat(unchangedEntity).isNotNull
+        assertThat(unchangedEntity!!.checked).isFalse()
+      }
+
+    @Test
+    fun `인증되지 않은 사용자 요청 시 401 에러 - checkNotification`() =
+      runTest {
+        // given - 테스트 알림 생성
+        val notificationEntity = createTestNotification(testUser)
+
+        // when
+        val response = checkNotificationExpectingError(notificationEntity.id!!, null)
+
+        // then
+        verifyErrorResponse(response, 401, "AUTH:UNAUTHORIZED")
+      }
+
+    @Test
+    fun `Bearer Token으로 알림 확인 테스트`() =
+      runTest {
+        // given - 미확인 알림 생성
+        val notificationEntity =
+          createTestNotification(
+            testUser,
+            NotificationType.TO_DO,
+            "Bearer Token Test",
+            "Test with bearer token",
+            checked = false,
+          )
+        val validAccessToken = tokenService.createAccessToken(testUser)
+
+        // when
+        val response =
+          webTestClient
+            .patch()
+            .uri("/api/v1/notifications/${notificationEntity.id}/check")
+            .accept(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer $validAccessToken")
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<Notification>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isNotNull
+        assertThat(response.data!!.id).isEqualTo(notificationEntity.id)
+        assertThat(response.data!!.checked).isTrue()
+        assertThat(response.errorCode).isNull()
+      }
+
+    @Test
+    fun `삭제된 알림 확인 시 에러 테스트`() =
+      runTest {
+        // given - 삭제된 알림 생성
+        val deletedNotification =
+          createTestNotification(
+            testUser,
+            NotificationType.TO_DO,
+            "Deleted Notification",
+            "This is deleted",
+            checked = false,
+            deletedAt = Instant.now(),
+          )
+
+        // when
+        val response = checkNotificationExpectingError(deletedNotification.id!!)
+
+        // then
+        verifyErrorResponse(response, 404, "NOTIFICATION:NOTFOUND")
+      }
+
+    private fun checkNotification(
+      notificationId: UUID,
+      auth: UsernamePasswordAuthenticationToken = authentication,
+    ): ServiceResponse<Notification> =
+      webTestClient
+        .mutateWith(mockAuthentication(auth))
+        .patch()
+        .uri("/api/v1/notifications/$notificationId/check")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<ServiceResponse<Notification>>()
+        .returnResult()
+        .responseBody!!
+
+    private fun checkNotificationExpectingError(
+      notificationId: UUID,
+      auth: UsernamePasswordAuthenticationToken? = authentication,
+    ): ServiceResponse<Unit> {
+      val testClient =
+        if (auth != null) {
+          webTestClient.mutateWith(mockAuthentication(auth))
+        } else {
+          webTestClient
+        }
+
+      return testClient
+        .patch()
+        .uri("/api/v1/notifications/$notificationId/check")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .is4xxClientError
+        .expectBody<ServiceResponse<Unit>>()
+        .returnResult()
+        .responseBody!!
+    }
+
+    @Test
+    fun `정상적인 모든 알림 일괄 확인 테스트 - checkNotifications`() =
+      runTest {
+        // given - 미확인 알림 3개, 확인된 알림 1개 생성
+        val uncheckedNotification1 =
+          createTestNotification(
+            testUser,
+            NotificationType.TO_DO,
+            "Unchecked 1",
+            "Description 1",
+            checked = false,
+          )
+        val uncheckedNotification2 =
+          createTestNotification(
+            testUser,
+            NotificationType.MOTIVATION,
+            "Unchecked 2",
+            "Description 2",
+            checked = false,
+          )
+        val uncheckedNotification3 =
+          createTestNotification(
+            testUser,
+            NotificationType.TO_DO,
+            "Unchecked 3",
+            "Description 3",
+            checked = false,
+          )
+        val checkedNotification =
+          createTestNotification(
+            testUser,
+            NotificationType.MOTIVATION,
+            "Already Checked",
+            "Already checked",
+            checked = true,
+          )
+
+        // when
+        val response = checkNotifications()
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(3) // 미확인 알림 3개만 반환
+        assertThat(response.errorCode).isNull()
+
+        // 반환된 알림들이 모두 checked=true인지 확인
+        response.data!!.forEach { notification ->
+          assertThat(notification.checked).isTrue()
+          assertThat(notification.receiverId).isEqualTo(testUser.id)
+        }
+
+        // 데이터베이스에서 실제로 상태가 변경되었는지 확인
+        val updatedUnchecked1 = notificationRepository.findById(uncheckedNotification1.id!!)
+        val updatedUnchecked2 = notificationRepository.findById(uncheckedNotification2.id!!)
+        val updatedUnchecked3 = notificationRepository.findById(uncheckedNotification3.id!!)
+        val unchangedChecked = notificationRepository.findById(checkedNotification.id!!)
+
+        assertThat(updatedUnchecked1!!.checked).isTrue()
+        assertThat(updatedUnchecked2!!.checked).isTrue()
+        assertThat(updatedUnchecked3!!.checked).isTrue()
+        assertThat(unchangedChecked!!.checked).isTrue() // 이미 확인된 상태 유지
+
+        // 반환된 알림 ID들이 미확인 알림들과 일치하는지 확인
+        val returnedIds = response.data!!.map { it.id }.toSet()
+        val expectedIds = setOf(uncheckedNotification1.id, uncheckedNotification2.id, uncheckedNotification3.id)
+        assertThat(returnedIds).isEqualTo(expectedIds)
+      }
+
+    @Test
+    fun `확인할 알림이 없는 경우 빈 리스트 반환 - checkNotifications`() =
+      runTest {
+        // given - 이미 확인된 알림만 존재
+        createTestNotification(
+          testUser,
+          NotificationType.TO_DO,
+          "Already Checked 1",
+          "Description 1",
+          checked = true,
+        )
+        createTestNotification(
+          testUser,
+          NotificationType.MOTIVATION,
+          "Already Checked 2",
+          "Description 2",
+          checked = true,
+        )
+
+        // when
+        val response = checkNotifications()
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isEmpty()
+        assertThat(response.errorCode).isNull()
+      }
+
+    @Test
+    fun `알림이 아예 없는 경우 빈 리스트 반환 - checkNotifications`() {
+      // given - 알림 없음
+
+      // when
+      val response = checkNotifications()
+
+      // then
+      assertThat(response.statusCode).isEqualTo(200)
+      assertThat(response.data).isEmpty()
+      assertThat(response.errorCode).isNull()
+    }
+
+    @Test
+    fun `삭제된 알림은 처리되지 않는지 확인 - checkNotifications`() =
+      runTest {
+        // given - 정상 미확인 알림 1개, 삭제된 미확인 알림 1개
+        val normalNotification =
+          createTestNotification(
+            testUser,
+            NotificationType.TO_DO,
+            "Normal Notification",
+            "Normal description",
+            checked = false,
+          )
+        val deletedNotification =
+          createTestNotification(
+            testUser,
+            NotificationType.MOTIVATION,
+            "Deleted Notification",
+            "Deleted description",
+            checked = false,
+            deletedAt = Instant.now(),
+          )
+
+        // when
+        val response = checkNotifications()
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(1)
+        assertThat(response.data!!.first().id).isEqualTo(normalNotification.id)
+        assertThat(response.errorCode).isNull()
+
+        // 삭제된 알림의 상태는 변경되지 않았는지 확인
+        val unchangedDeleted = notificationRepository.findById(deletedNotification.id!!)
+        assertThat(unchangedDeleted!!.checked).isFalse()
+        assertThat(unchangedDeleted.deletedAt).isNotNull()
+      }
+
+    @Test
+    fun `다른 사용자의 알림은 처리되지 않는지 확인 - checkNotifications`() =
+      runTest {
+        // given - testUser 미확인 알림 1개, otherUser 미확인 알림 1개
+        val myNotification =
+          createTestNotification(
+            testUser,
+            NotificationType.TO_DO,
+            "My Notification",
+            "My description",
+            checked = false,
+          )
+        val otherUserNotification =
+          createTestNotification(
+            otherUser,
+            NotificationType.MOTIVATION,
+            "Other User's Notification",
+            "Other user's description",
+            checked = false,
+          )
+
+        // when - testUser로 요청
+        val response = checkNotifications()
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(1)
+        assertThat(response.data!!.first().id).isEqualTo(myNotification.id)
+        assertThat(response.data!!.first().receiverId).isEqualTo(testUser.id)
+        assertThat(response.errorCode).isNull()
+
+        // 다른 사용자의 알림 상태는 변경되지 않았는지 확인
+        val unchangedOtherNotification = notificationRepository.findById(otherUserNotification.id!!)
+        assertThat(unchangedOtherNotification!!.checked).isFalse()
+        assertThat(unchangedOtherNotification.receiverId).isEqualTo(otherUser.id)
+      }
+
+    @Test
+    fun `인증되지 않은 사용자 요청 시 401 에러 - checkNotifications`() =
+      runTest {
+        // given - 테스트 알림 생성
+        createTestNotification(testUser, checked = false)
+
+        // when
+        val response = checkNotificationsExpectingError(null)
+
+        // then
+        verifyErrorResponse(response, 401, "AUTH:UNAUTHORIZED")
+      }
+
+    @Test
+    fun `Bearer Token으로 모든 알림 확인 테스트`() =
+      runTest {
+        // given - 미확인 알림 2개 생성
+        createTestNotification(
+          testUser,
+          NotificationType.TO_DO,
+          "Bearer Token Test 1",
+          "Test 1 with bearer token",
+          checked = false,
+        )
+        createTestNotification(
+          testUser,
+          NotificationType.MOTIVATION,
+          "Bearer Token Test 2",
+          "Test 2 with bearer token",
+          checked = false,
+        )
+        val validAccessToken = tokenService.createAccessToken(testUser)
+
+        // when
+        val response =
+          webTestClient
+            .patch()
+            .uri("/api/v1/notifications/check")
+            .accept(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer $validAccessToken")
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<List<Notification>>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).hasSize(2)
+        assertThat(response.data!!.all { it.checked }).isTrue()
+        assertThat(response.errorCode).isNull()
+      }
+
+    @Test
+    fun `존재하지 않는 사용자로 요청 시 빈 결과 반환 - checkNotifications`() =
+      runTest {
+        // given - 존재하지 않는 사용자
+        val nonExistentUser =
+          User(
+            id = UUID.randomUUID(),
+            provider = OAuth2Provider.GOOGLE,
+            providerId = "non-existent-user",
+            createdAt = Instant.now(),
+            updatedAt = Instant.now(),
+          )
+        val nonExistentAuth =
+          UsernamePasswordAuthenticationToken(
+            nonExistentUser,
+            null,
+            listOf(SimpleGrantedAuthority(Role.USER.name)),
+          )
+
+        // testUser의 미확인 알림 생성 (다른 사용자이므로 처리되지 않아야 함)
+        createTestNotification(testUser, checked = false)
+
+        // when
+        val response = checkNotifications(nonExistentAuth)
+
+        // then - 존재하지 않는 사용자의 경우 빈 결과 반환
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isEmpty()
+        assertThat(response.errorCode).isNull()
+      }
+
+    private fun checkNotifications(
+      auth: UsernamePasswordAuthenticationToken = authentication,
+    ): ServiceResponse<List<Notification>> =
+      webTestClient
+        .mutateWith(mockAuthentication(auth))
+        .patch()
+        .uri("/api/v1/notifications/check")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<ServiceResponse<List<Notification>>>()
+        .returnResult()
+        .responseBody!!
+
+    private fun checkNotificationsExpectingError(auth: UsernamePasswordAuthenticationToken?): ServiceResponse<Unit> {
+      val testClient =
+        if (auth != null) {
+          webTestClient.mutateWith(mockAuthentication(auth))
+        } else {
+          webTestClient
+        }
+
+      return testClient
+        .patch()
+        .uri("/api/v1/notifications/check")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .is4xxClientError
+        .expectBody<ServiceResponse<Unit>>()
+        .returnResult()
+        .responseBody!!
+    }
+
     private fun verifyNotificationConsistency(
       actual: Notification,
       expected: NotificationEntity,

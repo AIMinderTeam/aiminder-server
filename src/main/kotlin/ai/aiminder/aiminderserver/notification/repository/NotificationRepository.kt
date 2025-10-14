@@ -17,4 +17,8 @@ interface NotificationRepository : CoroutineCrudRepository<NotificationEntity, U
   ): Flow<NotificationEntity>
 
   suspend fun countByReceiverIdAndDeletedAtIsNull(receiverId: UUID): Long
+
+  suspend fun findAllByReceiverIdAndCheckedFalseAndDeletedAtIsNull(receiverId: UUID): Flow<NotificationEntity>
+
+  suspend fun findByIdAndDeletedAtIsNull(id: UUID): NotificationEntity?
 }
