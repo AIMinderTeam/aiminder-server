@@ -3,10 +3,12 @@ package ai.aiminder.aiminderserver.notification.service
 import ai.aiminder.aiminderserver.notification.domain.Notification
 import ai.aiminder.aiminderserver.notification.dto.CheckNotificationRequestDto
 import ai.aiminder.aiminderserver.notification.dto.GetNotificationsRequestDto
+import ai.aiminder.aiminderserver.notification.entity.NotificationEntity
 import ai.aiminder.aiminderserver.notification.error.NotificationError
 import ai.aiminder.aiminderserver.notification.repository.NotificationRepository
 import ai.aiminder.aiminderserver.user.domain.User
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.springframework.data.domain.Page
@@ -31,11 +33,21 @@ class NotificationService(
     return PageImpl(notifications.toList(), dto.pageable, totalCount)
   }
 
-  suspend fun check(dto: CheckNotificationRequestDto): Notification =
-    notificationRepository
-      .findById(dto.notificationId)
-      ?.check()
-      ?.let { notificationRepository.save(it) }
-      ?.let { Notification.from(it) }
-      ?: throw NotificationError.NotFound(dto.notificationId)
+  suspend fun check(dto: CheckNotificationRequestDto): List<Notification> =
+    get(dto)
+      .map { it.check() }
+      .let { notificationRepository.saveAll(it) }
+      .map { Notification.from(it) }
+      .toList()
+
+  suspend fun get(dto: CheckNotificationRequestDto): Flow<NotificationEntity> =
+    when (dto.notificationId) {
+      null -> notificationRepository.findAllByReceiverIdAndDeletedAtIsNull(dto.userId)
+      else ->
+        flow {
+          notificationRepository
+            .findById(dto.notificationId)
+            ?: throw NotificationError.NotFound(dto.notificationId)
+        }
+    }
 }

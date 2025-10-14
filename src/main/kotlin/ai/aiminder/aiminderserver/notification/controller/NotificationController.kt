@@ -48,8 +48,18 @@ class NotificationController(
     @AuthenticationPrincipal
     user: User,
   ): ServiceResponse<Notification> {
-    val dto = CheckNotificationRequestDto(notificationId, user.id)
-    val notification: Notification = notificationService.check(dto)
+    val dto = CheckNotificationRequestDto(userId = user.id, notificationId = notificationId)
+    val notification: Notification = notificationService.check(dto).first()
     return ServiceResponse.from(notification)
+  }
+
+  @PatchMapping("/check")
+  suspend fun checkNotifications(
+    @AuthenticationPrincipal
+    user: User,
+  ): ServiceResponse<List<Notification>> {
+    val dto = CheckNotificationRequestDto(userId = user.id)
+    val notifications: List<Notification> = notificationService.check(dto)
+    return ServiceResponse.from(notifications)
   }
 }
