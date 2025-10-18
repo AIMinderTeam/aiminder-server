@@ -7,5 +7,5 @@ import java.util.UUID
 
 @Repository
 interface ConversationRepository : CoroutineCrudRepository<ConversationEntity, UUID> {
-  fun findByGoalId(goalId: UUID): ConversationEntity?
+  suspend fun findByGoalId(goalId: UUID): ConversationEntity?
 }

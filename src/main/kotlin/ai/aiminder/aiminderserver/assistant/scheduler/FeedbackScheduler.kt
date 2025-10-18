@@ -42,6 +42,7 @@ class FeedbackScheduler(
             .collect { goal ->
               val yesterdaySchedules: List<Schedule> = getYesterdaySchedules(goal)
               val todaySchedules: List<Schedule> = getTodaySchedules(goal)
+              if (yesterdaySchedules.isEmpty() && todaySchedules.isEmpty()) return@collect
               val conversation: Conversation = conversationService.getByGoal(goal)
               val assistantResponse: AssistantResponse =
                 assistantService.feedback(
