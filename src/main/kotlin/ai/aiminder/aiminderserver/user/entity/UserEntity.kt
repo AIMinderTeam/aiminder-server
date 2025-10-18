@@ -18,6 +18,7 @@ data class UserEntity(
   val providerId: String,
   val createdAt: Instant = Instant.now(),
   val updatedAt: Instant = createdAt,
+  val deletedAt: Instant? = null,
 ) : Persistable<UUID> {
   override fun getId(): UUID? = id
 

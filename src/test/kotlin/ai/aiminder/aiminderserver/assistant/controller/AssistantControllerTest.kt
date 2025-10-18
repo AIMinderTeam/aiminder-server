@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
-import ai.aiminder.aiminderserver.assistant.client.AssistantClient
+import ai.aiminder.aiminderserver.assistant.client.GoalAssistantClient
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.domain.ChatResponseDto
@@ -45,7 +45,7 @@ class AssistantControllerTest
     private val objectMapper: ObjectMapper,
   ) : BaseIntegrationTest() {
     @MockkBean
-    private lateinit var assistantClient: AssistantClient
+    private lateinit var assistantClient: GoalAssistantClient
     private lateinit var testUser: User
     private lateinit var authentication: UsernamePasswordAuthenticationToken
 

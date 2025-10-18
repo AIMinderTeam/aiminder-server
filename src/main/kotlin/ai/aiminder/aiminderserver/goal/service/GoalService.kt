@@ -11,6 +11,7 @@ import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import ai.aiminder.aiminderserver.goal.error.GoalError
 import ai.aiminder.aiminderserver.goal.repository.GoalRepository
 import ai.aiminder.aiminderserver.image.repository.ImageRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.springframework.data.domain.Page
@@ -71,6 +72,11 @@ class GoalService(
       ?.takeIf { it.deletedAt == null }
       ?.let { Goal.from(it) }
       ?: throw GoalError.GoalNotFound(goalId)
+
+  suspend fun get(userId: UUID): Flow<Goal> =
+    goalRepository
+      .findAllByUserIdAndStatusIsNotAndDeletedAtIsNull(userId)
+      .map { Goal.from(it) }
 
   suspend fun update(dto: UpdateGoalRequestDto): GoalResponse =
     get(dto.goalId, dto.userId)

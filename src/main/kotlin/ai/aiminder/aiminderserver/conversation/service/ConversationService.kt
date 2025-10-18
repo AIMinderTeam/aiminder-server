@@ -13,6 +13,7 @@ import ai.aiminder.aiminderserver.conversation.entity.ConversationEntity
 import ai.aiminder.aiminderserver.conversation.repository.ConversationQueryRepository
 import ai.aiminder.aiminderserver.conversation.repository.ConversationRepository
 import ai.aiminder.aiminderserver.conversation.repository.row.ConversationRow
+import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.user.domain.User
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.flow.Flow
@@ -35,30 +36,6 @@ class ConversationService(
       .let { conversationRepository.save(it) }
       .let { Conversation.from(it) }
 
-  suspend fun findById(conversationId: UUID): Conversation =
-    conversationRepository
-      .findById(conversationId)
-      ?.takeIf { it.deletedAt == null }
-      ?.let { Conversation.from(it) }
-      ?: throw AssistantError.ConversationNotFound(conversationId.toString())
-
-  suspend fun validateUserAuthorization(
-    conversationId: UUID,
-    user: User,
-  ) {
-    val conversation = findById(conversationId)
-    if (conversation.userId != user.id) {
-      throw AuthError.Unauthorized()
-    }
-  }
-
-  suspend fun update(dto: UpdateConversationDto): Conversation =
-    findById(dto.conversationId)
-      .update(dto.goalId)
-      .let { ConversationEntity.from(it) }
-      .let { conversationRepository.save(it) }
-      .let { Conversation.from(it) }
-
   suspend fun get(dto: GetConversationRequestDto): Page<ConversationResponse> {
     val conversations: Flow<ConversationResponse> =
       conversationQueryRepository
@@ -70,6 +47,37 @@ class ConversationService(
 
     return PageImpl(conversations.toList(), dto.pageable, totalCount)
   }
+
+  suspend fun getById(conversationId: UUID): Conversation =
+    conversationRepository
+      .findById(conversationId)
+      ?.takeIf { it.deletedAt == null }
+      ?.let { Conversation.from(it) }
+      ?: throw AssistantError.ConversationNotFound(conversationId = conversationId)
+
+  suspend fun getByGoal(goal: Goal): Conversation =
+    conversationRepository
+      .findByGoalId(goal.id)
+      ?.takeIf { it.deletedAt == null }
+      ?.let { Conversation.from(it) }
+      ?: throw AssistantError.ConversationNotFound(goalId = goal.id)
+
+  suspend fun validateUserAuthorization(
+    conversationId: UUID,
+    user: User,
+  ) {
+    val conversation = getById(conversationId)
+    if (conversation.userId != user.id) {
+      throw AuthError.Unauthorized()
+    }
+  }
+
+  suspend fun update(dto: UpdateConversationDto): Conversation =
+    getById(dto.conversationId)
+      .update(dto.goalId)
+      .let { ConversationEntity.from(it) }
+      .let { conversationRepository.save(it) }
+      .let { Conversation.from(it) }
 
   private fun formatRecentChat(conversation: ConversationRow): ConversationRow {
     val recentChat =

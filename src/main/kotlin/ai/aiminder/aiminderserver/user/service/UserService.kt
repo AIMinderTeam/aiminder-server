@@ -8,6 +8,8 @@ import ai.aiminder.aiminderserver.auth.service.TokenService
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.entity.UserEntity
 import ai.aiminder.aiminderserver.user.repository.UserRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import org.springframework.stereotype.Service
 import java.util.UUID
 
@@ -18,8 +20,7 @@ class UserService(
 ) {
   suspend fun getUser(token: RefreshToken): User {
     val userId = tokenService.getUserIdFromRefreshToken(token)
-    val userEntity: UserEntity =
-      userRepository.findById(userId) ?: throw AuthError.UserNotFound(userId)
+    val userEntity: UserEntity = getUserById(userId)
     return User.from(userEntity)
   }
 
@@ -28,11 +29,20 @@ class UserService(
     providerId: String,
   ): User? {
     val userEntity: UserEntity? =
-      userRepository.findByProviderAndProviderId(provider, providerId)
+      userRepository.findByProviderAndProviderIdAndDeletedAtIsNull(provider, providerId)
     return userEntity?.let { User.from(it) }
   }
 
-  suspend fun getUserById(id: UUID): UserEntity = userRepository.findById(id) ?: throw AuthError.UserNotFound(id)
+  suspend fun getUserById(id: UUID): UserEntity =
+    userRepository
+      .findById(id)
+      ?.takeIf { it.deletedAt == null }
+      ?: throw AuthError.UserNotFound(id)
+
+  suspend fun getUsers(): Flow<User> =
+    userRepository
+      .findAllByDeletedAtIsNull()
+      .map { User.from(it) }
 
   suspend fun createUser(
     userInfo: OAuth2UserInfo,

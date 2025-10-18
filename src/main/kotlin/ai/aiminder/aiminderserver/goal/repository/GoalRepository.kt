@@ -16,6 +16,11 @@ interface GoalRepository : CoroutineCrudRepository<GoalEntity, UUID> {
     pageable: Pageable,
   ): Flow<GoalEntity>
 
+  suspend fun findAllByUserIdAndStatusIsNotAndDeletedAtIsNull(
+    userId: UUID,
+    status: GoalStatus = GoalStatus.COMPLETED,
+  ): Flow<GoalEntity>
+
   suspend fun countByStatusIsAndDeletedAtIsNullAndUserIdIs(
     status: GoalStatus,
     userId: UUID,

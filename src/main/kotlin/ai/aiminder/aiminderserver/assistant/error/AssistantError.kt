@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.assistant.error
 
 import ai.aiminder.aiminderserver.common.error.ServiceError
 import org.springframework.http.HttpStatus
+import java.util.UUID
 
 sealed class AssistantError(
   override val status: HttpStatus,
@@ -17,10 +18,11 @@ sealed class AssistantError(
     )
 
   class ConversationNotFound(
-    conversationId: String,
+    conversationId: UUID? = null,
+    goalId: UUID? = null,
   ) : AssistantError(
       status = HttpStatus.NOT_FOUND,
-      message = "대화방을 찾을 수 없습니다. conversationId: $conversationId",
+      message = "대화방을 찾을 수 없습니다. conversationId: $conversationId, goalId: $goalId",
     )
 
   class ChatTransformError(

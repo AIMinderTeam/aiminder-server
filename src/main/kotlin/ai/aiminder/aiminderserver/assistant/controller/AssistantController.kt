@@ -64,7 +64,7 @@ class AssistantController(
       throw CommonError.InvalidRequest("메시지 내용이 비어있습니다.")
     }
     conversationService.validateUserAuthorization(conversationId, user)
-    val conversation: Conversation = conversationService.findById(conversationId)
+    val conversation: Conversation = conversationService.getById(conversationId)
     val goal: Goal? = conversation.goalId?.let { goalService.get(it, user.id) }
     val dto: AssistantRequestDto = AssistantRequestDto.from(conversationId, user, request, goal)
     val request: ChatResponse = ChatResponse.from(dto)
