@@ -8,9 +8,12 @@ import ai.aiminder.aiminderserver.assistant.domain.ChatType
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
 import ai.aiminder.aiminderserver.assistant.entity.ChatEntity
+import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.assistant.repository.ChatRepository
+import ai.aiminder.aiminderserver.assistant.service.FeedbackService
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.Role
+import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.conversation.entity.ConversationEntity
@@ -46,6 +49,10 @@ class AssistantControllerTest
   ) : BaseIntegrationTest() {
     @MockkBean
     private lateinit var assistantClient: GoalAssistantClient
+
+    @MockkBean
+    private lateinit var feedbackService: FeedbackService
+
     private lateinit var testUser: User
     private lateinit var authentication: UsernamePasswordAuthenticationToken
 
@@ -53,7 +60,7 @@ class AssistantControllerTest
     fun setUp() =
       runTest {
         // Clear all mocks before each test
-        clearMocks(assistantClient)
+        clearMocks(assistantClient, feedbackService)
 
         val savedUser =
           userRepository.save(
@@ -1348,5 +1355,192 @@ class AssistantControllerTest
           chat = chatResponses,
         )
       return chatRepository.save(ChatEntity.from(chatResponse, objectMapper))
+    }
+
+    // Feedback API 테스트들
+    @Test
+    fun `정상적인 피드백 요청 테스트`() =
+      runTest {
+        // given - 대화방 생성
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        val expectedChatResponse =
+          ChatResponse(
+            conversationId = conversation.id!!,
+            chatType = ChatType.ASSISTANT,
+            chat =
+              listOf(
+                ChatResponseDto(
+                  type = AssistantResponseType.TEXT,
+                  messages = listOf("어제와 오늘의 일정을 바탕으로 피드백을 드리겠습니다."),
+                ),
+              ),
+          )
+
+        // Mock FeedbackService
+        coEvery {
+          feedbackService.feedback(conversation.id!!, testUser)
+        } returns expectedChatResponse
+
+        // when
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .post()
+            .uri("/api/v1/conversations/${conversation.id}/feedback")
+            .exchange()
+            .expectStatus()
+            .isOk
+            .expectBody<ServiceResponse<ChatResponse>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        response.also {
+          assertThat(it.statusCode).isEqualTo(200)
+          assertThat(it.data).isNotNull
+          assertThat(it.data?.conversationId).isEqualTo(conversation.id)
+          assertThat(it.data?.chatType).isEqualTo(ChatType.ASSISTANT)
+          assertThat(it.data?.chat).isNotEmpty
+          assertThat(
+            it.data
+              ?.chat
+              ?.first()
+              ?.type,
+          ).isEqualTo(AssistantResponseType.TEXT)
+          assertThat(
+            it.data
+              ?.chat
+              ?.first()
+              ?.messages,
+          ).contains("어제와 오늘의 일정을 바탕으로 피드백을 드리겠습니다.")
+        }
+      }
+
+    @Test
+    fun `인증되지 않은 사용자 피드백 요청 시 401 반환`() =
+      runTest {
+        // given
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity.from(testUser),
+          )
+
+        // when
+        val response =
+          webTestClient
+            .post()
+            .uri("/api/v1/conversations/${conversation.id}/feedback")
+            .exchange()
+            .expectStatus()
+            .isUnauthorized
+            .expectBody<ServiceResponse<Unit>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        assertThat(response.statusCode).isEqualTo(401)
+        assertThat(response.message).isEqualTo("인증이 필요합니다. 로그인을 진행해주세요.")
+        assertThat(response.errorCode).isEqualTo("AUTH:UNAUTHORIZED")
+        assertThat(response.data).isNull()
+      }
+
+    @Test
+    fun `다른 사용자의 대화방에 피드백 요청 시 401 반환`() =
+      runTest {
+        // given - 다른 사용자 생성
+        val anotherUser =
+          userRepository.save(
+            UserEntity(
+              provider = OAuth2Provider.KAKAO,
+              providerId = "another-user-feedback-789",
+            ),
+          )
+
+        val anotherUserDomain = User.from(anotherUser)
+        val anotherUserConversation =
+          conversationRepository.save(
+            ConversationEntity.from(anotherUserDomain),
+          )
+
+        // Mock FeedbackService to throw exception for unauthorized access
+        coEvery {
+          feedbackService.feedback(anotherUserConversation.id!!, testUser)
+        } throws AuthError.Unauthorized()
+
+        // when - 다른 사용자의 대화방에 피드백 요청 시도
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .post()
+            .uri("/api/v1/conversations/${anotherUserConversation.id}/feedback")
+            .exchange()
+            .expectStatus()
+            .isUnauthorized
+            .expectBody<ServiceResponse<Unit>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        assertThat(response.statusCode).isEqualTo(401)
+        assertThat(response.errorCode).isEqualTo("AUTH:UNAUTHORIZED")
+        assertThat(response.message).isEqualTo("인증이 필요합니다. 로그인을 진행해주세요.")
+        assertThat(response.data).isNull()
+      }
+
+    @Test
+    fun `존재하지 않는 대화방에 피드백 요청 시 404 반환`() =
+      runTest {
+        // given
+        val nonExistentConversationId = UUID.randomUUID()
+
+        // Mock FeedbackService to throw exception for non-existent conversation
+        coEvery {
+          feedbackService.feedback(nonExistentConversationId, testUser)
+        } throws AssistantError.ConversationNotFound(conversationId = nonExistentConversationId)
+
+        // when
+        val response =
+          webTestClient
+            .mutateWith(mockAuthentication(authentication))
+            .post()
+            .uri("/api/v1/conversations/$nonExistentConversationId/feedback")
+            .exchange()
+            .expectStatus()
+            .isNotFound
+            .expectBody<ServiceResponse<Unit>>()
+            .returnResult()
+            .responseBody!!
+
+        // then
+        assertThat(response.statusCode).isEqualTo(404)
+        assertThat(response.errorCode).isEqualTo("ASSISTANT:CONVERSATIONNOTFOUND")
+        assertThat(response.message).contains("대화방을 찾을 수 없습니다")
+      }
+
+    @Test
+    fun `잘못된 UUID 형식으로 피드백 요청 시 400 반환`() {
+      // given
+      val invalidUuid = "invalid-uuid-format"
+
+      // when
+      val response =
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .post()
+          .uri("/api/v1/conversations/$invalidUuid/feedback")
+          .exchange()
+          .expectStatus()
+          .isBadRequest
+          .expectBody<ServiceResponse<Unit>>()
+          .returnResult()
+          .responseBody!!
+
+      // then
+      assertThat(response.statusCode).isEqualTo(400)
+      assertThat(response.errorCode).isEqualTo("COMMON:INVALIDREQUEST")
     }
   }

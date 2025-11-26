@@ -82,7 +82,7 @@ class AssistantController(
   }
 
   @PostMapping("/{conversationId}/feedback")
-  suspend fun feedback(
+  override suspend fun feedback(
     @PathVariable
     conversationId: UUID,
     @AuthenticationPrincipal
