@@ -11,8 +11,9 @@ sealed class GoalError(
   override val mainCode: String = "GOAL"
 
   class GoalNotFound(
-    goalId: UUID,
-  ) : GoalError(HttpStatus.NOT_FOUND, "해당 ID: $goalId 를 가진 목표를 찾을 수 없습니다")
+    goalId: UUID? = null,
+    conversationId: UUID? = null,
+  ) : GoalError(HttpStatus.NOT_FOUND, "해당 ID 를 가진 목표를 찾을 수 없습니다. goalId: $goalId, conversationId: $conversationId")
 
   class AccessDenied :
     GoalError(

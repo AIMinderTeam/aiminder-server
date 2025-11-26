@@ -37,7 +37,7 @@ class GoalService(
     return GoalResponse.from(goal, imagePath)
   }
 
-  suspend fun get(dto: GetGoalsRequestDto): Page<GoalResponse> {
+  suspend fun getByGoalId(dto: GetGoalsRequestDto): Page<GoalResponse> {
     val goals =
       goalRepository
         .findByStatusAndDeletedAtIsNullAndUserId(
@@ -62,7 +62,18 @@ class GoalService(
     return PageImpl(goalResponses, dto.pageable, totalCount)
   }
 
-  suspend fun get(
+  suspend fun getByConversationId(
+    conversationId: UUID,
+    userId: UUID,
+  ): Goal =
+    goalRepository
+      .findByConversationId(conversationId)
+      ?.also { if (it.userId != userId) throw GoalError.AccessDenied() }
+      ?.takeIf { it.deletedAt == null }
+      ?.let { Goal.from(it) }
+      ?: throw GoalError.GoalNotFound(conversationId = conversationId)
+
+  suspend fun getByGoalId(
     goalId: UUID,
     userId: UUID,
   ): Goal =
@@ -71,15 +82,15 @@ class GoalService(
       ?.also { if (it.userId != userId) throw GoalError.AccessDenied() }
       ?.takeIf { it.deletedAt == null }
       ?.let { Goal.from(it) }
-      ?: throw GoalError.GoalNotFound(goalId)
+      ?: throw GoalError.GoalNotFound(goalId = goalId)
 
-  suspend fun get(userId: UUID): Flow<Goal> =
+  suspend fun getByUserId(userId: UUID): Flow<Goal> =
     goalRepository
       .findAllByUserIdAndStatusIsNotAndDeletedAtIsNull(userId)
       .map { Goal.from(it) }
 
   suspend fun update(dto: UpdateGoalRequestDto): GoalResponse =
-    get(dto.goalId, dto.userId)
+    getByGoalId(dto.goalId, dto.userId)
       .update(dto)
       .let { GoalEntity.from(it) }
       .let { goalRepository.save(it) }
@@ -87,7 +98,7 @@ class GoalService(
       .let { GoalResponse.from(it) }
 
   suspend fun delete(dto: DeleteGoalRequestDto) {
-    get(dto.goalId, dto.userId)
+    getByGoalId(dto.goalId, dto.userId)
       .delete(dto)
       .let { GoalEntity.from(it) }
       .let { goalRepository.save(it) }

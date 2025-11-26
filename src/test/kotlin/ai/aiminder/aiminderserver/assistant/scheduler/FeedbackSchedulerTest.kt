@@ -67,8 +67,8 @@ class FeedbackSchedulerTest
 
         // then - 실제 데이터베이스 상태 검증
         val allUsers = userService.getUsers().toList()
-        val user1Goals = goalService.get(user1.id).toList()
-        val user2Goals = goalService.get(user2.id).toList()
+        val user1Goals = goalService.getByUserId(user1.id).toList()
+        val user2Goals = goalService.getByUserId(user2.id).toList()
 
         // 채팅 데이터 확인
         val conversation1Chats =
@@ -124,7 +124,7 @@ class FeedbackSchedulerTest
 
         // then - 목표가 없으므로 피드백이 생성되지 않음
         val allUsers = userService.getUsers().toList()
-        val userGoals = goalService.get(user.id).toList()
+        val userGoals = goalService.getByUserId(user.id).toList()
 
         assert(allUsers.isNotEmpty())
         assert(userGoals.isEmpty())
@@ -146,7 +146,7 @@ class FeedbackSchedulerTest
 
         // then - 스케줄이 없어도 피드백은 생성됨 (빈 스케줄 리스트로)
         val allUsers = userService.getUsers().toList()
-        val userGoals = goalService.get(user.id).toList()
+        val userGoals = goalService.getByUserId(user.id).toList()
         val schedules = scheduleService.get(goal.id, Instant.now().minusSeconds(86400), Instant.now())
 
         val conversationChats =
@@ -177,7 +177,7 @@ class FeedbackSchedulerTest
 
         // then - 대화방이 없으면 피드백 생성 시 예외가 발생하고 해당 목표는 건너뜀
         val allUsers = userService.getUsers().toList()
-        val userGoals = goalService.get(user.id).toList()
+        val userGoals = goalService.getByUserId(user.id).toList()
 
         assert(allUsers.isNotEmpty())
         assert(userGoals.isNotEmpty())
@@ -201,7 +201,7 @@ class FeedbackSchedulerTest
 
         // then - AI 피드백 생성 실패 시 채팅이 생성되지 않음
         val allUsers = userService.getUsers().toList()
-        val userGoals = goalService.get(user.id).toList()
+        val userGoals = goalService.getByUserId(user.id).toList()
 
         val conversationChats =
           chatService
@@ -254,9 +254,9 @@ class FeedbackSchedulerTest
 
         // then - 모든 사용자와 목표에 대한 피드백 생성 확인
         val allUsers = userService.getUsers().toList()
-        val user1Goals = goalService.get(user1.id).toList()
-        val user2Goals = goalService.get(user2.id).toList()
-        val user3Goals = goalService.get(user3.id).toList()
+        val user1Goals = goalService.getByUserId(user1.id).toList()
+        val user2Goals = goalService.getByUserId(user2.id).toList()
+        val user3Goals = goalService.getByUserId(user3.id).toList()
 
         // 데이터 생성 확인
         assert(allUsers.size == 3)

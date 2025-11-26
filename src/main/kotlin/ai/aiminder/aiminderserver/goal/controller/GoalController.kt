@@ -54,7 +54,7 @@ class GoalController(
     user: User,
   ): ServiceResponse<List<GoalResponse>> =
     goalService
-      .get(
+      .getByGoalId(
         GetGoalsRequestDto.from(
           getGoalsRequest = request,
           user = user,
@@ -70,7 +70,7 @@ class GoalController(
     user: User,
   ): ServiceResponse<GoalResponse> =
     goalService
-      .get(goalId, user.id)
+      .getByGoalId(goalId, user.id)
       .let { goal -> GoalResponse.from(goal) }
       .let { goal -> ServiceResponse.from(goal) }
 

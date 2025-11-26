@@ -21,5 +21,8 @@ data class AssistantResponse(
           ),
         ),
       )
+
+    fun from(message: String): AssistantResponse =
+      AssistantResponse(listOf(ChatResponseDto(AssistantResponseType.TEXT, listOf(message))))
   }
 }
