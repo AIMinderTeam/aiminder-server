@@ -69,15 +69,15 @@ class FeedbackService(
     return scheduleService.get(goal.id, startDate, endDate)
   }
 
-  private fun getEndDate(yesterday: LocalDateTime): Instant =
-    yesterday
+  private fun getEndDate(dateTime: LocalDateTime): Instant =
+    dateTime
       .withHour(23)
       .withMinute(59)
       .withSecond(59)
       .toInstant(UTC)
 
-  private fun getStartDate(yesterday: LocalDateTime): Instant =
-    yesterday
+  private fun getStartDate(dateTime: LocalDateTime): Instant =
+    dateTime
       .withHour(0)
       .withMinute(0)
       .withSecond(0)
