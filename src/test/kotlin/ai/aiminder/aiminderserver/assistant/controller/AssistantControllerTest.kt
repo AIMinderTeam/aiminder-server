@@ -8,13 +8,10 @@ import ai.aiminder.aiminderserver.assistant.domain.ChatType
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
 import ai.aiminder.aiminderserver.assistant.entity.ChatEntity
-import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.assistant.repository.ChatRepository
 import ai.aiminder.aiminderserver.assistant.service.AssistantService
-import ai.aiminder.aiminderserver.assistant.service.FeedbackService
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.Role
-import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
@@ -69,9 +66,6 @@ class AssistantControllerTest
     @MockkBean
     private lateinit var assistantService: AssistantService
 
-    @MockkBean
-    private lateinit var feedbackService: FeedbackService
-
     private lateinit var testUser: User
     private lateinit var authentication: UsernamePasswordAuthenticationToken
 
@@ -79,7 +73,7 @@ class AssistantControllerTest
     fun setUp() =
       runTest {
         // Clear all mocks before each test
-        clearMocks(assistantClient, assistantService, feedbackService)
+        clearMocks(assistantClient, assistantService)
 
         val savedUser =
           userRepository.save(
@@ -1524,11 +1518,6 @@ class AssistantControllerTest
             ConversationEntity.from(anotherUserDomain),
           )
 
-        // Mock FeedbackService to throw exception for unauthorized access
-        coEvery {
-          feedbackService.feedback(anotherUserConversation.id!!, testUser)
-        } throws AuthError.Unauthorized()
-
         // when - 다른 사용자의 대화방에 피드백 요청 시도
         val response =
           webTestClient
@@ -1554,11 +1543,6 @@ class AssistantControllerTest
       runTest {
         // given
         val nonExistentConversationId = UUID.randomUUID()
-
-        // Mock FeedbackService to throw exception for non-existent conversation
-        coEvery {
-          feedbackService.feedback(nonExistentConversationId, testUser)
-        } throws AssistantError.ConversationNotFound(conversationId = nonExistentConversationId)
 
         // when
         val response =
