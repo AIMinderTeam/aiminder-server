@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.assistant.service
 
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
+import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
 import ai.aiminder.aiminderserver.conversation.service.ConversationService
 import ai.aiminder.aiminderserver.goal.domain.Goal
@@ -27,21 +28,20 @@ class FeedbackService(
     conversationId: UUID,
     user: User,
   ): ChatResponse {
-    val goal: Goal = goalService.getByConversationId(conversationId, user.id)
-    return feedback(goal, user)
-      ?: ChatResponse.from(conversationId, AssistantResponse.from("피드백 할 일정이 존재하지 않습니다."))
+    val conversation: Conversation = conversationService.getById(conversationId)
+    val goal: Goal =
+      conversation.goalId?.let { goalService.getByGoalId(it, user.id) }
+        ?: throw AssistantError.ConversationNotFound(conversationId = conversationId)
+    return feedback(goal, user, conversation)
   }
 
   suspend fun feedback(
     goal: Goal,
     user: User,
-  ): ChatResponse? {
+    conversation: Conversation,
+  ): ChatResponse {
     val yesterdaySchedules: List<Schedule> = getYesterdaySchedules(goal)
     val todaySchedules: List<Schedule> = getTodaySchedules(goal)
-    val conversation: Conversation = conversationService.getByGoal(goal)
-    if (yesterdaySchedules.isEmpty() && todaySchedules.isEmpty()) {
-      return ChatResponse.from(conversation.id, AssistantResponse.from("피드백 할 일정이 존재하지 않습니다."))
-    }
     val assistantResponse: AssistantResponse =
       assistantService.feedback(
         user = user,

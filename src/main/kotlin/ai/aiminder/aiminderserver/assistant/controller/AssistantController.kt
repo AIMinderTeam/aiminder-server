@@ -88,6 +88,7 @@ class AssistantController(
     @AuthenticationPrincipal
     user: User,
   ): ServiceResponse<ChatResponse> {
+    conversationService.validateUserAuthorization(conversationId, user)
     val chatResponse: ChatResponse = feedbackService.feedback(conversationId, user)
     return ServiceResponse.from(chatResponse)
   }
