@@ -6,7 +6,6 @@ import ai.aiminder.aiminderserver.conversation.service.ConversationService
 import ai.aiminder.aiminderserver.goal.service.GoalService
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.service.UserService
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 @Component
