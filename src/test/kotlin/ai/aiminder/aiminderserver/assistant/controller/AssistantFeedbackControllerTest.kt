@@ -11,6 +11,7 @@ import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.Role
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
+import ai.aiminder.aiminderserver.common.util.toUtcInstant
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
 import ai.aiminder.aiminderserver.conversation.entity.ConversationEntity
 import ai.aiminder.aiminderserver.conversation.repository.ConversationRepository
@@ -383,8 +384,8 @@ class AssistantFeedbackControllerTest
           title = "온라인 강의 수강",
           description = "부동산 투자 기초 강의 3시간",
           status = ScheduleStatus.COMPLETED,
-          startDate = yesterday.atTime(9, 0).toInstant(ZoneOffset.UTC),
-          endDate = yesterday.atTime(9, 0).toInstant(ZoneOffset.UTC),
+          startDate = yesterday.atTime(9, 0).toUtcInstant(),
+          endDate = yesterday.atTime(9, 0).toUtcInstant(),
         )
 
       val schedule2 =
@@ -394,8 +395,8 @@ class AssistantFeedbackControllerTest
           title = "투자서적 읽기",
           description = "부의 추월차선 1-3장",
           status = ScheduleStatus.COMPLETED,
-          startDate = yesterday.atTime(9, 0).toInstant(ZoneOffset.UTC),
-          endDate = yesterday.atTime(9, 0).toInstant(ZoneOffset.UTC),
+          startDate = yesterday.atTime(9, 0).toUtcInstant(),
+          endDate = yesterday.atTime(9, 0).toUtcInstant(),
         )
 
       return listOf(
@@ -414,8 +415,8 @@ class AssistantFeedbackControllerTest
           title = "부동산 매물 조사",
           description = "강남구 오피스텔 시세 조사",
           status = ScheduleStatus.READY,
-          startDate = today.atTime(9, 0).toInstant(ZoneOffset.UTC),
-          endDate = today.atTime(9, 0).toInstant(ZoneOffset.UTC),
+          startDate = today.atTime(9, 0).toUtcInstant(),
+          endDate = today.atTime(9, 0).toUtcInstant(),
         )
 
       val schedule2 =
@@ -425,8 +426,8 @@ class AssistantFeedbackControllerTest
           title = "투자 계획 수립",
           description = "1000만원 투자 포트폴리오 계획",
           status = ScheduleStatus.READY,
-          startDate = today.atTime(9, 0).toInstant(ZoneOffset.UTC),
-          endDate = today.atTime(9, 0).toInstant(ZoneOffset.UTC),
+          startDate = today.atTime(9, 0).toUtcInstant(),
+          endDate = today.atTime(9, 0).toUtcInstant(),
         )
 
       return listOf(
