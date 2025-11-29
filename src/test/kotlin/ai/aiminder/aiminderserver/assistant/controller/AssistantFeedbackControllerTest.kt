@@ -384,7 +384,7 @@ class AssistantFeedbackControllerTest
           description = "부동산 투자 기초 강의 3시간",
           status = ScheduleStatus.COMPLETED,
           startDate = yesterday.atTime(9, 0).toInstant(ZoneOffset.UTC),
-          endDate = yesterday.atTime(12, 0).toInstant(ZoneOffset.UTC),
+          endDate = yesterday.atTime(9, 0).toInstant(ZoneOffset.UTC),
         )
 
       val schedule2 =
@@ -394,8 +394,8 @@ class AssistantFeedbackControllerTest
           title = "투자서적 읽기",
           description = "부의 추월차선 1-3장",
           status = ScheduleStatus.COMPLETED,
-          startDate = yesterday.atTime(20, 0).toInstant(ZoneOffset.UTC),
-          endDate = yesterday.atTime(22, 0).toInstant(ZoneOffset.UTC),
+          startDate = yesterday.atTime(9, 0).toInstant(ZoneOffset.UTC),
+          endDate = yesterday.atTime(9, 0).toInstant(ZoneOffset.UTC),
         )
 
       return listOf(
@@ -414,8 +414,8 @@ class AssistantFeedbackControllerTest
           title = "부동산 매물 조사",
           description = "강남구 오피스텔 시세 조사",
           status = ScheduleStatus.READY,
-          startDate = today.atTime(14, 0).toInstant(ZoneOffset.UTC),
-          endDate = today.atTime(17, 0).toInstant(ZoneOffset.UTC),
+          startDate = today.atTime(9, 0).toInstant(ZoneOffset.UTC),
+          endDate = today.atTime(9, 0).toInstant(ZoneOffset.UTC),
         )
 
       val schedule2 =
@@ -425,8 +425,8 @@ class AssistantFeedbackControllerTest
           title = "투자 계획 수립",
           description = "1000만원 투자 포트폴리오 계획",
           status = ScheduleStatus.READY,
-          startDate = today.atTime(19, 0).toInstant(ZoneOffset.UTC),
-          endDate = today.atTime(21, 0).toInstant(ZoneOffset.UTC),
+          startDate = today.atTime(9, 0).toInstant(ZoneOffset.UTC),
+          endDate = today.atTime(9, 0).toInstant(ZoneOffset.UTC),
         )
 
       return listOf(

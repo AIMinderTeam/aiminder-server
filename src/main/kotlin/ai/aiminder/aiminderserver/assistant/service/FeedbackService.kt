@@ -3,6 +3,7 @@ package ai.aiminder.aiminderserver.assistant.service
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
 import ai.aiminder.aiminderserver.assistant.error.AssistantError
+import ai.aiminder.aiminderserver.common.util.toUtcInstant
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
 import ai.aiminder.aiminderserver.conversation.service.ConversationService
 import ai.aiminder.aiminderserver.goal.domain.Goal
@@ -13,7 +14,6 @@ import ai.aiminder.aiminderserver.user.domain.User
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneOffset.UTC
 import java.util.UUID
 
 @Service
@@ -74,12 +74,12 @@ class FeedbackService(
       .withHour(23)
       .withMinute(59)
       .withSecond(59)
-      .toInstant(UTC)
+      .toUtcInstant()
 
   private fun getStartDate(dateTime: LocalDateTime): Instant =
     dateTime
       .withHour(0)
       .withMinute(0)
       .withSecond(0)
-      .toInstant(UTC)
+      .toUtcInstant()
 }
