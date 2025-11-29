@@ -12,4 +12,4 @@ fun String.toUUID(): UUID =
     throw IllegalArgumentException("Invalid UUID string: $this")
   }
 
-fun LocalDateTime.toUtcInstant(): Instant = this.toInstant(ZoneOffset.UTC)
+fun LocalDateTime.toUtcInstant(): Instant = this.toInstant(ZoneOffset.systemDefault().rules.getOffset(this))

@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
-interface ConversationRepository : CoroutineCrudRepository<ConversationEntity, UUID>
+interface ConversationRepository : CoroutineCrudRepository<ConversationEntity, UUID> {
+  suspend fun findByGoalId(goalId: UUID): ConversationEntity?
+}

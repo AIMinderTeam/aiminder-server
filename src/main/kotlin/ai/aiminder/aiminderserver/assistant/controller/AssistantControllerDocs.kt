@@ -337,4 +337,145 @@ interface AssistantControllerDocs {
     pageable: PageableRequest,
     @Parameter(hidden = true) user: User,
   ): ServiceResponse<List<ChatResponse>>
+
+  @Operation(
+    operationId = "feedback",
+    summary = "AI 피드백 요청",
+    description =
+      "특정 대화방에 대해 AI 피드백을 요청합니다. " +
+        "어제와 오늘의 일정을 바탕으로 AI가 목표 달성을 위한 피드백을 제공합니다. " +
+        "OAuth2 로그인 성공 시 설정되는 `ACCESS_TOKEN`(필수) / `REFRESH_TOKEN`(선택) 쿠키 기반 인증 또는 " +
+        "Authorization 헤더의 Bearer 토큰 인증을 사용합니다. " +
+        "대화방 소유자만 접근 가능하며, 목표가 설정된 대화방에서만 피드백을 받을 수 있습니다.",
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "성공: 피드백 생성 완료",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 200,
+                  "message": null,
+                  "errorCode": null,
+                  "data": {
+                    "conversationId": "550e8400-e29b-41d4-a716-446655440000",
+                    "chatType": "ASSISTANT",
+                    "chat": [
+                      {
+                        "type": "TEXT",
+                        "messages": [
+                          "어제와 오늘의 일정을 바탕으로 피드백을 드리겠습니다. 오늘 목표 달성을 위해 어제 계획한 운동을 완료하지 못한 것 같습니다. 내일은 더 구체적인 시간 계획을 세워보는 것을 추천합니다."
+                        ]
+                      }
+                    ]
+                  },
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "인증 실패: 토큰이 없거나 유효하지 않음",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 401,
+                  "message": "인증이 필요합니다. 로그인을 진행해주세요.",
+                  "errorCode": "AUTH:UNAUTHORIZED",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "권한 없음: 대화방 접근 권한이 없는 경우",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 403,
+                  "message": "해당 대화방에 접근할 권한이 없습니다.",
+                  "errorCode": "AUTH:FORBIDDEN",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "대화방을 찾을 수 없음: 존재하지 않는 conversationId",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 404,
+                  "message": "요청한 대화방을 찾을 수 없습니다.",
+                  "errorCode": "CONVERSATION:NOTFOUND",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 피드백 생성 실패",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+    ],
+  )
+  suspend fun feedback(
+    @Parameter(description = "대화방 고유 ID (UUID)") conversationId: UUID,
+    @Parameter(hidden = true) user: User,
+  ): ServiceResponse<ChatResponse>
 }

@@ -51,6 +51,16 @@ class ScheduleService(
     return PageImpl(schedules, dto.pageable, totalCount)
   }
 
+  suspend fun get(
+    goalId: UUID,
+    startDate: Instant,
+    endDate: Instant,
+  ): List<Schedule> =
+    scheduleRepository
+      .findAllByGoalIdAndStartDateGreaterThanEqualAndEndDateLessThanEqual(goalId, startDate, endDate)
+      .map { Schedule.fromEntity(it) }
+      .toList()
+
   suspend fun update(dto: UpdateScheduleRequestDto): ScheduleResponse {
     val existingSchedule = scheduleRepository.findById(dto.id) ?: throw ScheduleError.NotFound()
 

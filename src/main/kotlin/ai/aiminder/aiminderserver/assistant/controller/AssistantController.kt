@@ -7,6 +7,7 @@ import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
 import ai.aiminder.aiminderserver.assistant.dto.GetMessagesRequestDto
 import ai.aiminder.aiminderserver.assistant.service.AssistantService
 import ai.aiminder.aiminderserver.assistant.service.ChatService
+import ai.aiminder.aiminderserver.assistant.service.FeedbackService
 import ai.aiminder.aiminderserver.common.error.CommonError
 import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
@@ -33,6 +34,7 @@ class AssistantController(
   private val chatService: ChatService,
   private val conversationService: ConversationService,
   private val goalService: GoalService,
+  private val feedbackService: FeedbackService,
 ) : AssistantControllerDocs {
   @Transactional
   @PostMapping("/chat")
@@ -44,7 +46,7 @@ class AssistantController(
     val assistantResponse: AssistantResponse = assistantService.startChat(conversation)
     val response: ChatResponse =
       ChatResponse.from(
-        conversation = conversation,
+        conversationId = conversation.id,
         assistantResponse = assistantResponse,
       )
     chatService.create(response)
@@ -64,19 +66,31 @@ class AssistantController(
       throw CommonError.InvalidRequest("메시지 내용이 비어있습니다.")
     }
     conversationService.validateUserAuthorization(conversationId, user)
-    val conversation: Conversation = conversationService.findById(conversationId)
-    val goal: Goal? = conversation.goalId?.let { goalService.get(it, user.id) }
+    val conversation: Conversation = conversationService.getById(conversationId)
+    val goal: Goal? = conversation.goalId?.let { goalService.getByGoalId(it, user.id) }
     val dto: AssistantRequestDto = AssistantRequestDto.from(conversationId, user, request, goal)
     val request: ChatResponse = ChatResponse.from(dto)
     chatService.create(request)
     val assistantResponse: AssistantResponse = assistantService.sendMessage(dto)
     val response: ChatResponse =
       ChatResponse.from(
-        conversation = conversation,
+        conversationId = conversation.id,
         assistantResponse = assistantResponse,
       )
     chatService.create(response)
     return ServiceResponse.from(response)
+  }
+
+  @PostMapping("/{conversationId}/feedback")
+  override suspend fun feedback(
+    @PathVariable
+    conversationId: UUID,
+    @AuthenticationPrincipal
+    user: User,
+  ): ServiceResponse<ChatResponse> {
+    conversationService.validateUserAuthorization(conversationId, user)
+    val chatResponse: ChatResponse = feedbackService.feedback(conversationId, user)
+    return ServiceResponse.from(chatResponse)
   }
 
   @GetMapping("/{conversationId}/chat")

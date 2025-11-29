@@ -1,6 +1,6 @@
 package ai.aiminder.aiminderserver.assistant.controller
 
-import ai.aiminder.aiminderserver.assistant.client.AssistantClient
+import ai.aiminder.aiminderserver.assistant.client.GoalAssistantClient
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.domain.AssistantResponseType
 import ai.aiminder.aiminderserver.assistant.domain.ChatResponseDto
@@ -9,6 +9,7 @@ import ai.aiminder.aiminderserver.assistant.dto.AssistantRequest
 import ai.aiminder.aiminderserver.assistant.dto.ChatResponse
 import ai.aiminder.aiminderserver.assistant.entity.ChatEntity
 import ai.aiminder.aiminderserver.assistant.repository.ChatRepository
+import ai.aiminder.aiminderserver.assistant.service.FeedbackService
 import ai.aiminder.aiminderserver.auth.domain.OAuth2Provider
 import ai.aiminder.aiminderserver.auth.domain.Role
 import ai.aiminder.aiminderserver.common.BaseIntegrationTest
@@ -45,7 +46,11 @@ class AssistantControllerTest
     private val objectMapper: ObjectMapper,
   ) : BaseIntegrationTest() {
     @MockkBean
-    private lateinit var assistantClient: AssistantClient
+    private lateinit var assistantClient: GoalAssistantClient
+
+    @MockkBean
+    private lateinit var feedbackService: FeedbackService
+
     private lateinit var testUser: User
     private lateinit var authentication: UsernamePasswordAuthenticationToken
 
@@ -53,7 +58,7 @@ class AssistantControllerTest
     fun setUp() =
       runTest {
         // Clear all mocks before each test
-        clearMocks(assistantClient)
+        clearMocks(assistantClient, feedbackService)
 
         val savedUser =
           userRepository.save(

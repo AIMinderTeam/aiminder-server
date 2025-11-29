@@ -1,5 +1,6 @@
 package ai.aiminder.aiminderserver.assistant.client
 
+import ai.aiminder.aiminderserver.assistant.domain.AssistantResponse
 import ai.aiminder.aiminderserver.assistant.dto.AssistantRequestDto
 import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.assistant.service.ToolContextService
@@ -27,11 +28,13 @@ abstract class OpenAIClient {
   @Autowired
   private lateinit var toolContextService: ToolContextService
 
+  abstract suspend fun chat(dto: AssistantRequestDto): AssistantResponse
+
   abstract fun setTools(requestSpec: ChatClient.ChatClientRequestSpec): ChatClient.ChatClientRequestSpec
 
   internal final suspend inline fun <reified T> requestStructuredResponse(
     dto: AssistantRequestDto,
-    systemMessage: Resource,
+    systemPrompt: Resource,
   ): T =
     withContext(Dispatchers.Default) {
       val logger = LoggerFactory.getLogger(this::class.java)
@@ -41,7 +44,7 @@ abstract class OpenAIClient {
           .builder()
           .responseFormat(ResponseFormat(ResponseFormat.Type.JSON_SCHEMA, outputConverter.jsonSchema))
           .build()
-      val systemMessage = SystemMessage(systemMessage)
+      val systemMessage = SystemMessage(systemPrompt)
       val userMessage = UserMessage(dto.text)
       val prompt = Prompt(listOf(systemMessage, userMessage), chatOptions)
       var response: T?
