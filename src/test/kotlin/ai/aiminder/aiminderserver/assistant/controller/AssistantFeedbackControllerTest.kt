@@ -113,11 +113,23 @@ class AssistantFeedbackControllerTest
 
         coEvery {
           assistantService.feedback(
-            user = testUser,
-            conservation = Conversation.from(conversation),
-            goal = Goal.from(goal),
-            yesterdaySchedules = yesterdaySchedules.map { Schedule.fromEntity(it) },
-            todaySchedules = todaySchedules.map { Schedule.fromEntity(it) },
+            user = match { it.id == testUser.id && it.providerId == testUser.providerId },
+            conservation = match { it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId },
+            goal = match { it.id == Goal.from(goal).id && it.title == Goal.from(goal).title },
+            yesterdaySchedules = match { schedules ->
+              val expectedSchedules = yesterdaySchedules.map { Schedule.fromEntity(it) }
+              schedules.size == expectedSchedules.size && 
+              schedules.zip(expectedSchedules).all { (actual, expected) -> 
+                actual.id == expected.id && actual.title == expected.title
+              }
+            },
+            todaySchedules = match { schedules ->
+              val expectedSchedules = todaySchedules.map { Schedule.fromEntity(it) }
+              schedules.size == expectedSchedules.size && 
+              schedules.zip(expectedSchedules).all { (actual, expected) -> 
+                actual.id == expected.id && actual.title == expected.title
+              }
+            },
           )
         } returns expectedAssistantResponse
 
@@ -152,11 +164,23 @@ class AssistantFeedbackControllerTest
         // FeedbackService의 실제 로직 동작 검증
         coVerify {
           assistantService.feedback(
-            user = testUser,
-            conservation = Conversation.from(conversation),
-            goal = Goal.from(goal),
-            yesterdaySchedules = yesterdaySchedules.map { Schedule.fromEntity(it) },
-            todaySchedules = todaySchedules.map { Schedule.fromEntity(it) },
+            user = match { it.id == testUser.id && it.providerId == testUser.providerId },
+            conservation = match { it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId },
+            goal = match { it.id == Goal.from(goal).id && it.title == Goal.from(goal).title },
+            yesterdaySchedules = match { schedules ->
+              val expectedSchedules = yesterdaySchedules.map { Schedule.fromEntity(it) }
+              schedules.size == expectedSchedules.size && 
+              schedules.zip(expectedSchedules).all { (actual, expected) -> 
+                actual.id == expected.id && actual.title == expected.title
+              }
+            },
+            todaySchedules = match { schedules ->
+              val expectedSchedules = todaySchedules.map { Schedule.fromEntity(it) }
+              schedules.size == expectedSchedules.size && 
+              schedules.zip(expectedSchedules).all { (actual, expected) -> 
+                actual.id == expected.id && actual.title == expected.title
+              }
+            },
           )
         }
 
@@ -188,9 +212,9 @@ class AssistantFeedbackControllerTest
 
         coEvery {
           assistantService.feedback(
-            user = testUser,
-            conservation = Conversation.from(conversation),
-            goal = Goal.from(goal),
+            user = match { it.id == testUser.id && it.providerId == testUser.providerId },
+            conservation = match { it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId },
+            goal = match { it.id == Goal.from(goal).id && it.title == Goal.from(goal).title },
             yesterdaySchedules = emptyList(),
             todaySchedules = emptyList(),
           )
@@ -220,9 +244,9 @@ class AssistantFeedbackControllerTest
         // 파라미터 검증
         coVerify {
           assistantService.feedback(
-            user = testUser,
-            conservation = Conversation.from(conversation),
-            goal = Goal.from(goal),
+            user = match { it.id == testUser.id && it.providerId == testUser.providerId },
+            conservation = match { it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId },
+            goal = match { it.id == Goal.from(goal).id && it.title == Goal.from(goal).title },
             yesterdaySchedules = emptyList(),
             todaySchedules = emptyList(),
           )
