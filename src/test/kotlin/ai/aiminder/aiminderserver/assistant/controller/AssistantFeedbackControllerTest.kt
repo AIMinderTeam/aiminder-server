@@ -114,22 +114,27 @@ class AssistantFeedbackControllerTest
         coEvery {
           assistantService.feedback(
             user = match { it.id == testUser.id && it.providerId == testUser.providerId },
-            conservation = match { it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId },
+            conservation =
+              match {
+                it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId
+              },
             goal = match { it.id == Goal.from(goal).id && it.title == Goal.from(goal).title },
-            yesterdaySchedules = match { schedules ->
-              val expectedSchedules = yesterdaySchedules.map { Schedule.fromEntity(it) }
-              schedules.size == expectedSchedules.size && 
-              schedules.zip(expectedSchedules).all { (actual, expected) -> 
-                actual.id == expected.id && actual.title == expected.title
-              }
-            },
-            todaySchedules = match { schedules ->
-              val expectedSchedules = todaySchedules.map { Schedule.fromEntity(it) }
-              schedules.size == expectedSchedules.size && 
-              schedules.zip(expectedSchedules).all { (actual, expected) -> 
-                actual.id == expected.id && actual.title == expected.title
-              }
-            },
+            yesterdaySchedules =
+              match { schedules ->
+                val expectedSchedules = yesterdaySchedules.map { Schedule.fromEntity(it) }
+                schedules.size == expectedSchedules.size &&
+                  schedules.zip(expectedSchedules).all { (actual, expected) ->
+                    actual.id == expected.id && actual.title == expected.title
+                  }
+              },
+            todaySchedules =
+              match { schedules ->
+                val expectedSchedules = todaySchedules.map { Schedule.fromEntity(it) }
+                schedules.size == expectedSchedules.size &&
+                  schedules.zip(expectedSchedules).all { (actual, expected) ->
+                    actual.id == expected.id && actual.title == expected.title
+                  }
+              },
           )
         } returns expectedAssistantResponse
 
@@ -165,22 +170,27 @@ class AssistantFeedbackControllerTest
         coVerify {
           assistantService.feedback(
             user = match { it.id == testUser.id && it.providerId == testUser.providerId },
-            conservation = match { it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId },
+            conservation =
+              match {
+                it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId
+              },
             goal = match { it.id == Goal.from(goal).id && it.title == Goal.from(goal).title },
-            yesterdaySchedules = match { schedules ->
-              val expectedSchedules = yesterdaySchedules.map { Schedule.fromEntity(it) }
-              schedules.size == expectedSchedules.size && 
-              schedules.zip(expectedSchedules).all { (actual, expected) -> 
-                actual.id == expected.id && actual.title == expected.title
-              }
-            },
-            todaySchedules = match { schedules ->
-              val expectedSchedules = todaySchedules.map { Schedule.fromEntity(it) }
-              schedules.size == expectedSchedules.size && 
-              schedules.zip(expectedSchedules).all { (actual, expected) -> 
-                actual.id == expected.id && actual.title == expected.title
-              }
-            },
+            yesterdaySchedules =
+              match { schedules ->
+                val expectedSchedules = yesterdaySchedules.map { Schedule.fromEntity(it) }
+                schedules.size == expectedSchedules.size &&
+                  schedules.zip(expectedSchedules).all { (actual, expected) ->
+                    actual.id == expected.id && actual.title == expected.title
+                  }
+              },
+            todaySchedules =
+              match { schedules ->
+                val expectedSchedules = todaySchedules.map { Schedule.fromEntity(it) }
+                schedules.size == expectedSchedules.size &&
+                  schedules.zip(expectedSchedules).all { (actual, expected) ->
+                    actual.id == expected.id && actual.title == expected.title
+                  }
+              },
           )
         }
 
@@ -213,7 +223,10 @@ class AssistantFeedbackControllerTest
         coEvery {
           assistantService.feedback(
             user = match { it.id == testUser.id && it.providerId == testUser.providerId },
-            conservation = match { it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId },
+            conservation =
+              match {
+                it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId
+              },
             goal = match { it.id == Goal.from(goal).id && it.title == Goal.from(goal).title },
             yesterdaySchedules = emptyList(),
             todaySchedules = emptyList(),
@@ -245,7 +258,10 @@ class AssistantFeedbackControllerTest
         coVerify {
           assistantService.feedback(
             user = match { it.id == testUser.id && it.providerId == testUser.providerId },
-            conservation = match { it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId },
+            conservation =
+              match {
+                it.id == Conversation.from(conversation).id && it.userId == Conversation.from(conversation).userId
+              },
             goal = match { it.id == Goal.from(goal).id && it.title == Goal.from(goal).title },
             yesterdaySchedules = emptyList(),
             todaySchedules = emptyList(),
