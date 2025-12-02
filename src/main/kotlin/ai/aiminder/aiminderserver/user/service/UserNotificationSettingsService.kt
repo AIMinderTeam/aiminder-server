@@ -40,6 +40,42 @@ class UserNotificationSettingsService(
     return UserNotificationSettings.from(savedEntity)
   }
 
+  suspend fun updateAiFeedbackEnabled(
+    userId: UUID,
+    aiFeedbackEnabled: Boolean,
+  ): UserNotificationSettings {
+    val existingEntity =
+      userNotificationSettingsRepository.findById(userId)
+        ?: createDefaultSettings(userId)
+
+    val updatedEntity =
+      existingEntity.copy(
+        aiFeedbackEnabled = aiFeedbackEnabled,
+        updatedAt = Instant.now(),
+      )
+
+    val savedEntity = userNotificationSettingsRepository.save(updatedEntity)
+    return UserNotificationSettings.from(savedEntity)
+  }
+
+  suspend fun updateAiFeedbackNotificationTime(
+    userId: UUID,
+    aiFeedbackNotificationTime: LocalTime,
+  ): UserNotificationSettings {
+    val existingEntity =
+      userNotificationSettingsRepository.findById(userId)
+        ?: createDefaultSettings(userId)
+
+    val updatedEntity =
+      existingEntity.copy(
+        aiFeedbackNotificationTime = aiFeedbackNotificationTime,
+        updatedAt = Instant.now(),
+      )
+
+    val savedEntity = userNotificationSettingsRepository.save(updatedEntity)
+    return UserNotificationSettings.from(savedEntity)
+  }
+
   private suspend fun createDefaultSettings(userId: UUID): UserNotificationSettingsEntity {
     val defaultEntity =
       UserNotificationSettingsEntity(
