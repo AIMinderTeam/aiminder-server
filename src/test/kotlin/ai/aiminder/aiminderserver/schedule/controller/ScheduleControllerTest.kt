@@ -1007,4 +1007,77 @@ class ScheduleControllerTest
             }
           }
       }
+
+    @Test
+    fun `일정 목록 조회 시 시작 날짜 기준 오름차순 정렬 확인`() =
+      runTest {
+        // given - 시작 날짜가 다른 3개의 일정을 역순으로 생성
+        val schedule3 =
+          scheduleRepository.save(
+            ScheduleEntity(
+              goalId = testGoal.id!!,
+              userId = testUser.id,
+              title = "Third Schedule",
+              description = "Latest start date",
+              startDate = Instant.parse("2024-03-20T00:00:00Z"),
+              endDate = Instant.parse("2024-03-25T00:00:00Z"),
+              status = ScheduleStatus.READY,
+            ),
+          )
+
+        val schedule1 =
+          scheduleRepository.save(
+            ScheduleEntity(
+              goalId = testGoal.id!!,
+              userId = testUser.id,
+              title = "First Schedule",
+              description = "Earliest start date",
+              startDate = Instant.parse("2024-03-10T00:00:00Z"),
+              endDate = Instant.parse("2024-03-15T00:00:00Z"),
+              status = ScheduleStatus.READY,
+            ),
+          )
+
+        val schedule2 =
+          scheduleRepository.save(
+            ScheduleEntity(
+              goalId = testGoal.id!!,
+              userId = testUser.id,
+              title = "Second Schedule",
+              description = "Middle start date",
+              startDate = Instant.parse("2024-03-15T00:00:00Z"),
+              endDate = Instant.parse("2024-03-20T00:00:00Z"),
+              status = ScheduleStatus.READY,
+            ),
+          )
+
+        // when & then - 일정 목록 조회 시 시작 날짜 기준 오름차순 정렬 확인
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/goals/{goalId}/schedules", testGoal.id!!)
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<List<ScheduleResponse>>>()
+          .value { response ->
+            assertThat(response.data).hasSize(3)
+
+            // 시작 날짜 기준 오름차순으로 정렬되어 있는지 확인
+            val schedules = response.data!!
+            assertThat(schedules[0].title).isEqualTo("First Schedule")
+            assertThat(schedules[0].startDate).isEqualTo(Instant.parse("2024-03-10T00:00:00Z"))
+
+            assertThat(schedules[1].title).isEqualTo("Second Schedule")
+            assertThat(schedules[1].startDate).isEqualTo(Instant.parse("2024-03-15T00:00:00Z"))
+
+            assertThat(schedules[2].title).isEqualTo("Third Schedule")
+            assertThat(schedules[2].startDate).isEqualTo(Instant.parse("2024-03-20T00:00:00Z"))
+
+            // 전체적으로 시작 날짜가 오름차순인지 확인
+            for (i in 0 until schedules.size - 1) {
+              assertThat(schedules[i].startDate).isBeforeOrEqualTo(schedules[i + 1].startDate)
+            }
+          }
+      }
   }
