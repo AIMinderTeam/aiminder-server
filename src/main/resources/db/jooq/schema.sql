@@ -146,13 +146,23 @@ CREATE TABLE IF NOT EXISTS inquiries
   inquiry_id    uuid PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
   user_id       uuid             NOT NULL
     CONSTRAINT fk_inquiries_user_id REFERENCES users (user_id) ON DELETE CASCADE,
-  inquiry_type  VARCHAR(50)      NOT NULL 
+  inquiry_type  VARCHAR(50)      NOT NULL
     CHECK (inquiry_type IN ('REVIEW', 'BUG_REPORT', 'IMPROVEMENT_SUGGESTION', 'GENERAL')),
-  content       TEXT             NOT NULL CHECK (char_length(content) <= 1000),
+  content       TEXT             NOT NULL CHECK (CHAR_LENGTH(content) <= 1000),
   contact_email VARCHAR(255),
   status        VARCHAR(20)      NOT NULL DEFAULT 'PENDING'
     CHECK (status IN ('PENDING', 'IN_PROGRESS', 'RESOLVED')),
   created_at    TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at    TIMESTAMP
+);
+
+CREATE TABLE user_notification_settings
+(
+  user_id                       uuid PRIMARY KEY NOT NULL
+    CONSTRAINT fk_user_notification_settings_user_id REFERENCES users (user_id) ON DELETE CASCADE,
+  ai_feedback_enabled           BOOLEAN          NOT NULL DEFAULT TRUE,
+  ai_feedback_notification_time TIME             NOT NULL DEFAULT '09:00:00',
+  created_at                    TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at                    TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
