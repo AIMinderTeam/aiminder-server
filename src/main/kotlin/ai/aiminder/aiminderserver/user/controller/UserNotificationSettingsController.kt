@@ -17,9 +17,9 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/user/notification-settings")
 class UserNotificationSettingsController(
   private val userNotificationSettingsService: UserNotificationSettingsService,
-) {
+) : UserNotificationSettingsControllerDocs {
   @GetMapping
-  suspend fun getNotificationSettings(
+  override suspend fun getNotificationSettings(
     @AuthenticationPrincipal
     user: User,
   ): ServiceResponse<GetUserNotificationSettingsResponse> {
@@ -29,7 +29,7 @@ class UserNotificationSettingsController(
   }
 
   @PatchMapping("/ai-feedback-enabled")
-  suspend fun updateAiFeedbackEnabled(
+  override suspend fun updateAiFeedbackEnabled(
     @RequestBody
     request: UpdateAiFeedbackEnabledRequest,
     @AuthenticationPrincipal
@@ -45,7 +45,7 @@ class UserNotificationSettingsController(
   }
 
   @PatchMapping("/ai-feedback-notification-time")
-  suspend fun updateAiFeedbackNotificationTime(
+  override suspend fun updateAiFeedbackNotificationTime(
     @RequestBody
     request: UpdateAiFeedbackNotificationTimeRequest,
     @AuthenticationPrincipal

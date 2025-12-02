@@ -21,5 +21,5 @@ data class UserNotificationSettingsEntity(
 ) : Persistable<UUID> {
   override fun getId(): UUID? = id
 
-  override fun isNew(): Boolean = id == null
+  override fun isNew(): Boolean = createdAt == updatedAt
 }
