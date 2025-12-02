@@ -41,10 +41,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture Overview
 
 ### Technology Stack
-- **Framework**: Spring Boot 3.5 + WebFlux (reactive)
+- **Framework**: Spring Boot 3.5.3 + WebFlux (reactive)
 - **Language**: Kotlin with coroutines
 - **Database**: PostgreSQL 14 with R2DBC (reactive database access)
-- **AI Integration**: Spring AI framework with OpenAI
+- **AI Integration**: Spring AI 1.0.3 framework with OpenAI
 - **Authentication**: JWT + OAuth2 (Google, Kakao)
 - **Build**: Gradle with Kotlin DSL
 - **Testing**: JUnit 5, MockK, TestContainers, Reactor Test
@@ -62,6 +62,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `schedule/`: Schedule management system
 - `notification/`: Notification management system
 - `conversation/`: Conversation history and memory management
+- `inquiry/`: User inquiry and feedback management system
 - `common/`: Shared utilities and configuration
 
 **Configuration Management**: Environment-driven configuration using `.env` files loaded via dotenv-java, with profile-specific YAML files.
@@ -69,7 +70,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Database & Migrations
 - **Migration Tool**: Flyway for database schema versioning
 - **Location**: `src/main/resources/db/migration/V*__*.sql`
-- **Entities**: User, RefreshToken, Goal, GoalDraft, ScheduleDraft, Image, Schedule
+- **Entities**: User, RefreshToken, Goal, GoalDraft, ScheduleDraft, Image, Schedule, Inquiry, UserNotificationSettings, Conversation, Chat, Notification
 - **Testing**: Uses TestContainers for integration tests with PostgreSQL
 
 ### Authentication Flow
@@ -127,3 +128,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Image Handling**: Supports file uploads with validation for image types (JPEG, PNG, GIF, WebP) and size limits. Upload directory is configurable via application properties.
 
 **Schedule Management**: Provides weekly schedule generation linked to goals. Schedules have status tracking (READY, IN_PROGRESS, COMPLETED, CANCELLED) for progress monitoring.
+
+**Inquiry System**: Manages user inquiries and feedback with support for different types (REVIEW, BUG_REPORT, IMPROVEMENT_SUGGESTION, GENERAL). Includes status tracking (PENDING, IN_PROGRESS, RESOLVED) and optional contact email collection.
+
+**User Notification Settings**: Configurable notification preferences per user, including AI feedback enablement and notification timing. Supports personalized notification schedules for each user.
