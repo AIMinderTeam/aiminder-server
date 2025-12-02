@@ -14,7 +14,7 @@ class UserNotificationSettingsService(
 ) {
   suspend fun getNotificationSettings(userId: UUID): UserNotificationSettings {
     val entity =
-      userNotificationSettingsRepository.findById(userId)
+      userNotificationSettingsRepository.findByUserId(userId)
         ?: createDefaultSettings(userId)
 
     return UserNotificationSettings.from(entity)
@@ -26,7 +26,7 @@ class UserNotificationSettingsService(
     aiFeedbackNotificationTime: LocalTime,
   ): UserNotificationSettings {
     val existingEntity =
-      userNotificationSettingsRepository.findById(userId)
+      userNotificationSettingsRepository.findByUserId(userId)
         ?: createDefaultSettings(userId)
 
     val updatedEntity =
@@ -45,7 +45,7 @@ class UserNotificationSettingsService(
     aiFeedbackEnabled: Boolean,
   ): UserNotificationSettings {
     val existingEntity =
-      userNotificationSettingsRepository.findById(userId)
+      userNotificationSettingsRepository.findByUserId(userId)
         ?: createDefaultSettings(userId)
 
     val updatedEntity =
@@ -63,7 +63,7 @@ class UserNotificationSettingsService(
     aiFeedbackNotificationTime: LocalTime,
   ): UserNotificationSettings {
     val existingEntity =
-      userNotificationSettingsRepository.findById(userId)
+      userNotificationSettingsRepository.findByUserId(userId)
         ?: createDefaultSettings(userId)
 
     val updatedEntity =
@@ -79,7 +79,7 @@ class UserNotificationSettingsService(
   private suspend fun createDefaultSettings(userId: UUID): UserNotificationSettingsEntity {
     val defaultEntity =
       UserNotificationSettingsEntity(
-        id = userId,
+        userId = userId,
         aiFeedbackEnabled = true,
         aiFeedbackNotificationTime = LocalTime.of(9, 0),
       )

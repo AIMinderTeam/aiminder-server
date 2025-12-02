@@ -11,9 +11,10 @@ import java.util.UUID
 @Table("user_notification_settings")
 data class UserNotificationSettingsEntity(
   @Id
-  @Column("user_id")
-  @get:JvmName("userId")
+  @Column("notification_setting_id")
+  @get:JvmName("notificationSettingId")
   val id: UUID? = null,
+  val userId: UUID,
   val aiFeedbackEnabled: Boolean,
   val aiFeedbackNotificationTime: LocalTime,
   val createdAt: Instant = Instant.now(),
@@ -21,5 +22,5 @@ data class UserNotificationSettingsEntity(
 ) : Persistable<UUID> {
   override fun getId(): UUID? = id
 
-  override fun isNew(): Boolean = createdAt == updatedAt
+  override fun isNew(): Boolean = id == null
 }

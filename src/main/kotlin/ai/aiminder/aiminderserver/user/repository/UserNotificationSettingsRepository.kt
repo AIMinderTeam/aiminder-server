@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
-interface UserNotificationSettingsRepository : CoroutineCrudRepository<UserNotificationSettingsEntity, UUID>
+interface UserNotificationSettingsRepository : CoroutineCrudRepository<UserNotificationSettingsEntity, UUID> {
+  suspend fun findByUserId(userId: UUID): UserNotificationSettingsEntity?
+}

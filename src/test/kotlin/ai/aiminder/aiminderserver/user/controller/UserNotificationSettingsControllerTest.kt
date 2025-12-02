@@ -83,7 +83,7 @@ class UserNotificationSettingsControllerTest
         // given - 기존 설정 생성
         userNotificationSettingsRepository.save(
           UserNotificationSettingsEntity(
-            id = testUser.id,
+            userId = testUser.id,
             aiFeedbackEnabled = false,
             aiFeedbackNotificationTime = LocalTime.of(18, 30),
           ),
@@ -146,7 +146,7 @@ class UserNotificationSettingsControllerTest
           }
 
         // 데이터베이스에서 실제로 변경되었는지 확인
-        val savedSettings = userNotificationSettingsRepository.findById(testUser.id)
+        val savedSettings = userNotificationSettingsRepository.findByUserId(testUser.id)
         assertThat(savedSettings).isNotNull
         assertThat(savedSettings!!.aiFeedbackEnabled).isFalse()
       }
@@ -157,7 +157,7 @@ class UserNotificationSettingsControllerTest
         // given - 기존 설정
         userNotificationSettingsRepository.save(
           UserNotificationSettingsEntity(
-            id = testUser.id,
+            userId = testUser.id,
             aiFeedbackEnabled = true,
             aiFeedbackNotificationTime = LocalTime.of(15, 45),
           ),
@@ -184,7 +184,7 @@ class UserNotificationSettingsControllerTest
           }
 
         // 데이터베이스에서 변경사항 확인
-        val savedSettings = userNotificationSettingsRepository.findById(testUser.id)
+        val savedSettings = userNotificationSettingsRepository.findByUserId(testUser.id)
         assertThat(savedSettings).isNotNull
         assertThat(savedSettings!!.aiFeedbackEnabled).isFalse()
         assertThat(savedSettings.aiFeedbackNotificationTime).isEqualTo(LocalTime.of(15, 45))
@@ -233,7 +233,7 @@ class UserNotificationSettingsControllerTest
           }
 
         // 데이터베이스에서 실제로 변경되었는지 확인
-        val savedSettings = userNotificationSettingsRepository.findById(testUser.id)
+        val savedSettings = userNotificationSettingsRepository.findByUserId(testUser.id)
         assertThat(savedSettings).isNotNull
         assertThat(savedSettings!!.aiFeedbackNotificationTime).isEqualTo(newTime)
       }
@@ -244,7 +244,7 @@ class UserNotificationSettingsControllerTest
         // given - 기존 설정
         userNotificationSettingsRepository.save(
           UserNotificationSettingsEntity(
-            id = testUser.id,
+            userId = testUser.id,
             aiFeedbackEnabled = false,
             aiFeedbackNotificationTime = LocalTime.of(10, 0),
           ),
@@ -272,7 +272,7 @@ class UserNotificationSettingsControllerTest
           }
 
         // 데이터베이스에서 변경사항 확인
-        val savedSettings = userNotificationSettingsRepository.findById(testUser.id)
+        val savedSettings = userNotificationSettingsRepository.findByUserId(testUser.id)
         assertThat(savedSettings).isNotNull
         assertThat(savedSettings!!.aiFeedbackEnabled).isFalse()
         assertThat(savedSettings.aiFeedbackNotificationTime).isEqualTo(newTime)
