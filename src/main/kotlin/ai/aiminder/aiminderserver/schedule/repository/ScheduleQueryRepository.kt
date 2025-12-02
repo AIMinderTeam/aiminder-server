@@ -31,7 +31,7 @@ class ScheduleQueryRepository : JooqR2dbcRepository() {
         SCHEDULES.DELETED_AT,
       ).from(SCHEDULES)
         .where(buildScheduleConditions(dto))
-        .orderBy(SCHEDULES.CREATED_AT.desc())
+        .orderBy(SCHEDULES.START_DATE.asc())
         .offset(dto.pageable.offset.toInt())
         .limit(dto.pageable.pageSize)
     }.map { record ->
