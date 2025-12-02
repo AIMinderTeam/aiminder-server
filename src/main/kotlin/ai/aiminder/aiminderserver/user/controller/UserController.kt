@@ -5,7 +5,7 @@ import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.dto.WithdrawUserRequest
 import ai.aiminder.aiminderserver.user.service.UserService
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController
 class UserController(
   private val userService: UserService,
 ) : UserControllerDocs {
-  @DeleteMapping("/me")
+  @PatchMapping("/withdraw")
   override suspend fun withdrawUser(
     @RequestBody request: WithdrawUserRequest,
     @AuthenticationPrincipal user: User,
