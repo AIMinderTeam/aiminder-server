@@ -2,16 +2,20 @@ package ai.aiminder.aiminderserver.schedule.repository
 
 import ai.aiminder.aiminderserver.common.config.JooqR2dbcRepository
 import ai.aiminder.aiminderserver.jooq.tables.Schedules.Companion.SCHEDULES
+import ai.aiminder.aiminderserver.schedule.dto.DailyScheduleStatistics
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequestDto
 import ai.aiminder.aiminderserver.schedule.repository.row.ScheduleRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.single
+import kotlinx.coroutines.flow.toList
 import org.jooq.Condition
+import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 
 @Repository
 class ScheduleQueryRepository : JooqR2dbcRepository() {
@@ -56,6 +60,40 @@ class ScheduleQueryRepository : JooqR2dbcRepository() {
         .from(SCHEDULES)
         .where(buildScheduleConditions(dto))
     }.single().component1().toLong()
+
+  suspend fun findDailyStatisticsForMonth(
+    userId: UUID,
+    year: Int,
+    month: Int,
+  ): List<DailyScheduleStatistics> =
+    query {
+      val dayField = DSL.extract(SCHEDULES.START_DATE, org.jooq.DatePart.DAY)
+      val totalCountField = DSL.count()
+      val completedCountField =
+        DSL.count(
+          DSL.`when`(SCHEDULES.STATUS.eq("COMPLETED"), 1).otherwise(null as Int?),
+        )
+
+      select(
+        dayField.`as`("date"),
+        totalCountField.`as`("total_count"),
+        completedCountField.`as`("completed_count"),
+      ).from(SCHEDULES)
+        .where(
+          SCHEDULES.USER_ID.eq(userId)
+            .and(DSL.extract(SCHEDULES.START_DATE, org.jooq.DatePart.YEAR).eq(year))
+            .and(DSL.extract(SCHEDULES.START_DATE, org.jooq.DatePart.MONTH).eq(month))
+            .and(SCHEDULES.DELETED_AT.isNull),
+        )
+        .groupBy(dayField)
+        .orderBy(dayField)
+    }.map { record ->
+      DailyScheduleStatistics.from(
+        date = record.get("date") as Int,
+        totalCount = record.get("total_count") as Int,
+        completedCount = record.get("completed_count") as Int,
+      )
+    }.toList()
 
   private fun buildScheduleConditions(dto: GetSchedulesRequestDto): List<Condition> {
     val conditions = mutableListOf<Condition>()

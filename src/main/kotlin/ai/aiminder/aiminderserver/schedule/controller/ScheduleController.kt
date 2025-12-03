@@ -6,6 +6,8 @@ import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequest
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequestDto
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequest
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequestDto
+import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsRequest
+import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsResponse
 import ai.aiminder.aiminderserver.schedule.dto.ScheduleResponse
 import ai.aiminder.aiminderserver.schedule.dto.UpdateScheduleRequest
 import ai.aiminder.aiminderserver.schedule.dto.UpdateScheduleRequestDto
@@ -112,5 +114,15 @@ class ScheduleController(
   ): ServiceResponse<ScheduleResponse> {
     val schedule = scheduleService.findById(scheduleId, user.id)
     return ServiceResponse.from(schedule)
+  }
+
+  @GetMapping("/schedules/monthly-statistics")
+  override suspend fun getMonthlyStatistics(
+    request: MonthlyScheduleStatisticsRequest,
+    @AuthenticationPrincipal
+    user: User,
+  ): ServiceResponse<MonthlyScheduleStatisticsResponse> {
+    val statistics = scheduleService.getMonthlyStatistics(user.id, request.year, request.month)
+    return ServiceResponse.from(statistics)
   }
 }

@@ -4,6 +4,8 @@ import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequest
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequest
+import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsRequest
+import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsResponse
 import ai.aiminder.aiminderserver.schedule.dto.ScheduleResponse
 import ai.aiminder.aiminderserver.schedule.dto.UpdateScheduleRequest
 import ai.aiminder.aiminderserver.user.domain.User
@@ -525,4 +527,128 @@ interface ScheduleControllerDocs {
     @Parameter(description = "조회할 일정 ID") scheduleId: UUID,
     @Parameter(hidden = true) user: User,
   ): ServiceResponse<ScheduleResponse>
+
+  @Operation(
+    operationId = "getMonthlyStatistics",
+    summary = "월별 일정 통계 조회",
+    description =
+      "특정 월의 일별 일정 통계를 조회합니다. " +
+        "캘린더 UI에서 각 날짜별 완료율을 시각화할 수 있는 데이터를 제공합니다. " +
+        "OAuth2 로그인 성공 시 설정되는 `ACCESS_TOKEN`(필수) / `REFRESH_TOKEN`(선택) 쿠키 기반 인증 또는 " +
+        "Authorization 헤더의 Bearer 토큰 인증을 사용합니다.",
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "성공: 월별 일정 통계 조회 완료",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 200,
+                  "message": "성공",
+                  "errorCode": null,
+                  "data": {
+                    "year": 2025,
+                    "month": 12,
+                    "dailyStatistics": [
+                      {
+                        "date": 1,
+                        "totalCount": 5,
+                        "completedCount": 3,
+                        "completionRate": 0.6
+                      },
+                      {
+                        "date": 2,
+                        "totalCount": 8,
+                        "completedCount": 4,
+                        "completionRate": 0.5
+                      }
+                    ]
+                  },
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "요청 파라미터 검증 실패: 잘못된 연도 또는 월",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 400,
+                  "message": "잘못된 월 값입니다. 1-12 범위의 값을 입력해주세요.",
+                  "errorCode": "COMMON:INVALIDREQUEST",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "인증 실패: 토큰이 없거나 유효하지 않음",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 401,
+                  "message": "인증이 필요합니다. 로그인을 진행해주세요.",
+                  "errorCode": "AUTH:UNAUTHORIZED",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 데이터베이스 연결 실패 등",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+    ],
+  )
+  suspend fun getMonthlyStatistics(
+    request: MonthlyScheduleStatisticsRequest,
+    @Parameter(hidden = true) user: User,
+  ): ServiceResponse<MonthlyScheduleStatisticsResponse>
 }
