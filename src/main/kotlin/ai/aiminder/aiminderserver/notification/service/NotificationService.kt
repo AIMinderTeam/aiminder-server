@@ -2,6 +2,7 @@ package ai.aiminder.aiminderserver.notification.service
 
 import ai.aiminder.aiminderserver.notification.domain.Notification
 import ai.aiminder.aiminderserver.notification.dto.CheckNotificationRequestDto
+import ai.aiminder.aiminderserver.notification.dto.CreateNotificationRequest
 import ai.aiminder.aiminderserver.notification.dto.GetNotificationsRequestDto
 import ai.aiminder.aiminderserver.notification.entity.NotificationEntity
 import ai.aiminder.aiminderserver.notification.error.NotificationError
@@ -51,4 +52,9 @@ class NotificationService(
             ?: throw NotificationError.NotFound(dto.notificationId),
         )
     }
+
+  suspend fun create(request: CreateNotificationRequest): Notification {
+    val notification: NotificationEntity = NotificationEntity.from(request)
+    return notificationRepository.save(notification).let { Notification.from(it) }
+  }
 }

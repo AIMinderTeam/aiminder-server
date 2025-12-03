@@ -66,6 +66,9 @@ dependencies {
   implementation("org.jetbrains.kotlin:kotlin-reflect")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
+  // json
+  implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
+
   // jwt
   implementation("io.jsonwebtoken:jjwt-api:$jwtVersion")
   implementation("io.jsonwebtoken:jjwt-impl:$jwtVersion")

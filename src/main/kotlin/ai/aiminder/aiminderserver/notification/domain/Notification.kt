@@ -1,5 +1,6 @@
 package ai.aiminder.aiminderserver.notification.domain
 
+import ai.aiminder.aiminderserver.notification.dto.CreateNotificationRequest
 import ai.aiminder.aiminderserver.notification.entity.NotificationEntity
 import java.time.Instant
 import java.util.UUID
