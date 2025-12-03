@@ -71,7 +71,7 @@ class NotificationControllerTest
         // given - 읽지 않은 알림 3개 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Todo Notification",
             description = "You have a new todo",
             metadata = mapOf("key" to "value"),
@@ -81,7 +81,7 @@ class NotificationControllerTest
         )
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.MOTIVATION,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Motivation Notification",
             description = "Stay motivated!",
             metadata = mapOf("key" to "value"),
@@ -91,7 +91,7 @@ class NotificationControllerTest
         )
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Another Todo",
             description = "Another todo notification",
             metadata = mapOf("key" to "value"),
@@ -103,7 +103,7 @@ class NotificationControllerTest
         // 체크된 알림 1개 (개수에 포함되지 않아야 함)
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.MOTIVATION,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Checked Notification",
             description = "This is checked",
             metadata = mapOf("key" to "value"),
@@ -127,7 +127,7 @@ class NotificationControllerTest
         // given - 삭제된 알림 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Todo Notification",
             description = "You have a new todo",
             metadata = mapOf("key" to "value"),
@@ -162,7 +162,7 @@ class NotificationControllerTest
         // given - 읽지 않은 알림 2개 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Test Notification 1",
             description = "Test Description 1",
             metadata = mapOf("key" to "value"),
@@ -172,7 +172,7 @@ class NotificationControllerTest
         )
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.MOTIVATION,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Test Notification 2",
             description = "Test Description 2",
             metadata = mapOf("key" to "value"),
@@ -261,7 +261,7 @@ class NotificationControllerTest
         // given - 체크된 알림만 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Checked Notification 1",
             description = "This is checked",
             metadata = mapOf("key" to "value"),
@@ -271,7 +271,7 @@ class NotificationControllerTest
         )
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.MOTIVATION,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Checked Notification 2",
             description = "This is also checked",
             metadata = mapOf("key" to "value"),
@@ -295,7 +295,7 @@ class NotificationControllerTest
         // given - 다른 사용자의 알림 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Other User's Notification",
             description = "This belongs to other user",
             metadata = mapOf("key" to "value"),
@@ -307,7 +307,7 @@ class NotificationControllerTest
         // testUser의 알림 1개 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.MOTIVATION,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "My Notification",
             description = "This belongs to test user",
             metadata = mapOf("key" to "value"),
@@ -332,21 +332,21 @@ class NotificationControllerTest
         val notification1 =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Todo 1",
             "Description 1",
           )
         val notification2 =
           createTestNotification(
             testUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Motivation 1",
             "Description 2",
           )
         val notification3 =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Todo 2",
             "Description 3",
           )
@@ -716,7 +716,7 @@ class NotificationControllerTest
 
     private suspend fun createTestNotification(
       user: User,
-      type: NotificationType = NotificationType.TO_DO,
+      type: NotificationType = NotificationType.ASSISTANT_FEEDBACK,
       title: String = "Test Notification",
       description: String = "Test Description",
       checked: Boolean = false,
@@ -741,7 +741,7 @@ class NotificationControllerTest
         val notificationEntity =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Test Todo",
             "Test Description",
             checked = false,
@@ -770,7 +770,7 @@ class NotificationControllerTest
         val notificationEntity =
           createTestNotification(
             testUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Already Checked",
             "Already checked notification",
             checked = true,
@@ -806,7 +806,7 @@ class NotificationControllerTest
         val otherUserNotification =
           createTestNotification(
             otherUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Other User's Notification",
             "This belongs to other user",
             checked = false,
@@ -844,7 +844,7 @@ class NotificationControllerTest
         val notificationEntity =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Bearer Token Test",
             "Test with bearer token",
             checked = false,
@@ -880,7 +880,7 @@ class NotificationControllerTest
         val deletedNotification =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Deleted Notification",
             "This is deleted",
             checked = false,
@@ -940,7 +940,7 @@ class NotificationControllerTest
         val uncheckedNotification1 =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Unchecked 1",
             "Description 1",
             checked = false,
@@ -948,7 +948,7 @@ class NotificationControllerTest
         val uncheckedNotification2 =
           createTestNotification(
             testUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Unchecked 2",
             "Description 2",
             checked = false,
@@ -956,7 +956,7 @@ class NotificationControllerTest
         val uncheckedNotification3 =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Unchecked 3",
             "Description 3",
             checked = false,
@@ -964,7 +964,7 @@ class NotificationControllerTest
         val checkedNotification =
           createTestNotification(
             testUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Already Checked",
             "Already checked",
             checked = true,
@@ -1007,14 +1007,14 @@ class NotificationControllerTest
         // given - 이미 확인된 알림만 존재
         createTestNotification(
           testUser,
-          NotificationType.TO_DO,
+          NotificationType.ASSISTANT_FEEDBACK,
           "Already Checked 1",
           "Description 1",
           checked = true,
         )
         createTestNotification(
           testUser,
-          NotificationType.MOTIVATION,
+          NotificationType.ASSISTANT_FEEDBACK,
           "Already Checked 2",
           "Description 2",
           checked = true,
@@ -1049,7 +1049,7 @@ class NotificationControllerTest
         val normalNotification =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Normal Notification",
             "Normal description",
             checked = false,
@@ -1057,7 +1057,7 @@ class NotificationControllerTest
         val deletedNotification =
           createTestNotification(
             testUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Deleted Notification",
             "Deleted description",
             checked = false,
@@ -1086,7 +1086,7 @@ class NotificationControllerTest
         val myNotification =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "My Notification",
             "My description",
             checked = false,
@@ -1094,7 +1094,7 @@ class NotificationControllerTest
         val otherUserNotification =
           createTestNotification(
             otherUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Other User's Notification",
             "Other user's description",
             checked = false,
@@ -1135,14 +1135,14 @@ class NotificationControllerTest
         // given - 미확인 알림 2개 생성
         createTestNotification(
           testUser,
-          NotificationType.TO_DO,
+          NotificationType.ASSISTANT_FEEDBACK,
           "Bearer Token Test 1",
           "Test 1 with bearer token",
           checked = false,
         )
         createTestNotification(
           testUser,
-          NotificationType.MOTIVATION,
+          NotificationType.ASSISTANT_FEEDBACK,
           "Bearer Token Test 2",
           "Test 2 with bearer token",
           checked = false,
