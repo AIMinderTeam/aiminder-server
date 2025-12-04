@@ -8,10 +8,13 @@ import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.notification.domain.Notification
 import ai.aiminder.aiminderserver.notification.domain.NotificationType
 import ai.aiminder.aiminderserver.notification.entity.NotificationEntity
+import ai.aiminder.aiminderserver.notification.event.CreateFeedbackEvent
+import ai.aiminder.aiminderserver.notification.event.NotificationEventListener
 import ai.aiminder.aiminderserver.notification.repository.NotificationRepository
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.entity.UserEntity
 import ai.aiminder.aiminderserver.user.repository.UserRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -31,6 +34,7 @@ class NotificationControllerTest
     private val userRepository: UserRepository,
     private val notificationRepository: NotificationRepository,
     private val tokenService: TokenService,
+    private val notificationEventListener: NotificationEventListener,
   ) : BaseIntegrationTest() {
     private lateinit var testUser: User
     private lateinit var authentication: UsernamePasswordAuthenticationToken
@@ -1235,6 +1239,162 @@ class NotificationControllerTest
         .returnResult()
         .responseBody!!
     }
+
+    @Test
+    fun `notificationEventListener를 통한 알림 생성 후 조회 테스트`() =
+      runTest {
+        // given - 이벤트를 통해 알림 생성
+        val goalTitle = "운동 목표"
+        val conversationId = UUID.randomUUID()
+        val testEvent = createTestEvent(testUser.id, goalTitle, conversationId)
+        val initialCount = notificationRepository.countByReceiverIdAndDeletedAtIsNull(testUser.id)
+
+        // when - 이벤트 처리
+        notificationEventListener.consumeCreateDomainEvent(testEvent)
+
+        // 비동기 처리 완료를 위해 반복 확인
+        var attempts = 0
+        val maxAttempts = 50
+        var finalCount = initialCount
+
+        while (attempts < maxAttempts && finalCount == initialCount) {
+          delay(100)
+          finalCount = notificationRepository.countByReceiverIdAndDeletedAtIsNull(testUser.id)
+          attempts++
+        }
+
+        // then - 알림 개수 조회 API 테스트
+        val countResponse = getNotificationCount()
+        assertThat(countResponse.statusCode).isEqualTo(200)
+        assertThat(countResponse.data).isEqualTo((initialCount + 1).toInt())
+        assertThat(countResponse.errorCode).isNull()
+
+        // 알림 목록 조회 API 테스트
+        val listResponse = getNotifications("/api/v1/notifications?page=0&size=10")
+        assertThat(listResponse.statusCode).isEqualTo(200)
+        assertThat(listResponse.data).hasSize((initialCount + 1).toInt())
+        assertThat(listResponse.errorCode).isNull()
+
+        // 생성된 알림 내용 검증
+        val createdNotification = listResponse.data!!.first()
+        assertThat(createdNotification.title).isEqualTo("AI 비서 알림")
+        assertThat(createdNotification.description).isEqualTo("\"운동 목표\" 목표에 대한 피드백을 확인하세요.")
+        assertThat(createdNotification.receiverId).isEqualTo(testUser.id)
+        assertThat(createdNotification.type).isEqualTo(NotificationType.ASSISTANT_FEEDBACK)
+        assertThat(createdNotification.checked).isFalse()
+        assertThat(createdNotification.deletedAt).isNull()
+
+        // 메타데이터 확인
+        assertThat(createdNotification.metadata).isNotEmpty()
+        assertThat(createdNotification.metadata).containsKey("receiverId")
+        assertThat(createdNotification.metadata).containsKey("goalTitle")
+        assertThat(createdNotification.metadata).containsKey("conversationId")
+        assertThat(createdNotification.metadata).containsKey("type")
+        assertThat(createdNotification.metadata["goalTitle"]).isEqualTo(goalTitle)
+        assertThat(createdNotification.metadata["conversationId"]).isEqualTo(conversationId.toString())
+      }
+
+    @Test
+    fun `notificationEventListener를 통한 여러 알림 생성 후 조회 테스트`() =
+      runTest {
+        // given - 여러 이벤트를 통해 알림 생성
+        val event1 = createTestEvent(testUser.id, "운동 목표")
+        val event2 = createTestEvent(testUser.id, "독서 목표")
+        val event3 = createTestEvent(testUser.id, "학습 목표")
+        val initialCount = notificationRepository.countByReceiverIdAndDeletedAtIsNull(testUser.id)
+
+        // when - 여러 이벤트 처리
+        notificationEventListener.consumeCreateDomainEvent(event1)
+        notificationEventListener.consumeCreateDomainEvent(event2)
+        notificationEventListener.consumeCreateDomainEvent(event3)
+
+        // 비동기 처리 완료를 위해 반복 확인
+        waitForNotificationCount(testUser.id, initialCount + 3L)
+
+        // then - 알림 개수 조회 API 테스트
+        val countResponse = getNotificationCount()
+        assertThat(countResponse.statusCode).isEqualTo(200)
+        assertThat(countResponse.data).isEqualTo((initialCount + 3).toInt())
+
+        // 알림 목록 조회 API 테스트
+        val listResponse = getNotifications("/api/v1/notifications?page=0&size=10")
+        assertThat(listResponse.statusCode).isEqualTo(200)
+        assertThat(listResponse.data).hasSize((initialCount + 3).toInt())
+
+        // 생성된 알림들의 description 확인
+        val descriptions = listResponse.data!!.map { it.description }
+        assertThat(descriptions).contains(
+          "\"운동 목표\" 목표에 대한 피드백을 확인하세요.",
+          "\"독서 목표\" 목표에 대한 피드백을 확인하세요.",
+          "\"학습 목표\" 목표에 대한 피드백을 확인하세요.",
+        )
+
+        // 모든 알림이 정상적으로 생성되었는지 확인
+        listResponse.data!!.forEach { notification ->
+          assertThat(notification.title).isEqualTo("AI 비서 알림")
+          assertThat(notification.type).isEqualTo(NotificationType.ASSISTANT_FEEDBACK)
+          assertThat(notification.receiverId).isEqualTo(testUser.id)
+          assertThat(notification.checked).isFalse()
+          assertThat(notification.deletedAt).isNull()
+        }
+      }
+
+    @Test
+    fun `notificationEventListener로 생성한 알림 확인 테스트`() =
+      runTest {
+        // given - 이벤트를 통해 알림 생성
+        val testEvent = createTestEvent(testUser.id, "확인 테스트 목표")
+        notificationEventListener.consumeCreateDomainEvent(testEvent)
+
+        // 비동기 처리 완료 대기
+        waitForNotificationCount(testUser.id, 1L)
+
+        // 생성된 알림 조회
+        val listResponse = getNotifications("/api/v1/notifications?page=0&size=10")
+        val createdNotification = listResponse.data!!.first()
+
+        // when - 생성된 알림을 확인
+        val checkResponse = checkNotification(createdNotification.id)
+
+        // then
+        assertThat(checkResponse.statusCode).isEqualTo(200)
+        assertThat(checkResponse.data).isNotNull
+        assertThat(checkResponse.data!!.id).isEqualTo(createdNotification.id)
+        assertThat(checkResponse.data!!.checked).isTrue()
+        assertThat(checkResponse.errorCode).isNull()
+
+        // 확인 후 알림 개수가 0이 되는지 검증 (체크된 알림은 개수에 포함되지 않음)
+        val countAfterCheck = getNotificationCount()
+        assertThat(countAfterCheck.data).isEqualTo(0)
+      }
+
+    private suspend fun waitForNotificationCount(
+      userId: UUID,
+      expectedCount: Long,
+    ) {
+      var attempts = 0
+      val maxAttempts = 50
+      var currentCount = 0L
+
+      while (attempts < maxAttempts && currentCount < expectedCount) {
+        delay(100)
+        currentCount = notificationRepository.countByReceiverIdAndDeletedAtIsNull(userId)
+        attempts++
+      }
+
+      assertThat(currentCount).isEqualTo(expectedCount)
+    }
+
+    private fun createTestEvent(
+      receiverId: UUID = UUID.randomUUID(),
+      goalTitle: String = "Test Goal Title",
+      conversationId: UUID = UUID.randomUUID(),
+    ): CreateFeedbackEvent =
+      CreateFeedbackEvent(
+        goalTitle = goalTitle,
+        conversationId = conversationId,
+        receiverId = receiverId,
+      )
 
     private fun verifyNotificationConsistency(
       actual: Notification,
