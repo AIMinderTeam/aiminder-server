@@ -3,7 +3,7 @@ package ai.aiminder.aiminderserver.notification.event
 import ai.aiminder.aiminderserver.notification.domain.NotificationType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.util.*
+import java.util.UUID
 
 @Serializable
 sealed interface CreateNotificationEvent {

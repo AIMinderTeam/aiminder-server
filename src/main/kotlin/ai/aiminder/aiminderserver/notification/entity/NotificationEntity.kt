@@ -1,6 +1,5 @@
 package ai.aiminder.aiminderserver.notification.entity
 
-import ai.aiminder.aiminderserver.notification.domain.Notification
 import ai.aiminder.aiminderserver.notification.domain.NotificationType
 import ai.aiminder.aiminderserver.notification.dto.CreateNotificationRequest
 import org.springframework.data.annotation.Id

@@ -2,8 +2,7 @@ package ai.aiminder.aiminderserver.notification.dto
 
 import ai.aiminder.aiminderserver.notification.domain.NotificationType
 import ai.aiminder.aiminderserver.notification.event.CreateNotificationEvent
-import java.util.*
-import kotlin.concurrent.timer
+import java.util.UUID
 
 data class CreateNotificationRequest(
   val title: String,
