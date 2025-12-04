@@ -1,6 +1,7 @@
 package ai.aiminder.aiminderserver.notification.entity
 
 import ai.aiminder.aiminderserver.notification.domain.NotificationType
+import ai.aiminder.aiminderserver.notification.dto.CreateNotificationRequest
 import org.springframework.data.annotation.Id
 import org.springframework.data.domain.Persistable
 import org.springframework.data.relational.core.mapping.Column
@@ -29,4 +30,15 @@ data class NotificationEntity(
   override fun isNew(): Boolean = id == null
 
   fun check(): NotificationEntity = copy(checked = true, updatedAt = Instant.now())
+
+  companion object {
+    fun from(request: CreateNotificationRequest): NotificationEntity =
+      NotificationEntity(
+        type = request.type,
+        title = request.title,
+        description = request.content,
+        metadata = request.note,
+        receiverId = request.receiverId,
+      )
+  }
 }

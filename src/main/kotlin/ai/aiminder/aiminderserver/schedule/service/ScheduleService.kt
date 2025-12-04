@@ -3,6 +3,7 @@ package ai.aiminder.aiminderserver.schedule.service
 import ai.aiminder.aiminderserver.schedule.domain.Schedule
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequestDto
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequestDto
+import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsResponse
 import ai.aiminder.aiminderserver.schedule.dto.ScheduleResponse
 import ai.aiminder.aiminderserver.schedule.dto.UpdateScheduleRequestDto
 import ai.aiminder.aiminderserver.schedule.entity.ScheduleEntity
@@ -117,5 +118,19 @@ class ScheduleService(
     }
 
     return ScheduleResponse.from(Schedule.fromEntity(schedule))
+  }
+
+  suspend fun getMonthlyStatistics(
+    userId: UUID,
+    year: Int,
+    month: Int,
+  ): MonthlyScheduleStatisticsResponse {
+    val dailyStatistics = scheduleQueryRepository.findDailyStatisticsForMonth(userId, year, month)
+
+    return MonthlyScheduleStatisticsResponse.from(
+      year = year,
+      month = month,
+      dailyStatistics = dailyStatistics,
+    )
   }
 }

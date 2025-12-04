@@ -8,10 +8,13 @@ import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.notification.domain.Notification
 import ai.aiminder.aiminderserver.notification.domain.NotificationType
 import ai.aiminder.aiminderserver.notification.entity.NotificationEntity
+import ai.aiminder.aiminderserver.notification.event.CreateFeedbackEvent
+import ai.aiminder.aiminderserver.notification.event.NotificationEventListener
 import ai.aiminder.aiminderserver.notification.repository.NotificationRepository
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.entity.UserEntity
 import ai.aiminder.aiminderserver.user.repository.UserRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -31,6 +34,7 @@ class NotificationControllerTest
     private val userRepository: UserRepository,
     private val notificationRepository: NotificationRepository,
     private val tokenService: TokenService,
+    private val notificationEventListener: NotificationEventListener,
   ) : BaseIntegrationTest() {
     private lateinit var testUser: User
     private lateinit var authentication: UsernamePasswordAuthenticationToken
@@ -71,7 +75,7 @@ class NotificationControllerTest
         // given - 읽지 않은 알림 3개 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Todo Notification",
             description = "You have a new todo",
             metadata = mapOf("key" to "value"),
@@ -81,7 +85,7 @@ class NotificationControllerTest
         )
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.MOTIVATION,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Motivation Notification",
             description = "Stay motivated!",
             metadata = mapOf("key" to "value"),
@@ -91,7 +95,7 @@ class NotificationControllerTest
         )
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Another Todo",
             description = "Another todo notification",
             metadata = mapOf("key" to "value"),
@@ -103,7 +107,7 @@ class NotificationControllerTest
         // 체크된 알림 1개 (개수에 포함되지 않아야 함)
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.MOTIVATION,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Checked Notification",
             description = "This is checked",
             metadata = mapOf("key" to "value"),
@@ -127,7 +131,7 @@ class NotificationControllerTest
         // given - 삭제된 알림 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Todo Notification",
             description = "You have a new todo",
             metadata = mapOf("key" to "value"),
@@ -162,7 +166,7 @@ class NotificationControllerTest
         // given - 읽지 않은 알림 2개 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Test Notification 1",
             description = "Test Description 1",
             metadata = mapOf("key" to "value"),
@@ -172,7 +176,7 @@ class NotificationControllerTest
         )
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.MOTIVATION,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Test Notification 2",
             description = "Test Description 2",
             metadata = mapOf("key" to "value"),
@@ -261,7 +265,7 @@ class NotificationControllerTest
         // given - 체크된 알림만 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Checked Notification 1",
             description = "This is checked",
             metadata = mapOf("key" to "value"),
@@ -271,7 +275,7 @@ class NotificationControllerTest
         )
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.MOTIVATION,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Checked Notification 2",
             description = "This is also checked",
             metadata = mapOf("key" to "value"),
@@ -295,7 +299,7 @@ class NotificationControllerTest
         // given - 다른 사용자의 알림 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.TO_DO,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "Other User's Notification",
             description = "This belongs to other user",
             metadata = mapOf("key" to "value"),
@@ -307,7 +311,7 @@ class NotificationControllerTest
         // testUser의 알림 1개 생성
         notificationRepository.save(
           NotificationEntity(
-            type = NotificationType.MOTIVATION,
+            type = NotificationType.ASSISTANT_FEEDBACK,
             title = "My Notification",
             description = "This belongs to test user",
             metadata = mapOf("key" to "value"),
@@ -332,21 +336,21 @@ class NotificationControllerTest
         val notification1 =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Todo 1",
             "Description 1",
           )
         val notification2 =
           createTestNotification(
             testUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Motivation 1",
             "Description 2",
           )
         val notification3 =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Todo 2",
             "Description 3",
           )
@@ -716,7 +720,7 @@ class NotificationControllerTest
 
     private suspend fun createTestNotification(
       user: User,
-      type: NotificationType = NotificationType.TO_DO,
+      type: NotificationType = NotificationType.ASSISTANT_FEEDBACK,
       title: String = "Test Notification",
       description: String = "Test Description",
       checked: Boolean = false,
@@ -741,7 +745,7 @@ class NotificationControllerTest
         val notificationEntity =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Test Todo",
             "Test Description",
             checked = false,
@@ -770,7 +774,7 @@ class NotificationControllerTest
         val notificationEntity =
           createTestNotification(
             testUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Already Checked",
             "Already checked notification",
             checked = true,
@@ -806,7 +810,7 @@ class NotificationControllerTest
         val otherUserNotification =
           createTestNotification(
             otherUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Other User's Notification",
             "This belongs to other user",
             checked = false,
@@ -844,7 +848,7 @@ class NotificationControllerTest
         val notificationEntity =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Bearer Token Test",
             "Test with bearer token",
             checked = false,
@@ -880,7 +884,7 @@ class NotificationControllerTest
         val deletedNotification =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Deleted Notification",
             "This is deleted",
             checked = false,
@@ -940,7 +944,7 @@ class NotificationControllerTest
         val uncheckedNotification1 =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Unchecked 1",
             "Description 1",
             checked = false,
@@ -948,7 +952,7 @@ class NotificationControllerTest
         val uncheckedNotification2 =
           createTestNotification(
             testUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Unchecked 2",
             "Description 2",
             checked = false,
@@ -956,7 +960,7 @@ class NotificationControllerTest
         val uncheckedNotification3 =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Unchecked 3",
             "Description 3",
             checked = false,
@@ -964,7 +968,7 @@ class NotificationControllerTest
         val checkedNotification =
           createTestNotification(
             testUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Already Checked",
             "Already checked",
             checked = true,
@@ -1007,14 +1011,14 @@ class NotificationControllerTest
         // given - 이미 확인된 알림만 존재
         createTestNotification(
           testUser,
-          NotificationType.TO_DO,
+          NotificationType.ASSISTANT_FEEDBACK,
           "Already Checked 1",
           "Description 1",
           checked = true,
         )
         createTestNotification(
           testUser,
-          NotificationType.MOTIVATION,
+          NotificationType.ASSISTANT_FEEDBACK,
           "Already Checked 2",
           "Description 2",
           checked = true,
@@ -1049,7 +1053,7 @@ class NotificationControllerTest
         val normalNotification =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Normal Notification",
             "Normal description",
             checked = false,
@@ -1057,7 +1061,7 @@ class NotificationControllerTest
         val deletedNotification =
           createTestNotification(
             testUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Deleted Notification",
             "Deleted description",
             checked = false,
@@ -1086,7 +1090,7 @@ class NotificationControllerTest
         val myNotification =
           createTestNotification(
             testUser,
-            NotificationType.TO_DO,
+            NotificationType.ASSISTANT_FEEDBACK,
             "My Notification",
             "My description",
             checked = false,
@@ -1094,7 +1098,7 @@ class NotificationControllerTest
         val otherUserNotification =
           createTestNotification(
             otherUser,
-            NotificationType.MOTIVATION,
+            NotificationType.ASSISTANT_FEEDBACK,
             "Other User's Notification",
             "Other user's description",
             checked = false,
@@ -1135,14 +1139,14 @@ class NotificationControllerTest
         // given - 미확인 알림 2개 생성
         createTestNotification(
           testUser,
-          NotificationType.TO_DO,
+          NotificationType.ASSISTANT_FEEDBACK,
           "Bearer Token Test 1",
           "Test 1 with bearer token",
           checked = false,
         )
         createTestNotification(
           testUser,
-          NotificationType.MOTIVATION,
+          NotificationType.ASSISTANT_FEEDBACK,
           "Bearer Token Test 2",
           "Test 2 with bearer token",
           checked = false,
@@ -1235,6 +1239,162 @@ class NotificationControllerTest
         .returnResult()
         .responseBody!!
     }
+
+    @Test
+    fun `notificationEventListener를 통한 알림 생성 후 조회 테스트`() =
+      runTest {
+        // given - 이벤트를 통해 알림 생성
+        val goalTitle = "운동 목표"
+        val conversationId = UUID.randomUUID()
+        val testEvent = createTestEvent(testUser.id, goalTitle, conversationId)
+        val initialCount = notificationRepository.countByReceiverIdAndDeletedAtIsNull(testUser.id)
+
+        // when - 이벤트 처리
+        notificationEventListener.consumeCreateDomainEvent(testEvent)
+
+        // 비동기 처리 완료를 위해 반복 확인
+        var attempts = 0
+        val maxAttempts = 50
+        var finalCount = initialCount
+
+        while (attempts < maxAttempts && finalCount == initialCount) {
+          delay(100)
+          finalCount = notificationRepository.countByReceiverIdAndDeletedAtIsNull(testUser.id)
+          attempts++
+        }
+
+        // then - 알림 개수 조회 API 테스트
+        val countResponse = getNotificationCount()
+        assertThat(countResponse.statusCode).isEqualTo(200)
+        assertThat(countResponse.data).isEqualTo((initialCount + 1).toInt())
+        assertThat(countResponse.errorCode).isNull()
+
+        // 알림 목록 조회 API 테스트
+        val listResponse = getNotifications("/api/v1/notifications?page=0&size=10")
+        assertThat(listResponse.statusCode).isEqualTo(200)
+        assertThat(listResponse.data).hasSize((initialCount + 1).toInt())
+        assertThat(listResponse.errorCode).isNull()
+
+        // 생성된 알림 내용 검증
+        val createdNotification = listResponse.data!!.first()
+        assertThat(createdNotification.title).isEqualTo("AI 비서 알림")
+        assertThat(createdNotification.description).isEqualTo("\"운동 목표\" 목표에 대한 피드백을 확인하세요.")
+        assertThat(createdNotification.receiverId).isEqualTo(testUser.id)
+        assertThat(createdNotification.type).isEqualTo(NotificationType.ASSISTANT_FEEDBACK)
+        assertThat(createdNotification.checked).isFalse()
+        assertThat(createdNotification.deletedAt).isNull()
+
+        // 메타데이터 확인
+        assertThat(createdNotification.metadata).isNotEmpty()
+        assertThat(createdNotification.metadata).containsKey("receiverId")
+        assertThat(createdNotification.metadata).containsKey("goalTitle")
+        assertThat(createdNotification.metadata).containsKey("conversationId")
+        assertThat(createdNotification.metadata).containsKey("type")
+        assertThat(createdNotification.metadata["goalTitle"]).isEqualTo(goalTitle)
+        assertThat(createdNotification.metadata["conversationId"]).isEqualTo(conversationId.toString())
+      }
+
+    @Test
+    fun `notificationEventListener를 통한 여러 알림 생성 후 조회 테스트`() =
+      runTest {
+        // given - 여러 이벤트를 통해 알림 생성
+        val event1 = createTestEvent(testUser.id, "운동 목표")
+        val event2 = createTestEvent(testUser.id, "독서 목표")
+        val event3 = createTestEvent(testUser.id, "학습 목표")
+        val initialCount = notificationRepository.countByReceiverIdAndDeletedAtIsNull(testUser.id)
+
+        // when - 여러 이벤트 처리
+        notificationEventListener.consumeCreateDomainEvent(event1)
+        notificationEventListener.consumeCreateDomainEvent(event2)
+        notificationEventListener.consumeCreateDomainEvent(event3)
+
+        // 비동기 처리 완료를 위해 반복 확인
+        waitForNotificationCount(testUser.id, initialCount + 3L)
+
+        // then - 알림 개수 조회 API 테스트
+        val countResponse = getNotificationCount()
+        assertThat(countResponse.statusCode).isEqualTo(200)
+        assertThat(countResponse.data).isEqualTo((initialCount + 3).toInt())
+
+        // 알림 목록 조회 API 테스트
+        val listResponse = getNotifications("/api/v1/notifications?page=0&size=10")
+        assertThat(listResponse.statusCode).isEqualTo(200)
+        assertThat(listResponse.data).hasSize((initialCount + 3).toInt())
+
+        // 생성된 알림들의 description 확인
+        val descriptions = listResponse.data!!.map { it.description }
+        assertThat(descriptions).contains(
+          "\"운동 목표\" 목표에 대한 피드백을 확인하세요.",
+          "\"독서 목표\" 목표에 대한 피드백을 확인하세요.",
+          "\"학습 목표\" 목표에 대한 피드백을 확인하세요.",
+        )
+
+        // 모든 알림이 정상적으로 생성되었는지 확인
+        listResponse.data!!.forEach { notification ->
+          assertThat(notification.title).isEqualTo("AI 비서 알림")
+          assertThat(notification.type).isEqualTo(NotificationType.ASSISTANT_FEEDBACK)
+          assertThat(notification.receiverId).isEqualTo(testUser.id)
+          assertThat(notification.checked).isFalse()
+          assertThat(notification.deletedAt).isNull()
+        }
+      }
+
+    @Test
+    fun `notificationEventListener로 생성한 알림 확인 테스트`() =
+      runTest {
+        // given - 이벤트를 통해 알림 생성
+        val testEvent = createTestEvent(testUser.id, "확인 테스트 목표")
+        notificationEventListener.consumeCreateDomainEvent(testEvent)
+
+        // 비동기 처리 완료 대기
+        waitForNotificationCount(testUser.id, 1L)
+
+        // 생성된 알림 조회
+        val listResponse = getNotifications("/api/v1/notifications?page=0&size=10")
+        val createdNotification = listResponse.data!!.first()
+
+        // when - 생성된 알림을 확인
+        val checkResponse = checkNotification(createdNotification.id)
+
+        // then
+        assertThat(checkResponse.statusCode).isEqualTo(200)
+        assertThat(checkResponse.data).isNotNull
+        assertThat(checkResponse.data!!.id).isEqualTo(createdNotification.id)
+        assertThat(checkResponse.data!!.checked).isTrue()
+        assertThat(checkResponse.errorCode).isNull()
+
+        // 확인 후 알림 개수가 0이 되는지 검증 (체크된 알림은 개수에 포함되지 않음)
+        val countAfterCheck = getNotificationCount()
+        assertThat(countAfterCheck.data).isEqualTo(0)
+      }
+
+    private suspend fun waitForNotificationCount(
+      userId: UUID,
+      expectedCount: Long,
+    ) {
+      var attempts = 0
+      val maxAttempts = 50
+      var currentCount = 0L
+
+      while (attempts < maxAttempts && currentCount < expectedCount) {
+        delay(100)
+        currentCount = notificationRepository.countByReceiverIdAndDeletedAtIsNull(userId)
+        attempts++
+      }
+
+      assertThat(currentCount).isEqualTo(expectedCount)
+    }
+
+    private fun createTestEvent(
+      receiverId: UUID = UUID.randomUUID(),
+      goalTitle: String = "Test Goal Title",
+      conversationId: UUID = UUID.randomUUID(),
+    ): CreateFeedbackEvent =
+      CreateFeedbackEvent(
+        goalTitle = goalTitle,
+        conversationId = conversationId,
+        receiverId = receiverId,
+      )
 
     private fun verifyNotificationConsistency(
       actual: Notification,

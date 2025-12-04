@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
   kotlin("jvm") version "1.9.25"
   kotlin("plugin.spring") version "1.9.25"
+  kotlin("plugin.serialization") version "1.8.0"
   id("org.springframework.boot") version "3.5.3"
   id("io.spring.dependency-management") version "1.1.7"
   id("com.google.osdetector") version "1.7.3"
@@ -65,6 +66,9 @@ dependencies {
   implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
   implementation("org.jetbrains.kotlin:kotlin-reflect")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+
+  // json
+  implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
 
   // jwt
   implementation("io.jsonwebtoken:jjwt-api:$jwtVersion")

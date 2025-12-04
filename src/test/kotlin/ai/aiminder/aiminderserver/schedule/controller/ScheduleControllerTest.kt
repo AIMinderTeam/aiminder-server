@@ -9,6 +9,7 @@ import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import ai.aiminder.aiminderserver.goal.repository.GoalRepository
 import ai.aiminder.aiminderserver.schedule.domain.ScheduleStatus
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequest
+import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsResponse
 import ai.aiminder.aiminderserver.schedule.dto.ScheduleResponse
 import ai.aiminder.aiminderserver.schedule.dto.UpdateScheduleRequest
 import ai.aiminder.aiminderserver.schedule.entity.ScheduleEntity
@@ -1078,6 +1079,294 @@ class ScheduleControllerTest
             for (i in 0 until schedules.size - 1) {
               assertThat(schedules[i].startDate).isBeforeOrEqualTo(schedules[i + 1].startDate)
             }
+          }
+      }
+
+    @Test
+    fun `월별 통계 조회 성공`() =
+      runTest {
+        // given - 2024년 3월에 다양한 상태의 일정들 생성
+        // 3월 1일: 총 3개, 완료 2개 (완료율: 0.67)
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "March 1 - Schedule 1",
+            description = "Content",
+            startDate = Instant.parse("2024-03-01T00:00:00Z"),
+            endDate = Instant.parse("2024-03-01T23:59:59Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "March 1 - Schedule 2",
+            description = "Content",
+            startDate = Instant.parse("2024-03-01T10:00:00Z"),
+            endDate = Instant.parse("2024-03-01T11:00:00Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "March 1 - Schedule 3",
+            description = "Content",
+            startDate = Instant.parse("2024-03-01T14:00:00Z"),
+            endDate = Instant.parse("2024-03-01T15:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // 3월 15일: 총 2개, 완료 1개 (완료율: 0.5)
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "March 15 - Schedule 1",
+            description = "Content",
+            startDate = Instant.parse("2024-03-15T00:00:00Z"),
+            endDate = Instant.parse("2024-03-15T23:59:59Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "March 15 - Schedule 2",
+            description = "Content",
+            startDate = Instant.parse("2024-03-15T10:00:00Z"),
+            endDate = Instant.parse("2024-03-15T11:00:00Z"),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // 다른 월 일정 (결과에 포함되지 않아야 함)
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "April Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-04-01T00:00:00Z"),
+            endDate = Instant.parse("2024-04-01T23:59:59Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        // when & then
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/goals/schedules/monthly-statistics?year=2024&month=3")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<MonthlyScheduleStatisticsResponse>>()
+          .value { response ->
+            assertThat(response.data?.year).isEqualTo(2024)
+            assertThat(response.data?.month).isEqualTo(3)
+            assertThat(response.data?.dailyStatistics).hasSize(2)
+
+            val march1Stats = response.data?.dailyStatistics?.find { it.date == 1 }
+            assertThat(march1Stats?.totalCount).isEqualTo(3)
+            assertThat(march1Stats?.completedCount).isEqualTo(2)
+            assertThat(march1Stats?.completionRate).isEqualTo(2.0 / 3.0)
+
+            val march15Stats = response.data?.dailyStatistics?.find { it.date == 15 }
+            assertThat(march15Stats?.totalCount).isEqualTo(2)
+            assertThat(march15Stats?.completedCount).isEqualTo(1)
+            assertThat(march15Stats?.completionRate).isEqualTo(0.5)
+          }
+      }
+
+    @Test
+    fun `일정이 없는 월 통계 조회 - 빈 결과 반환`() =
+      runTest {
+        // given - 3월이 아닌 다른 월에만 일정 생성
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "April Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-04-01T00:00:00Z"),
+            endDate = Instant.parse("2024-04-01T23:59:59Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        // when & then - 3월 통계 조회
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/goals/schedules/monthly-statistics?year=2024&month=3")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<MonthlyScheduleStatisticsResponse>>()
+          .value { response ->
+            assertThat(response.data?.year).isEqualTo(2024)
+            assertThat(response.data?.month).isEqualTo(3)
+            assertThat(response.data?.dailyStatistics).isEmpty()
+          }
+      }
+
+    @Test
+    fun `완료율 계산 정확성 테스트`() =
+      runTest {
+        // given - 모든 일정이 완료된 날과 미완료된 날 생성
+        // 3월 1일: 총 2개, 완료 2개 (완료율: 1.0)
+        repeat(2) {
+          scheduleRepository.save(
+            ScheduleEntity(
+              goalId = testGoal.id!!,
+              userId = testUser.id,
+              title = "March 1 - Completed ${it + 1}",
+              description = "Content",
+              startDate = Instant.parse("2024-03-01T0$it:00:00Z"),
+              endDate = Instant.parse("2024-03-01T0$it:59:59Z"),
+              status = ScheduleStatus.COMPLETED,
+            ),
+          )
+        }
+
+        // 3월 2일: 총 3개, 완료 0개 (완료율: 0.0)
+        repeat(3) {
+          scheduleRepository.save(
+            ScheduleEntity(
+              goalId = testGoal.id!!,
+              userId = testUser.id,
+              title = "March 2 - Ready ${it + 1}",
+              description = "Content",
+              startDate = Instant.parse("2024-03-02T0$it:00:00Z"),
+              endDate = Instant.parse("2024-03-02T0$it:59:59Z"),
+              status = ScheduleStatus.READY,
+            ),
+          )
+        }
+
+        // when & then
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/goals/schedules/monthly-statistics?year=2024&month=3")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<MonthlyScheduleStatisticsResponse>>()
+          .value { response ->
+            assertThat(response.data?.dailyStatistics).hasSize(2)
+
+            val march1Stats = response.data?.dailyStatistics?.find { it.date == 1 }
+            assertThat(march1Stats?.completionRate).isEqualTo(1.0)
+
+            val march2Stats = response.data?.dailyStatistics?.find { it.date == 2 }
+            assertThat(march2Stats?.completionRate).isEqualTo(0.0)
+          }
+      }
+
+    @Test
+    fun `인증되지 않은 사용자 401 반환`() =
+      runTest {
+        // when & then
+        webTestClient
+          .get()
+          .uri("/api/v1/goals/schedules/monthly-statistics?year=2024&month=3")
+          .exchange()
+          .expectStatus()
+          .isUnauthorized
+      }
+
+    @Test
+    fun `잘못된 월 파라미터로 요청시 정상 처리`() =
+      runTest {
+        // when & then - 13월로 요청
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/goals/schedules/monthly-statistics?year=2024&month=13")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<MonthlyScheduleStatisticsResponse>>()
+          .value { response ->
+            assertThat(response.data?.year).isEqualTo(2024)
+            assertThat(response.data?.month).isEqualTo(13)
+            assertThat(response.data?.dailyStatistics).isEmpty()
+          }
+      }
+
+    @Test
+    fun `다른 사용자의 일정은 통계에 포함되지 않음`() =
+      runTest {
+        // given - 다른 사용자 생성
+        val otherUser =
+          userRepository.save(
+            UserEntity(
+              provider = OAuth2Provider.GOOGLE,
+              providerId = "other-user-123",
+            ),
+          )
+
+        val otherUserGoal =
+          goalRepository.save(
+            GoalEntity(
+              userId = otherUser.id!!,
+              title = "Other User Goal",
+              description = "Description",
+              targetDate = Instant.parse("2024-04-15T00:00:00Z"),
+              status = GoalStatus.READY,
+            ),
+          )
+
+        // 현재 테스트 사용자의 일정
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = testGoal.id!!,
+            userId = testUser.id,
+            title = "Test User Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-01T00:00:00Z"),
+            endDate = Instant.parse("2024-03-01T23:59:59Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        // 다른 사용자의 일정 (결과에 포함되지 않아야 함)
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = otherUserGoal.id!!,
+            userId = otherUser.id!!,
+            title = "Other User Schedule",
+            description = "Content",
+            startDate = Instant.parse("2024-03-01T00:00:00Z"),
+            endDate = Instant.parse("2024-03-01T23:59:59Z"),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        // when & then
+        webTestClient
+          .mutateWith(mockAuthentication(authentication))
+          .get()
+          .uri("/api/v1/goals/schedules/monthly-statistics?year=2024&month=3")
+          .exchange()
+          .expectStatus()
+          .isOk
+          .expectBody<ServiceResponse<MonthlyScheduleStatisticsResponse>>()
+          .value { response ->
+            assertThat(response.data?.dailyStatistics).hasSize(1)
+            val march1Stats = response.data?.dailyStatistics?.first()
+            assertThat(march1Stats?.totalCount).isEqualTo(1)
+            assertThat(march1Stats?.completedCount).isEqualTo(1)
           }
       }
   }
