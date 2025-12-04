@@ -19,6 +19,8 @@ import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.goal.domain.GoalStatus
 import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import ai.aiminder.aiminderserver.goal.repository.GoalRepository
+import ai.aiminder.aiminderserver.notification.domain.NotificationType
+import ai.aiminder.aiminderserver.notification.repository.NotificationRepository
 import ai.aiminder.aiminderserver.schedule.domain.Schedule
 import ai.aiminder.aiminderserver.schedule.domain.ScheduleStatus
 import ai.aiminder.aiminderserver.schedule.entity.ScheduleEntity
@@ -30,12 +32,14 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.PageRequest
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockAuthentication
@@ -53,6 +57,7 @@ class AssistantFeedbackControllerTest
     private val chatRepository: ChatRepository,
     private val goalRepository: GoalRepository,
     private val scheduleRepository: ScheduleRepository,
+    private val notificationRepository: NotificationRepository,
   ) : BaseIntegrationTest() {
     @MockkBean
     private lateinit var assistantService: AssistantService
@@ -199,6 +204,26 @@ class AssistantFeedbackControllerTest
         assertThat(savedChats).hasSize(1)
         assertThat(savedChats.first().type).isEqualTo(ChatType.ASSISTANT)
         assertThat(savedChats.first().conversationId).isEqualTo(conversation.id)
+
+        // 알림 저장 검증 (이벤트가 비동기로 처리되므로 대기)
+        waitForNotificationCount(testUser.id, 1L)
+
+        val savedNotifications =
+          notificationRepository.findAllByReceiverIdAndDeletedAtIsNull(
+            testUser.id,
+            PageRequest.of(0, 100),
+          ).toList()
+        assertThat(savedNotifications).hasSize(1)
+
+        val notification = savedNotifications.first()
+        assertThat(notification.type).isEqualTo(NotificationType.ASSISTANT_FEEDBACK)
+        assertThat(notification.title).isEqualTo("AI 비서 알림")
+        assertThat(notification.description).isEqualTo("\"${goal.title}\" 목표에 대한 피드백을 확인하세요.")
+        assertThat(notification.receiverId).isEqualTo(testUser.id)
+        assertThat(notification.checked).isFalse()
+        assertThat(notification.metadata).containsKey("conversationId")
+        assertThat(notification.metadata["conversationId"]).isEqualTo(conversation.id.toString())
+        assertThat(notification.metadata["goalTitle"]).isEqualTo(goal.title)
       }
 
     @Test
@@ -486,5 +511,22 @@ class AssistantFeedbackControllerTest
           status = GoalStatus.INPROGRESS,
         )
       return goalRepository.save(goalEntity)
+    }
+
+    private suspend fun waitForNotificationCount(
+      userId: UUID,
+      expectedCount: Long,
+    ) {
+      var attempts = 0
+      val maxAttempts = 50
+      var currentCount = 0L
+
+      while (attempts < maxAttempts && currentCount < expectedCount) {
+        delay(100)
+        currentCount = notificationRepository.countByReceiverIdAndDeletedAtIsNull(userId)
+        attempts++
+      }
+
+      assertThat(currentCount).isEqualTo(expectedCount)
     }
   }
