@@ -95,7 +95,7 @@ interface NotificationControllerDocs {
         "OAuth2 로그인 성공 시 설정되는 `ACCESS_TOKEN`(필수) / `REFRESH_TOKEN`(선택) 쿠키 기반 인증 또는 " +
         "Authorization 헤더의 Bearer 토큰 인증을 사용합니다. " +
         "인증 정보가 없거나 유효하지 않으면 401이 반환됩니다. " +
-        "읽지 않은 알림만 조회되며, 삭제된 알림은 제외됩니다. 생성일 기준 내림차순으로 정렬됩니다.",
+        "모든 알림(읽음/읽지 않음 포함)이 조회되며, 삭제된 알림은 제외됩니다. 생성일 기준 내림차순으로 정렬됩니다.",
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @ApiResponses(
@@ -103,6 +103,47 @@ interface NotificationControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공적으로 알림 목록 조회 완료",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 200,
+                  "message": "요청이 성공했습니다.",
+                  "errorCode": null,
+                  "data": [
+                    {
+                      "id": "123e4567-e89b-12d3-a456-426614174000",
+                      "type": "ASSISTANT_FEEDBACK",
+                      "title": "AI 비서 알림",
+                      "description": "\"운동 목표\" 목표에 대한 피드백을 확인하세요.",
+                      "metadata": {
+                        "receiverId": "789e0123-e89b-12d3-a456-426614174002",
+                        "goalTitle": "운동 목표",
+                        "conversationId": "456e7890-e89b-12d3-a456-426614174001",
+                        "type": "ASSISTANT_FEEDBACK"
+                      },
+                      "receiverId": "789e0123-e89b-12d3-a456-426614174002",
+                      "checked": false,
+                      "createdAt": "2024-10-14T10:30:00Z",
+                      "updatedAt": "2024-10-14T10:30:00Z",
+                      "deletedAt": null
+                    }
+                  ],
+                  "pageable": {
+                    "page": 0,
+                    "count": 1,
+                    "totalElements": 1,
+                    "totalPages": 1
+                  }
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -184,11 +225,14 @@ interface NotificationControllerDocs {
                   "errorCode": null,
                   "data": {
                     "id": "123e4567-e89b-12d3-a456-426614174000",
-                    "type": "TO_DO",
-                    "title": "할 일 알림",
-                    "description": "새로운 할 일이 추가되었습니다.",
+                    "type": "ASSISTANT_FEEDBACK",
+                    "title": "AI 비서 알림",
+                    "description": "\"운동 목표\" 목표에 대한 피드백을 확인하세요.",
                     "metadata": {
-                      "goalId": "456e7890-e89b-12d3-a456-426614174001"
+                      "receiverId": "789e0123-e89b-12d3-a456-426614174002",
+                      "goalTitle": "운동 목표",
+                      "conversationId": "456e7890-e89b-12d3-a456-426614174001",
+                      "type": "ASSISTANT_FEEDBACK"
                     },
                     "receiverId": "789e0123-e89b-12d3-a456-426614174002",
                     "checked": true,
@@ -308,11 +352,14 @@ interface NotificationControllerDocs {
                   "data": [
                     {
                       "id": "123e4567-e89b-12d3-a456-426614174000",
-                      "type": "TO_DO",
-                      "title": "할 일 알림",
-                      "description": "새로운 할 일이 추가되었습니다.",
+                      "type": "ASSISTANT_FEEDBACK",
+                      "title": "AI 비서 알림",
+                      "description": "\"운동 목표\" 목표에 대한 피드백을 확인하세요.",
                       "metadata": {
-                        "goalId": "456e7890-e89b-12d3-a456-426614174001"
+                        "receiverId": "789e0123-e89b-12d3-a456-426614174002",
+                        "goalTitle": "운동 목표",
+                        "conversationId": "456e7890-e89b-12d3-a456-426614174001",
+                        "type": "ASSISTANT_FEEDBACK"
                       },
                       "receiverId": "789e0123-e89b-12d3-a456-426614174002",
                       "checked": true,
@@ -322,10 +369,15 @@ interface NotificationControllerDocs {
                     },
                     {
                       "id": "234e5678-e89b-12d3-a456-426614174003",
-                      "type": "MOTIVATION",
-                      "title": "동기 부여 알림",
-                      "description": "목표 달성을 위해 노력하세요!",
-                      "metadata": {},
+                      "type": "ASSISTANT_FEEDBACK",
+                      "title": "AI 비서 알림",
+                      "description": "\"독서 목표\" 목표에 대한 피드백을 확인하세요.",
+                      "metadata": {
+                        "receiverId": "789e0123-e89b-12d3-a456-426614174002",
+                        "goalTitle": "독서 목표",
+                        "conversationId": "567e8901-e89b-12d3-a456-426614174004",
+                        "type": "ASSISTANT_FEEDBACK"
+                      },
                       "receiverId": "789e0123-e89b-12d3-a456-426614174002",
                       "checked": true,
                       "createdAt": "2024-10-14T10:25:00Z",
