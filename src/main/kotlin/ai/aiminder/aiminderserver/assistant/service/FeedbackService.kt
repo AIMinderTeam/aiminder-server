@@ -12,6 +12,7 @@ import ai.aiminder.aiminderserver.schedule.domain.Schedule
 import ai.aiminder.aiminderserver.schedule.service.ScheduleService
 import ai.aiminder.aiminderserver.user.domain.User
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.LocalDateTime
 import java.util.UUID
@@ -35,6 +36,7 @@ class FeedbackService(
     return feedback(goal, user, conversation)
   }
 
+  @Transactional
   suspend fun feedback(
     goal: Goal,
     user: User,
