@@ -1,5 +1,7 @@
 package ai.aiminder.aiminderserver.notification.event
 
+import ai.aiminder.aiminderserver.conversation.domain.Conversation
+import ai.aiminder.aiminderserver.goal.domain.Goal
 import ai.aiminder.aiminderserver.notification.domain.NotificationType
 import ai.aiminder.aiminderserver.notification.event.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
@@ -16,4 +18,16 @@ data class CreateFeedbackEvent(
   override val notificationType: NotificationType = NotificationType.ASSISTANT_FEEDBACK
   override val title: String = "AI 비서 알림"
   override val content: String = "\"$goalTitle\" 목표에 대한 피드백을 확인하세요."
+
+  companion object {
+    fun from(
+      goal: Goal,
+      conversation: Conversation,
+    ): CreateFeedbackEvent =
+      CreateFeedbackEvent(
+        goalTitle = goal.title,
+        conversationId = conversation.id,
+        receiverId = goal.userId,
+      )
+  }
 }

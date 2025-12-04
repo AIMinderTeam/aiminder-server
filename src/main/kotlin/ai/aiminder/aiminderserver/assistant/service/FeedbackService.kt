@@ -24,6 +24,7 @@ class FeedbackService(
   private val chatService: ChatService,
   private val scheduleService: ScheduleService,
   private val goalService: GoalService,
+  private val feedbackEventService: FeedbackEventService,
 ) {
   suspend fun feedback(
     conversationId: UUID,
@@ -54,6 +55,7 @@ class FeedbackService(
       )
     val chatResponse = ChatResponse.from(conversation.id, assistantResponse)
     chatService.create(chatResponse)
+    feedbackEventService.publish(goal, conversation)
     return chatResponse
   }
 
