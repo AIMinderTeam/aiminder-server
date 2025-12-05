@@ -24,24 +24,6 @@ interface UserControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 회원 탈퇴 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": "회원 탈퇴가 완료되었습니다.",
-                  "errorCode": null,
-                  "data": null,
-                  "pageable": null
-                }
-              """,
-                implementation = ServiceResponse::class,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",

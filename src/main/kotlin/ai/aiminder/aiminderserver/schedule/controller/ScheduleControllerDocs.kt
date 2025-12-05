@@ -543,41 +543,6 @@ interface ScheduleControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 월별 일정 통계 조회 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": "성공",
-                  "errorCode": null,
-                  "data": {
-                    "year": 2025,
-                    "month": 12,
-                    "dailyStatistics": [
-                      {
-                        "date": 1,
-                        "totalCount": 5,
-                        "completedCount": 3,
-                        "completionRate": 0.6
-                      },
-                      {
-                        "date": 2,
-                        "totalCount": 8,
-                        "completedCount": 4,
-                        "completionRate": 0.5
-                      }
-                    ]
-                  },
-                  "pageable": null
-                }
-              """,
-                implementation = ServiceResponse::class,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "400",

@@ -354,35 +354,6 @@ interface AssistantControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공: 피드백 생성 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": null,
-                  "errorCode": null,
-                  "data": {
-                    "conversationId": "550e8400-e29b-41d4-a716-446655440000",
-                    "chatType": "ASSISTANT",
-                    "chat": [
-                      {
-                        "type": "TEXT",
-                        "messages": [
-                          "어제와 오늘의 일정을 바탕으로 피드백을 드리겠습니다. 오늘 목표 달성을 위해 어제 계획한 운동을 완료하지 못한 것 같습니다. 내일은 더 구체적인 시간 계획을 세워보는 것을 추천합니다."
-                        ]
-                      }
-                    ]
-                  },
-                  "pageable": null
-                }
-              """,
-                implementation = ServiceResponse::class,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",
