@@ -7,10 +7,16 @@ import ai.aiminder.aiminderserver.goal.service.GoalService
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.service.UserNotificationSettingsService
 import ai.aiminder.aiminderserver.user.service.UserService
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.LocalTime
 
+@ConditionalOnProperty(
+  name = ["aiminder.scheduler.feedback.enabled"],
+  havingValue = "true",
+  matchIfMissing = false,
+)
 @Component
 class FeedbackScheduler(
   private val userService: UserService,

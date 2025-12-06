@@ -1,4 +1,7 @@
 aiminder:
+  scheduler:
+    feedback:
+      enabled: false
   jwt:
     access-token-secret: ${ACCESS_TOKEN_SECRET}
     access-token-expiration: ${ACCESS_TOKEN_EXPIRATION}

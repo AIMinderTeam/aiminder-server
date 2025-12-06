@@ -1,4 +1,7 @@
 aiminder:
+  scheduler:
+    feedback:
+      enabled: false
   jwt:
     access-token-secret: test-access-token-secret-key-for-testing-only-must-be-at-least-256-bits
     access-token-expiration: 900000

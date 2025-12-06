@@ -1,4 +1,7 @@
 aiminder:
+  scheduler:
+    feedback:
+      enabled: false
   server:
     url: ${SERVER_HOST}
   client:

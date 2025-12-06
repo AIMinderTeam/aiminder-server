@@ -1,4 +1,7 @@
 aiminder:
+  scheduler:
+    feedback:
+      enabled: false
   server:
     url: http://localhost:8080
   client:

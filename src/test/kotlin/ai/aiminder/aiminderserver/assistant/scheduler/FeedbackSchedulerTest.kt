@@ -27,10 +27,12 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
+import org.springframework.test.context.TestPropertySource
 import java.time.Instant
 import java.time.LocalTime
 import java.util.UUID
 
+@TestPropertySource(properties = ["aiminder.scheduler.feedback.enabled=true"])
 class FeedbackSchedulerTest
   @Autowired
   constructor(
