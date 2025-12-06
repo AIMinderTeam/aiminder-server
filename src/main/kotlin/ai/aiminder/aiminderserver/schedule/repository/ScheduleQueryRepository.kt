@@ -1,11 +1,13 @@
 package ai.aiminder.aiminderserver.schedule.repository
 
 import ai.aiminder.aiminderserver.common.config.JooqR2dbcRepository
+import ai.aiminder.aiminderserver.jooq.tables.Goals.Companion.GOALS
 import ai.aiminder.aiminderserver.jooq.tables.Schedules.Companion.SCHEDULES
 import ai.aiminder.aiminderserver.schedule.dto.DailyScheduleStatistics
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequestDto
 import ai.aiminder.aiminderserver.schedule.dto.GoalScheduleStatistics
 import ai.aiminder.aiminderserver.schedule.repository.row.ScheduleRow
+import ai.aiminder.aiminderserver.schedule.repository.row.ScheduleWithGoalRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.single
@@ -14,6 +16,7 @@ import org.jooq.Condition
 import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -141,6 +144,55 @@ class ScheduleQueryRepository : JooqR2dbcRepository() {
         goalId = record.get(SCHEDULES.GOAL_ID)!!,
         totalCount = record.get("total_count") as Int,
         completedCount = record.get("completed_count") as Int,
+      )
+    }.toList()
+  }
+
+  suspend fun findSchedulesByDate(
+    userId: UUID,
+    date: LocalDate,
+  ): List<ScheduleWithGoalRow> {
+    val startOfDay = date.atStartOfDay()
+    val endOfDay = date.plusDays(1).atStartOfDay()
+
+    return query {
+      select(
+        SCHEDULES.SCHEDULE_ID,
+        SCHEDULES.TITLE.`as`("schedule_title"),
+        SCHEDULES.DESCRIPTION.`as`("schedule_description"),
+        SCHEDULES.START_DATE,
+        SCHEDULES.END_DATE,
+        SCHEDULES.STATUS.`as`("schedule_status"),
+        GOALS.GOAL_ID,
+        GOALS.TITLE.`as`("goal_title"),
+        GOALS.DESCRIPTION.`as`("goal_description"),
+        GOALS.TARGET_DATE,
+        GOALS.STATUS.`as`("goal_status"),
+        GOALS.IMAGE_ID,
+      ).from(SCHEDULES)
+        .join(GOALS).on(SCHEDULES.GOAL_ID.eq(GOALS.GOAL_ID))
+        .where(
+          SCHEDULES.USER_ID.eq(userId)
+            .and(SCHEDULES.DELETED_AT.isNull)
+            .and(GOALS.DELETED_AT.isNull)
+            .and(SCHEDULES.START_DATE.lt(endOfDay))
+            .and(SCHEDULES.END_DATE.ge(startOfDay)),
+        )
+        .orderBy(SCHEDULES.START_DATE.asc())
+    }.map { record ->
+      ScheduleWithGoalRow(
+        scheduleId = record.get(SCHEDULES.SCHEDULE_ID)!!,
+        scheduleTitle = record.get("schedule_title") as String,
+        scheduleDescription = record.get("schedule_description") as String?,
+        startDate = record.get(SCHEDULES.START_DATE)!!,
+        endDate = record.get(SCHEDULES.END_DATE)!!,
+        scheduleStatus = record.get("schedule_status") as String,
+        goalId = record.get(GOALS.GOAL_ID)!!,
+        goalTitle = record.get("goal_title") as String,
+        goalDescription = record.get("goal_description") as String?,
+        targetDate = record.get(GOALS.TARGET_DATE)!!,
+        goalStatus = record.get("goal_status") as String,
+        imageId = record.get(GOALS.IMAGE_ID),
       )
     }.toList()
   }

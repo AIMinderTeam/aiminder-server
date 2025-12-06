@@ -3,6 +3,8 @@ package ai.aiminder.aiminderserver.schedule.controller
 import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequest
+import ai.aiminder.aiminderserver.schedule.dto.DailySummaryRequest
+import ai.aiminder.aiminderserver.schedule.dto.DailySummaryResponse
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequest
 import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsRequest
 import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsResponse
@@ -616,4 +618,93 @@ interface ScheduleControllerDocs {
     request: MonthlyScheduleStatisticsRequest,
     @Parameter(hidden = true) user: User,
   ): ServiceResponse<MonthlyScheduleStatisticsResponse>
+
+  @Operation(
+    operationId = "getDailySummary",
+    summary = "특정 날짜 목표 및 일정 조회",
+    description =
+      "특정 날짜에 해당하는 일정 목록과 연관된 목표 정보를 조회합니다. " +
+        "일정의 시작일시와 종료일시가 조회 날짜에 걸쳐있는 경우 포함됩니다. " +
+        "OAuth2 로그인 성공 시 설정되는 `ACCESS_TOKEN`(필수) / `REFRESH_TOKEN`(선택) 쿠키 기반 인증 또는 " +
+        "Authorization 헤더의 Bearer 토큰 인증을 사용합니다.",
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "성공: 일별 목표 및 일정 조회 완료",
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "요청 파라미터 검증 실패: 잘못된 날짜 형식",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 400,
+                  "message": "잘못된 날짜 형식입니다. ISO 8601 날짜 형식(예: 2024-01-15)으로 입력해주세요.",
+                  "errorCode": "COMMON:INVALIDREQUEST",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "인증 실패: 토큰이 없거나 유효하지 않음",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 401,
+                  "message": "인증이 필요합니다. 로그인을 진행해주세요.",
+                  "errorCode": "AUTH:UNAUTHORIZED",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 데이터베이스 연결 실패 등",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+    ],
+  )
+  suspend fun getDailySummary(
+    request: DailySummaryRequest,
+    @Parameter(hidden = true) user: User,
+  ): ServiceResponse<DailySummaryResponse>
 }

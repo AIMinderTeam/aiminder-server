@@ -1,7 +1,15 @@
 package ai.aiminder.aiminderserver.schedule.service
 
+import ai.aiminder.aiminderserver.common.util.toUtcInstant
+import ai.aiminder.aiminderserver.goal.domain.GoalStatus
+import ai.aiminder.aiminderserver.image.repository.ImageRepository
 import ai.aiminder.aiminderserver.schedule.domain.Schedule
+import ai.aiminder.aiminderserver.schedule.domain.ScheduleStatus
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequestDto
+import ai.aiminder.aiminderserver.schedule.dto.DailyGoalWithSchedules
+import ai.aiminder.aiminderserver.schedule.dto.DailyScheduleResponse
+import ai.aiminder.aiminderserver.schedule.dto.DailySummaryRequestDto
+import ai.aiminder.aiminderserver.schedule.dto.DailySummaryResponse
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequestDto
 import ai.aiminder.aiminderserver.schedule.dto.GoalScheduleStatistics
 import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsResponse
@@ -23,6 +31,7 @@ import java.util.UUID
 class ScheduleService(
   private val scheduleRepository: ScheduleRepository,
   private val scheduleQueryRepository: ScheduleQueryRepository,
+  private val imageRepository: ImageRepository,
 ) {
   suspend fun create(dto: CreateScheduleRequestDto): ScheduleResponse {
     val schedule =
@@ -139,4 +148,59 @@ class ScheduleService(
     scheduleQueryRepository
       .findScheduleStatisticsByGoalIds(goalIds)
       .associateBy { it.goalId }
+
+  suspend fun getDailySummary(dto: DailySummaryRequestDto): DailySummaryResponse {
+    val schedulesWithGoals = scheduleQueryRepository.findSchedulesByDate(dto.userId, dto.date)
+
+    val goalSchedulesMap = schedulesWithGoals.groupBy { it.goalId }
+
+    val imageIds = goalSchedulesMap.values.mapNotNull { rows -> rows.firstOrNull()?.imageId }.distinct()
+    val imagePaths = getImagePaths(imageIds)
+
+    val goals =
+      goalSchedulesMap.map { (goalId, rows) ->
+        val firstRow = rows.first()
+        val schedules =
+          rows.map { row ->
+            DailyScheduleResponse(
+              id = row.scheduleId,
+              title = row.scheduleTitle,
+              description = row.scheduleDescription,
+              startDate = row.startDate.toUtcInstant(),
+              endDate = row.endDate.toUtcInstant(),
+              status = ScheduleStatus.valueOf(row.scheduleStatus),
+            )
+          }
+
+        DailyGoalWithSchedules(
+          id = goalId,
+          title = firstRow.goalTitle,
+          description = firstRow.goalDescription,
+          targetDate = firstRow.targetDate.toUtcInstant(),
+          status = GoalStatus.valueOf(firstRow.goalStatus),
+          imageId = firstRow.imageId,
+          imagePath = firstRow.imageId?.let { imagePaths[it] },
+          schedules = schedules,
+          dailyScheduleCount = schedules.size,
+          completedScheduleCount = schedules.count { it.status == ScheduleStatus.COMPLETED },
+        )
+      }
+
+    return DailySummaryResponse(
+      date = dto.date,
+      goals = goals,
+      totalScheduleCount = schedulesWithGoals.size,
+      completedScheduleCount = schedulesWithGoals.count { it.scheduleStatus == "COMPLETED" },
+    )
+  }
+
+  private suspend fun getImagePaths(imageIds: List<UUID>): Map<UUID, String> {
+    if (imageIds.isEmpty()) return emptyMap()
+
+    return imageIds.mapNotNull { id ->
+      imageRepository.findByIdAndDeletedAtIsNull(id)?.let { entity ->
+        id to entity.filePath
+      }
+    }.toMap()
+  }
 }

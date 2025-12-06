@@ -4,6 +4,9 @@ import ai.aiminder.aiminderserver.common.request.PageableRequest
 import ai.aiminder.aiminderserver.common.response.ServiceResponse
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequest
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequestDto
+import ai.aiminder.aiminderserver.schedule.dto.DailySummaryRequest
+import ai.aiminder.aiminderserver.schedule.dto.DailySummaryRequestDto
+import ai.aiminder.aiminderserver.schedule.dto.DailySummaryResponse
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequest
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequestDto
 import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsRequest
@@ -124,5 +127,21 @@ class ScheduleController(
   ): ServiceResponse<MonthlyScheduleStatisticsResponse> {
     val statistics = scheduleService.getMonthlyStatistics(user.id, request.year, request.month)
     return ServiceResponse.from(statistics)
+  }
+
+  @GetMapping("/schedules/daily-summary")
+  override suspend fun getDailySummary(
+    request: DailySummaryRequest,
+    @AuthenticationPrincipal
+    user: User,
+  ): ServiceResponse<DailySummaryResponse> {
+    val summary =
+      scheduleService.getDailySummary(
+        DailySummaryRequestDto(
+          userId = user.id,
+          date = request.date,
+        ),
+      )
+    return ServiceResponse.from(summary)
   }
 }
