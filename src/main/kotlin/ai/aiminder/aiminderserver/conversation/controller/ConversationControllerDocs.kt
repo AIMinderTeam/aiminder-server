@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.MediaType
+import java.util.UUID
 
 /**
  * ConversationController에 대한 어노테이션 기반 Swagger 문서 인터페이스.
@@ -89,4 +90,92 @@ interface ConversationControllerDocs {
     @Parameter(hidden = true)
     user: User,
   ): ServiceResponse<List<ConversationResponse>>
+
+  @Operation(
+    operationId = "deleteConversation",
+    summary = "대화 삭제",
+    description =
+      "대화를 삭제합니다(소프트 삭제). 소유자만 삭제할 수 있습니다. " +
+        "OAuth2 로그인 성공 시 설정되는 `ACCESS_TOKEN`(필수) / `REFRESH_TOKEN`(선택) 쿠키 기반 인증 또는 " +
+        "Authorization 헤더의 Bearer 토큰 인증을 사용합니다.",
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "성공: 대화 삭제 완료",
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "인증 실패: 토큰이 없거나 유효하지 않음, 또는 다른 사용자의 대화 삭제 시도",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 401,
+                  "message": "인증이 필요합니다. 로그인을 진행해주세요.",
+                  "errorCode": "AUTH:UNAUTHORIZED",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "대화를 찾을 수 없음: 존재하지 않는 대화 ID 또는 이미 삭제된 대화",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 404,
+                  "message": "대화방을 찾을 수 없습니다.",
+                  "errorCode": "ASSISTANT:CONVERSATIONNOTFOUND",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "서버 내부 오류: 데이터베이스 연결 실패 등",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema =
+              Schema(
+                example = """
+                {
+                  "statusCode": 500,
+                  "message": "서버 내부 오류가 발생했습니다.",
+                  "errorCode": "COMMON:INTERNALSERVERERROR",
+                  "data": null,
+                  "pageable": null
+                }
+              """,
+                implementation = ServiceResponse::class,
+              ),
+          ),
+        ],
+      ),
+    ],
+  )
+  suspend fun deleteConversation(
+    @Parameter(description = "삭제할 대화 ID") conversationId: UUID,
+    @Parameter(hidden = true) user: User,
+  ): ServiceResponse<String>
 }

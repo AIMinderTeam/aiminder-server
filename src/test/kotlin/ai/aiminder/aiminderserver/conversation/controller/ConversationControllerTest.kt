@@ -18,6 +18,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
@@ -25,6 +26,7 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.test.web.reactive.server.expectBody
 import java.time.Instant
 import java.time.LocalDateTime
+import java.util.UUID
 
 class ConversationControllerTest
   @Autowired
@@ -35,8 +37,10 @@ class ConversationControllerTest
     private val jdbcTemplate: JdbcTemplate,
   ) : BaseIntegrationTest() {
     private lateinit var testUser: User
+    private lateinit var otherUser: User
     private lateinit var testGoal: GoalEntity
     private lateinit var authentication: UsernamePasswordAuthenticationToken
+    private lateinit var otherUserAuthentication: UsernamePasswordAuthenticationToken
 
     @BeforeEach
     fun setUp() =
@@ -64,6 +68,22 @@ class ConversationControllerTest
         authentication =
           UsernamePasswordAuthenticationToken(
             testUser,
+            null,
+            listOf(SimpleGrantedAuthority(Role.USER.name)),
+          )
+
+        // 다른 사용자 생성 (권한 테스트용)
+        val savedOtherUser =
+          userRepository.save(
+            UserEntity(
+              provider = OAuth2Provider.KAKAO,
+              providerId = "other-provider-456",
+            ),
+          )
+        otherUser = User.from(savedOtherUser)
+        otherUserAuthentication =
+          UsernamePasswordAuthenticationToken(
+            otherUser,
             null,
             listOf(SimpleGrantedAuthority(Role.USER.name)),
           )
@@ -567,7 +587,7 @@ class ConversationControllerTest
 
         jdbcTemplate.update(
           """
-          INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp) 
+          INSERT INTO spring_ai_chat_memory (conversation_id, content, type, timestamp)
           VALUES (?, ?, ?, ?)
           """.trimIndent(),
           conversation.id.toString(),
@@ -590,4 +610,147 @@ class ConversationControllerTest
             assertThat(response.data?.first()?.conversationId).isEqualTo(conversation.id)
           }
       }
+
+    @Test
+    fun `대화 삭제 성공`() =
+      runTest {
+        // given
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity(
+              userId = testUser.id,
+              goalId = testGoal.id,
+            ),
+          )
+
+        // when
+        val response = deleteConversation(conversation.id!!)
+
+        // then
+        assertThat(response.statusCode).isEqualTo(200)
+        assertThat(response.data).isEqualTo("Conversation deleted successfully")
+
+        // 실제로 데이터베이스에서 삭제되었는지 확인 (soft delete)
+        val deletedConversation = conversationRepository.findById(conversation.id!!)
+        assertThat(deletedConversation).isNotNull()
+        assertThat(deletedConversation!!.deletedAt).isNotNull()
+      }
+
+    @Test
+    fun `인증되지 않은 사용자는 대화 삭제 시 401 반환`() =
+      runTest {
+        // given
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity(
+              userId = testUser.id,
+            ),
+          )
+
+        // when & then
+        webTestClient
+          .delete()
+          .uri("/api/v1/conversations/${conversation.id}")
+          .accept(MediaType.APPLICATION_JSON)
+          .exchange()
+          .expectStatus()
+          .isUnauthorized
+      }
+
+    @Test
+    fun `존재하지 않는 대화 삭제 시 404 반환`() {
+      // given
+      val nonExistentConversationId = UUID.randomUUID()
+
+      // when
+      val response = deleteConversationExpectingError(nonExistentConversationId)
+
+      // then
+      assertThat(response.statusCode).isEqualTo(404)
+      assertThat(response.errorCode).isEqualTo("ASSISTANT:CONVERSATIONNOTFOUND")
+    }
+
+    @Test
+    fun `다른 사용자의 대화 삭제 시 401 반환`() =
+      runTest {
+        // given
+        val conversation =
+          conversationRepository.save(
+            ConversationEntity(
+              userId = testUser.id,
+            ),
+          )
+
+        // when
+        val response = deleteConversationExpectingError(conversation.id!!, otherUserAuthentication)
+
+        // then
+        assertThat(response.statusCode).isEqualTo(401)
+        assertThat(response.errorCode).isEqualTo("AUTH:UNAUTHORIZED")
+      }
+
+    @Test
+    fun `이미 삭제된 대화 삭제 시 404 반환`() =
+      runTest {
+        // given - 이미 삭제된 대화 생성
+        val deletedConversation =
+          conversationRepository.save(
+            ConversationEntity(
+              userId = testUser.id,
+              deletedAt = Instant.now(),
+            ),
+          )
+
+        // when
+        val response = deleteConversationExpectingError(deletedConversation.id!!)
+
+        // then
+        assertThat(response.statusCode).isEqualTo(404)
+        assertThat(response.errorCode).isEqualTo("ASSISTANT:CONVERSATIONNOTFOUND")
+      }
+
+    @Test
+    fun `잘못된 UUID 형식으로 대화 삭제 요청 시 400 반환`() {
+      // when & then
+      webTestClient
+        .mutateWith(mockAuthentication(authentication))
+        .delete()
+        .uri("/api/v1/conversations/invalid-uuid-format")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .isBadRequest
+    }
+
+    private fun deleteConversation(
+      conversationId: UUID,
+      auth: UsernamePasswordAuthenticationToken = authentication,
+    ): ServiceResponse<String> =
+      webTestClient
+        .mutateWith(mockAuthentication(auth))
+        .delete()
+        .uri("/api/v1/conversations/$conversationId")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .isOk
+        .expectBody<ServiceResponse<String>>()
+        .returnResult()
+        .responseBody!!
+
+    private fun deleteConversationExpectingError(
+      conversationId: UUID,
+      auth: UsernamePasswordAuthenticationToken = authentication,
+    ): ServiceResponse<Unit> =
+      webTestClient
+        .mutateWith(mockAuthentication(auth))
+        .delete()
+        .uri("/api/v1/conversations/$conversationId")
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus()
+        .is4xxClientError
+        .expectBody<ServiceResponse<Unit>>()
+        .returnResult()
+        .responseBody!!
   }

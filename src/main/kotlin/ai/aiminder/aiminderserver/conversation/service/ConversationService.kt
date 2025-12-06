@@ -8,6 +8,7 @@ import ai.aiminder.aiminderserver.assistant.error.AssistantError
 import ai.aiminder.aiminderserver.auth.error.AuthError
 import ai.aiminder.aiminderserver.conversation.domain.Conversation
 import ai.aiminder.aiminderserver.conversation.dto.ConversationResponse
+import ai.aiminder.aiminderserver.conversation.dto.DeleteConversationRequestDto
 import ai.aiminder.aiminderserver.conversation.dto.GetConversationRequestDto
 import ai.aiminder.aiminderserver.conversation.entity.ConversationEntity
 import ai.aiminder.aiminderserver.conversation.repository.ConversationQueryRepository
@@ -78,6 +79,13 @@ class ConversationService(
       .let { ConversationEntity.from(it) }
       .let { conversationRepository.save(it) }
       .let { Conversation.from(it) }
+
+  suspend fun delete(dto: DeleteConversationRequestDto) {
+    getById(dto.conversationId)
+      .delete(dto)
+      .let { ConversationEntity.from(it) }
+      .let { conversationRepository.save(it) }
+  }
 
   private fun formatRecentChat(conversation: ConversationRow): ConversationRow {
     val recentChat =
