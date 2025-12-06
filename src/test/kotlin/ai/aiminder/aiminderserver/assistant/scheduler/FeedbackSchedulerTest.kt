@@ -19,6 +19,7 @@ import ai.aiminder.aiminderserver.schedule.domain.Schedule
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequestDto
 import ai.aiminder.aiminderserver.schedule.service.ScheduleService
 import ai.aiminder.aiminderserver.user.domain.User
+import ai.aiminder.aiminderserver.user.service.UserNotificationSettingsService
 import ai.aiminder.aiminderserver.user.service.UserService
 import com.ninjasquad.springmockk.MockkBean
 import kotlinx.coroutines.flow.toList
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import java.time.Instant
+import java.time.LocalTime
 import java.util.UUID
 
 class FeedbackSchedulerTest
@@ -39,6 +41,7 @@ class FeedbackSchedulerTest
     private val scheduleService: ScheduleService,
     private val chatService: ChatService,
     private val feedbackScheduler: FeedbackScheduler,
+    private val userNotificationSettingsService: UserNotificationSettingsService,
   ) : BaseIntegrationTest() {
     @MockkBean(relaxed = true)
     private lateinit var assistantService: AssistantService
@@ -47,8 +50,14 @@ class FeedbackSchedulerTest
     fun `정상적인 피드백 스케줄링 테스트`() =
       runTest {
         // given - 실제 데이터베이스에 데이터 생성
+        val currentTime = LocalTime.now().withSecond(0).withNano(0)
+
         val user1 = createTestUser("user1")
         val user2 = createTestUser("user2")
+
+        // 현재 시간에 알림 설정
+        setupNotificationSettingsForCurrentTime(user1.id, currentTime)
+        setupNotificationSettingsForCurrentTime(user2.id, currentTime)
 
         val goal1 = createTestGoal("goal1", user1.id)
         val goal2 = createTestGoal("goal2", user2.id)
@@ -134,7 +143,11 @@ class FeedbackSchedulerTest
     fun `스케줄이 없는 경우 테스트`() =
       runTest {
         // given - 사용자와 목표는 있지만 스케줄이 없는 상태
+        val currentTime = LocalTime.now().withSecond(0).withNano(0)
+
         val user = createTestUser("user1")
+        setupNotificationSettingsForCurrentTime(user.id, currentTime)
+
         val goal = createTestGoal("goal1", user.id)
         val conversation = createTestConversation("conv1", goal.id, user)
         val assistantResponse = createTestAssistantResponse()
@@ -169,7 +182,11 @@ class FeedbackSchedulerTest
     fun `대화방을 찾을 수 없는 경우 테스트`() =
       runTest {
         // given - 사용자와 목표는 있지만 대화방이 없는 상태
+        val currentTime = LocalTime.now().withSecond(0).withNano(0)
+
         val user = createTestUser("user1")
+        setupNotificationSettingsForCurrentTime(user.id, currentTime)
+
         val goal = createTestGoal("goal1", user.id)
         // 대화방을 생성하지 않음
 
@@ -190,7 +207,11 @@ class FeedbackSchedulerTest
     fun `AI 피드백 생성 실패 테스트`() =
       runTest {
         // given
+        val currentTime = LocalTime.now().withSecond(0).withNano(0)
+
         val user = createTestUser("user1")
+        setupNotificationSettingsForCurrentTime(user.id, currentTime)
+
         val goal = createTestGoal("goal1", user.id)
         val conversation = createTestConversation("conv1", goal.id, user)
 
@@ -223,9 +244,16 @@ class FeedbackSchedulerTest
     fun `다수 사용자 다수 목표 처리 테스트`() =
       runTest {
         // given - 다수 사용자와 목표 생성
+        val currentTime = LocalTime.now().withSecond(0).withNano(0)
+
         val user1 = createTestUser("user1")
         val user2 = createTestUser("user2")
         val user3 = createTestUser("user3")
+
+        // 현재 시간에 알림 설정
+        setupNotificationSettingsForCurrentTime(user1.id, currentTime)
+        setupNotificationSettingsForCurrentTime(user2.id, currentTime)
+        setupNotificationSettingsForCurrentTime(user3.id, currentTime)
 
         val goal1 = createTestGoal("goal1-1", user1.id)
         val goal2 = createTestGoal("goal1-2", user1.id)
@@ -273,10 +301,184 @@ class FeedbackSchedulerTest
         assert(totalChats == 6) // 각 목표당 최소 1개의 피드백 채팅
       }
 
+    @Test
+    fun `알림이 비활성화된 사용자는 피드백 제외 테스트`() =
+      runTest {
+        // given - 사용자 생성 후 알림 비활성화
+        val currentTime = LocalTime.now().withSecond(0).withNano(0)
+
+        val user = createTestUser("user1")
+        // 알림 비활성화
+        userNotificationSettingsService.updateNotificationSettings(
+          userId = user.id,
+          aiFeedbackEnabled = false,
+          aiFeedbackNotificationTime = currentTime,
+        )
+
+        val goal = createTestGoal("goal1", user.id)
+        val conversation = createTestConversation("conv1", goal.id, user)
+
+        // when
+        feedbackScheduler.feedback()
+
+        // then - 알림이 비활성화되어 피드백이 생성되지 않음
+        val conversationChats =
+          chatService
+            .get(
+              GetMessagesRequestDto(
+                conversationId = conversation.id,
+                pageable = PageRequest.of(0, 10),
+              ),
+            ).content
+
+        assert(conversationChats.isEmpty())
+      }
+
+    @Test
+    fun `알림 시간이 일치하지 않는 사용자는 피드백 제외 테스트`() =
+      runTest {
+        // given - 현재 시간과 다른 알림 시간 설정
+        val currentTime = LocalTime.now().withSecond(0).withNano(0)
+        val differentTime = currentTime.plusHours(1)
+
+        val user = createTestUser("user1")
+        // 다른 시간으로 알림 설정
+        userNotificationSettingsService.updateNotificationSettings(
+          userId = user.id,
+          aiFeedbackEnabled = true,
+          aiFeedbackNotificationTime = differentTime,
+        )
+
+        val goal = createTestGoal("goal1", user.id)
+        val conversation = createTestConversation("conv1", goal.id, user)
+
+        // when
+        feedbackScheduler.feedback()
+
+        // then - 알림 시간이 일치하지 않아 피드백이 생성되지 않음
+        val conversationChats =
+          chatService
+            .get(
+              GetMessagesRequestDto(
+                conversationId = conversation.id,
+                pageable = PageRequest.of(0, 10),
+              ),
+            ).content
+
+        assert(conversationChats.isEmpty())
+      }
+
+    @Test
+    fun `알림 설정이 없는 사용자는 피드백 제외 테스트`() =
+      runTest {
+        // given - 알림 설정 없이 사용자 생성
+        val user = createTestUser("user1")
+        // 알림 설정을 생성하지 않음 (getNotificationSettings 호출 시 기본값 생성되지만, 스케줄러에서는 조회만 함)
+
+        val goal = createTestGoal("goal1", user.id)
+        val conversation = createTestConversation("conv1", goal.id, user)
+
+        // when
+        feedbackScheduler.feedback()
+
+        // then - 알림 설정이 없으므로 피드백이 생성되지 않음
+        val conversationChats =
+          chatService
+            .get(
+              GetMessagesRequestDto(
+                conversationId = conversation.id,
+                pageable = PageRequest.of(0, 10),
+              ),
+            ).content
+
+        assert(conversationChats.isEmpty())
+      }
+
+    @Test
+    fun `혼합 알림 설정 사용자 테스트`() =
+      runTest {
+        // given - 활성화된 사용자와 비활성화된 사용자 혼합
+        val currentTime = LocalTime.now().withSecond(0).withNano(0)
+
+        val userEnabled = createTestUser("user1")
+        val userDisabled = createTestUser("user2")
+        val userDifferentTime = createTestUser("user3")
+
+        // 활성화 사용자 - 현재 시간
+        setupNotificationSettingsForCurrentTime(userEnabled.id, currentTime)
+        // 비활성화 사용자
+        userNotificationSettingsService.updateNotificationSettings(
+          userId = userDisabled.id,
+          aiFeedbackEnabled = false,
+          aiFeedbackNotificationTime = currentTime,
+        )
+        // 다른 시간 사용자
+        userNotificationSettingsService.updateNotificationSettings(
+          userId = userDifferentTime.id,
+          aiFeedbackEnabled = true,
+          aiFeedbackNotificationTime = currentTime.plusHours(2),
+        )
+
+        val goalEnabled = createTestGoal("goal1", userEnabled.id)
+        val goalDisabled = createTestGoal("goal2", userDisabled.id)
+        val goalDifferentTime = createTestGoal("goal3", userDifferentTime.id)
+
+        val convEnabled = createTestConversation("conv1", goalEnabled.id, userEnabled)
+        val convDisabled = createTestConversation("conv2", goalDisabled.id, userDisabled)
+        val convDifferentTime = createTestConversation("conv3", goalDifferentTime.id, userDifferentTime)
+
+        // when
+        feedbackScheduler.feedback()
+
+        // then - 활성화된 사용자만 피드백 생성
+        val enabledChats =
+          chatService
+            .get(
+              GetMessagesRequestDto(
+                conversationId = convEnabled.id,
+                pageable = PageRequest.of(0, 10),
+              ),
+            ).content
+
+        val disabledChats =
+          chatService
+            .get(
+              GetMessagesRequestDto(
+                conversationId = convDisabled.id,
+                pageable = PageRequest.of(0, 10),
+              ),
+            ).content
+
+        val differentTimeChats =
+          chatService
+            .get(
+              GetMessagesRequestDto(
+                conversationId = convDifferentTime.id,
+                pageable = PageRequest.of(0, 10),
+              ),
+            ).content
+
+        // 활성화된 사용자만 피드백 생성
+        assert(enabledChats.isNotEmpty())
+        assert(disabledChats.isEmpty())
+        assert(differentTimeChats.isEmpty())
+      }
+
     // 헬퍼 메서드들 - 실제 데이터베이스에 저장
     private suspend fun createTestUser(providerId: String): User {
       val userInfo = OAuth2UserInfo(id = providerId)
       return userService.createUser(userInfo, "google")
+    }
+
+    private suspend fun setupNotificationSettingsForCurrentTime(
+      userId: UUID,
+      time: LocalTime,
+    ) {
+      userNotificationSettingsService.updateNotificationSettings(
+        userId = userId,
+        aiFeedbackEnabled = true,
+        aiFeedbackNotificationTime = time,
+      )
     }
 
     private suspend fun createTestGoal(

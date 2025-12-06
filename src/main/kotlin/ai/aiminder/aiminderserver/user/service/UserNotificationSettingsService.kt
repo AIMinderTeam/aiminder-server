@@ -3,6 +3,8 @@ package ai.aiminder.aiminderserver.user.service
 import ai.aiminder.aiminderserver.user.domain.UserNotificationSettings
 import ai.aiminder.aiminderserver.user.entity.UserNotificationSettingsEntity
 import ai.aiminder.aiminderserver.user.repository.UserNotificationSettingsRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.time.LocalTime
@@ -75,6 +77,13 @@ class UserNotificationSettingsService(
     val savedEntity = userNotificationSettingsRepository.save(updatedEntity)
     return UserNotificationSettings.from(savedEntity)
   }
+
+  suspend fun getUserIdsForFeedbackAtTime(time: LocalTime): Flow<UUID> =
+    userNotificationSettingsRepository
+      .findAllByAiFeedbackEnabledAndAiFeedbackNotificationTime(
+        aiFeedbackEnabled = true,
+        aiFeedbackNotificationTime = time,
+      ).map { it.userId }
 
   private suspend fun createDefaultSettings(userId: UUID): UserNotificationSettingsEntity {
     val defaultEntity =
