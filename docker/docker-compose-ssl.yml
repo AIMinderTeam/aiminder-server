@@ -21,7 +21,7 @@ services:
       - DATABASE_URL=r2dbc:postgresql://aiminder-database:5432/aiminderdb
       - SPRING_PROFILES_ACTIVE=dev,openai
     volumes:
-      - ./uploads/images:/uploads/images
+      - ./uploads/images:/app/uploads/images
       - ./logs:/app/logs
     restart: always
     ports:
