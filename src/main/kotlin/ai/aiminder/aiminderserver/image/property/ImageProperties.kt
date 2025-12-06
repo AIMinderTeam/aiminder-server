@@ -9,7 +9,7 @@ import java.nio.file.Paths
 data class ImageProperties(
   private val uploadDir: String = "./uploads/images",
   private val maxFileSize: Long = 5242880,
-  private val allowedTypes: String = "image/jpeg,image/png,image/gif,image/webp",
+  private val allowedTypes: String = "image/jpg,image/jpeg,image/png,image/gif,image/webp",
 ) {
   val uploadDirPath: Path = Paths.get(uploadDir)
   val allowedTypesList: List<String> = allowedTypes.split(",").map { it.trim() }
@@ -22,9 +22,7 @@ data class ImageProperties(
 
   fun getMaxFileSize(): Long = maxFileSize
 
-  fun isValidFileType(contentType: String?): Boolean {
-    return contentType != null && allowedTypesList.contains(contentType)
-  }
+  fun isValidFileType(contentType: String?): Boolean = contentType != null && allowedTypesList.contains(contentType)
 
   fun getFormattedAllowedTypes(): String = allowedTypesList.joinToString(", ")
 }
