@@ -4,6 +4,7 @@ import ai.aiminder.aiminderserver.common.config.JooqR2dbcRepository
 import ai.aiminder.aiminderserver.jooq.tables.Schedules.Companion.SCHEDULES
 import ai.aiminder.aiminderserver.schedule.dto.DailyScheduleStatistics
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequestDto
+import ai.aiminder.aiminderserver.schedule.dto.GoalScheduleStatistics
 import ai.aiminder.aiminderserver.schedule.repository.row.ScheduleRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -114,4 +115,33 @@ class ScheduleQueryRepository : JooqR2dbcRepository() {
   }
 
   private fun Instant.toLocalDateTime(): LocalDateTime = atOffset(ZoneOffset.UTC).toLocalDateTime()
+
+  suspend fun findScheduleStatisticsByGoalIds(goalIds: List<UUID>): List<GoalScheduleStatistics> {
+    if (goalIds.isEmpty()) return emptyList()
+
+    return query {
+      val totalCountField = DSL.count()
+      val completedCountField =
+        DSL.count(
+          DSL.`when`(SCHEDULES.STATUS.eq("COMPLETED"), 1).otherwise(null as Int?),
+        )
+
+      select(
+        SCHEDULES.GOAL_ID,
+        totalCountField.`as`("total_count"),
+        completedCountField.`as`("completed_count"),
+      ).from(SCHEDULES)
+        .where(
+          SCHEDULES.GOAL_ID.`in`(goalIds)
+            .and(SCHEDULES.DELETED_AT.isNull),
+        )
+        .groupBy(SCHEDULES.GOAL_ID)
+    }.map { record ->
+      GoalScheduleStatistics(
+        goalId = record.get(SCHEDULES.GOAL_ID)!!,
+        totalCount = record.get("total_count") as Int,
+        completedCount = record.get("completed_count") as Int,
+      )
+    }.toList()
+  }
 }

@@ -12,6 +12,9 @@ import ai.aiminder.aiminderserver.goal.dto.GoalResponse
 import ai.aiminder.aiminderserver.goal.dto.UpdateGoalRequest
 import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import ai.aiminder.aiminderserver.goal.repository.GoalRepository
+import ai.aiminder.aiminderserver.schedule.domain.ScheduleStatus
+import ai.aiminder.aiminderserver.schedule.entity.ScheduleEntity
+import ai.aiminder.aiminderserver.schedule.repository.ScheduleRepository
 import ai.aiminder.aiminderserver.user.domain.User
 import ai.aiminder.aiminderserver.user.entity.UserEntity
 import ai.aiminder.aiminderserver.user.repository.UserRepository
@@ -35,6 +38,7 @@ class GoalControllerTest
     private val userRepository: UserRepository,
     private val goalRepository: GoalRepository,
     private val tokenService: TokenService,
+    private val scheduleRepository: ScheduleRepository,
   ) : BaseIntegrationTest() {
     private lateinit var testUser: User
     private lateinit var authentication: UsernamePasswordAuthenticationToken
@@ -1388,4 +1392,260 @@ class GoalControllerTest
         .returnResult()
         .responseBody!!
     }
+
+    @Test
+    fun `목표 목록 조회 시 일정 통계가 포함된다`() =
+      runTest {
+        // given
+        val goalEntity =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Test Goal with Schedules",
+              targetDate = Instant.now().plusSeconds(86400),
+            ),
+          )
+
+        // 일정 5개 생성: 2개 완료, 3개 미완료
+        val now = Instant.now()
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity.id!!,
+            userId = testUser.id,
+            title = "Schedule 1",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity.id!!,
+            userId = testUser.id,
+            title = "Schedule 2",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity.id!!,
+            userId = testUser.id,
+            title = "Schedule 3",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.READY,
+          ),
+        )
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity.id!!,
+            userId = testUser.id,
+            title = "Schedule 4",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.READY,
+          ),
+        )
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity.id!!,
+            userId = testUser.id,
+            title = "Schedule 5",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // when
+        val response = getGoals("/api/v1/goals")
+
+        // then
+        response.data!!.also { goals ->
+          assertThat(goals).hasSize(1)
+          val goal = goals[0]
+          assertThat(goal.totalScheduleCount).isEqualTo(5)
+          assertThat(goal.completedScheduleCount).isEqualTo(2)
+        }
+      }
+
+    @Test
+    fun `일정이 없는 목표의 경우 일정 통계가 0으로 반환된다`() =
+      runTest {
+        // given
+        goalRepository.save(
+          GoalEntity(
+            userId = testUser.id,
+            title = "Goal without Schedules",
+            targetDate = Instant.now().plusSeconds(86400),
+          ),
+        )
+
+        // when
+        val response = getGoals("/api/v1/goals")
+
+        // then
+        response.data!!.also { goals ->
+          assertThat(goals).hasSize(1)
+          val goal = goals[0]
+          assertThat(goal.totalScheduleCount).isEqualTo(0)
+          assertThat(goal.completedScheduleCount).isEqualTo(0)
+        }
+      }
+
+    @Test
+    fun `삭제된 일정은 통계에서 제외된다`() =
+      runTest {
+        // given
+        val goalEntity =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Test Goal with Deleted Schedule",
+              targetDate = Instant.now().plusSeconds(86400),
+            ),
+          )
+
+        val now = Instant.now()
+        // 삭제되지 않은 일정 2개
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity.id!!,
+            userId = testUser.id,
+            title = "Active Schedule 1",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity.id!!,
+            userId = testUser.id,
+            title = "Active Schedule 2",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.READY,
+          ),
+        )
+        // 삭제된 일정 1개
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity.id!!,
+            userId = testUser.id,
+            title = "Deleted Schedule",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.COMPLETED,
+            deletedAt = now,
+          ),
+        )
+
+        // when
+        val response = getGoals("/api/v1/goals")
+
+        // then
+        response.data!!.also { goals ->
+          assertThat(goals).hasSize(1)
+          val goal = goals[0]
+          assertThat(goal.totalScheduleCount).isEqualTo(2)
+          assertThat(goal.completedScheduleCount).isEqualTo(1)
+        }
+      }
+
+    @Test
+    fun `여러 목표가 있을 때 각 목표별로 정확한 일정 통계가 반환된다`() =
+      runTest {
+        // given
+        val goalEntity1 =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Goal 1",
+              targetDate = Instant.now().plusSeconds(86400),
+            ),
+          )
+        val goalEntity2 =
+          goalRepository.save(
+            GoalEntity(
+              userId = testUser.id,
+              title = "Goal 2",
+              targetDate = Instant.now().plusSeconds(86400),
+            ),
+          )
+
+        val now = Instant.now()
+        // Goal 1에 일정 3개: 1개 완료, 2개 미완료
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity1.id!!,
+            userId = testUser.id,
+            title = "G1 Schedule 1",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity1.id!!,
+            userId = testUser.id,
+            title = "G1 Schedule 2",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.READY,
+          ),
+        )
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity1.id!!,
+            userId = testUser.id,
+            title = "G1 Schedule 3",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.READY,
+          ),
+        )
+
+        // Goal 2에 일정 2개: 2개 완료, 0개 미완료
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity2.id!!,
+            userId = testUser.id,
+            title = "G2 Schedule 1",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+        scheduleRepository.save(
+          ScheduleEntity(
+            goalId = goalEntity2.id!!,
+            userId = testUser.id,
+            title = "G2 Schedule 2",
+            startDate = now,
+            endDate = now.plusSeconds(3600),
+            status = ScheduleStatus.COMPLETED,
+          ),
+        )
+
+        // when
+        val response = getGoals("/api/v1/goals")
+
+        // then
+        response.data!!.also { goals ->
+          assertThat(goals).hasSize(2)
+
+          // 최신순으로 정렬되므로 goalEntity2가 먼저
+          val goal2 = goals.find { it.id == goalEntity2.id }!!
+          assertThat(goal2.totalScheduleCount).isEqualTo(2)
+          assertThat(goal2.completedScheduleCount).isEqualTo(2)
+
+          val goal1 = goals.find { it.id == goalEntity1.id }!!
+          assertThat(goal1.totalScheduleCount).isEqualTo(3)
+          assertThat(goal1.completedScheduleCount).isEqualTo(1)
+        }
+      }
   }

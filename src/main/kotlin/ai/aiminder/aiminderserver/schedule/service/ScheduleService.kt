@@ -3,6 +3,7 @@ package ai.aiminder.aiminderserver.schedule.service
 import ai.aiminder.aiminderserver.schedule.domain.Schedule
 import ai.aiminder.aiminderserver.schedule.dto.CreateScheduleRequestDto
 import ai.aiminder.aiminderserver.schedule.dto.GetSchedulesRequestDto
+import ai.aiminder.aiminderserver.schedule.dto.GoalScheduleStatistics
 import ai.aiminder.aiminderserver.schedule.dto.MonthlyScheduleStatisticsResponse
 import ai.aiminder.aiminderserver.schedule.dto.ScheduleResponse
 import ai.aiminder.aiminderserver.schedule.dto.UpdateScheduleRequestDto
@@ -133,4 +134,9 @@ class ScheduleService(
       dailyStatistics = dailyStatistics,
     )
   }
+
+  suspend fun getScheduleStatisticsByGoalIds(goalIds: List<UUID>): Map<UUID, GoalScheduleStatistics> =
+    scheduleQueryRepository
+      .findScheduleStatisticsByGoalIds(goalIds)
+      .associateBy { it.goalId }
 }

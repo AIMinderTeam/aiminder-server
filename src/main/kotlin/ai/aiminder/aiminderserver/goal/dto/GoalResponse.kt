@@ -24,6 +24,10 @@ data class GoalResponse(
   val status: GoalStatus,
   @Schema(description = "연관된 이미지 경로", example = "/images/goal-image.jpg")
   val imagePath: String?,
+  @Schema(description = "전체 일정 개수", example = "10")
+  val totalScheduleCount: Int,
+  @Schema(description = "완료된 일정 개수", example = "3")
+  val completedScheduleCount: Int,
   @Schema(description = "생성일시", example = "2024-01-01T00:00:00Z")
   val createdAt: Instant,
   @Schema(description = "수정일시", example = "2024-01-01T00:00:00Z")
@@ -35,6 +39,8 @@ data class GoalResponse(
     fun from(
       goal: Goal,
       imagePath: String? = null,
+      totalScheduleCount: Int = 0,
+      completedScheduleCount: Int = 0,
     ): GoalResponse =
       GoalResponse(
         id = goal.id,
@@ -45,6 +51,8 @@ data class GoalResponse(
         isAiGenerated = goal.isAiGenerated,
         status = goal.status,
         imagePath = imagePath,
+        totalScheduleCount = totalScheduleCount,
+        completedScheduleCount = completedScheduleCount,
         createdAt = goal.createdAt,
         updatedAt = goal.updatedAt,
         deletedAt = goal.deletedAt,
