@@ -105,7 +105,7 @@ class ImageServiceTest {
       }.isInstanceOf(ImageError.UnsupportedFileType::class.java)
         .hasMessageContaining(
           "지원하지 않는 파일 포맷이며 다음 파일 포맷만 지원합니다 : " +
-            "image/jpeg, image/png, image/gif, image/web",
+            "image/jpg, image/jpeg, image/png, image/gif, image/web",
         )
     }
 }

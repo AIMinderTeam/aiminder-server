@@ -37,27 +37,6 @@ interface UserNotificationSettingsControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공적으로 알림 설정 조회 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": "요청이 성공했습니다.",
-                  "errorCode": null,
-                  "data": {
-                    "aiFeedbackEnabled": true,
-                    "aiFeedbackNotificationTime": "09:00"
-                  },
-                  "pageable": null
-                }
-              """,
-                implementation = ServiceResponse::class,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -125,27 +104,6 @@ interface UserNotificationSettingsControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공적으로 AI 피드백 활성화 설정 업데이트 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": "요청이 성공했습니다.",
-                  "errorCode": null,
-                  "data": {
-                    "aiFeedbackEnabled": false,
-                    "aiFeedbackNotificationTime": "09:00"
-                  },
-                  "pageable": null
-                }
-              """,
-                implementation = ServiceResponse::class,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "400",
@@ -237,27 +195,6 @@ interface UserNotificationSettingsControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공적으로 AI 피드백 알림 시간 업데이트 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": "요청이 성공했습니다.",
-                  "errorCode": null,
-                  "data": {
-                    "aiFeedbackEnabled": true,
-                    "aiFeedbackNotificationTime": "18:30"
-                  },
-                  "pageable": null
-                }
-              """,
-                implementation = ServiceResponse::class,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "400",

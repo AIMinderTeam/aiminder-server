@@ -11,6 +11,7 @@ import ai.aiminder.aiminderserver.goal.entity.GoalEntity
 import ai.aiminder.aiminderserver.goal.error.GoalError
 import ai.aiminder.aiminderserver.goal.repository.GoalRepository
 import ai.aiminder.aiminderserver.image.repository.ImageRepository
+import ai.aiminder.aiminderserver.schedule.service.ScheduleService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -23,6 +24,7 @@ import java.util.UUID
 class GoalService(
   private val goalRepository: GoalRepository,
   private val imageRepository: ImageRepository,
+  private val scheduleService: ScheduleService,
 ) {
   private val logger = logger()
 
@@ -47,10 +49,19 @@ class GoalService(
         ).map { Goal.from(it) }
         .toList()
 
+    val goalIds = goals.map { it.id }
+    val scheduleStats = scheduleService.getScheduleStatisticsByGoalIds(goalIds)
+
     val goalResponses =
       goals.map { goal ->
         val imagePath = getImagePath(goal.imageId)
-        GoalResponse.from(goal, imagePath)
+        val stats = scheduleStats[goal.id]
+        GoalResponse.from(
+          goal = goal,
+          imagePath = imagePath,
+          totalScheduleCount = stats?.totalCount ?: 0,
+          completedScheduleCount = stats?.completedCount ?: 0,
+        )
       }
 
     val totalCount =

@@ -47,7 +47,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Framework**: Spring Boot 3.5.3 + WebFlux (reactive)
 - **Language**: Kotlin 1.9.25 with coroutines
 - **Database**: PostgreSQL 14 with R2DBC (reactive database access)
-- **Query Builder**: jOOQ 3.19.4 for type-safe SQL queries
+- **Query Builder**: jOOQ 3.19.14 for type-safe SQL queries
 - **AI Integration**: Spring AI 1.0.3 framework with OpenAI
 - **Authentication**: JWT + OAuth2 (Google, Kakao)
 - **Build**: Gradle with Kotlin DSL
@@ -63,16 +63,16 @@ Base package: `ai.aiminder.aiminderserver`
 **Reactive Programming**: Entire application uses WebFlux and R2DBC for non-blocking, reactive operations. All database operations return `Mono<T>` or `Flux<T>`.
 
 **Modular Domain Structure**: Code organized by business domains under `src/main/kotlin/ai/aiminder/aiminderserver/`:
-- `assistant/`: AI chat functionality with OpenAI integration, tool calling, and feedback scheduling
+- `assistant/`: AI chat functionality with OpenAI integration, tool calling, feedback scheduling, and AI clients
 - `auth/`: OAuth2 + JWT authentication with cookie-based sessions
 - `goal/`: Goal management system with SMART goal support
 - `user/`: User profile, notification settings, and withdrawal management
 - `image/`: Image upload and management functionality
-- `schedule/`: Schedule management system linked to goals
+- `schedule/`: Schedule management with statistics and daily summary
 - `notification/`: Notification management with event-driven architecture
 - `conversation/`: Conversation history and memory management
 - `inquiry/`: User inquiry and feedback management system
-- `common/`: Shared utilities, configuration, error handling
+- `common/`: Shared utilities, configuration, error handling, jOOQ config
 
 **Configuration Management**: Environment-driven configuration using `.env` files loaded via dotenv-java, with profile-specific YAML files.
 
@@ -81,7 +81,7 @@ Base package: `ai.aiminder.aiminderserver`
 - **Location**: `src/main/resources/db/migration/V*__*.sql`
 - **Current Version**: V16 (user_withdrawals table)
 - **Entities**: User, RefreshToken, Goal, Image, Schedule, Conversation, Chat, Notification, Inquiry, UserNotificationSettings, UserWithdrawal
-- **jOOQ Schema**: `src/main/resources/db/jooq/schema.sql` for code generation
+- **jOOQ Schema**: `src/main/resources/db/jooq/schema.sql` for code generation (NOTE: user_withdrawals table not included in jOOQ schema)
 - **Generated Code**: `build/generated/jooq/` (package: `ai.aiminder.aiminderserver.jooq`)
 - **Testing**: Uses TestContainers for integration tests with PostgreSQL
 
@@ -89,8 +89,9 @@ Base package: `ai.aiminder.aiminderserver`
 - Cookie-based JWT sessions with refresh token rotation
 - OAuth2 providers: Google and Kakao
 - Unified `AuthenticationWebFilter` handles both Bearer token and Cookie-based authentication
-- Success/failure handlers for token management
-- Token extraction, validation, and refresh services
+- Success/failure handlers for token management (`TokenLoginSuccessHandler`, `TokenLogoutHandler`, `TokenLogoutSuccessHandler`)
+- Token extraction, validation, and refresh services (`TokenExtractor`, `TokenValidator`, `TokenRefreshService`)
+- `AllowedRedirectValidator` for secure redirect validation
 
 ### AI Integration
 - **Framework**: Spring AI with OpenAI client
@@ -101,8 +102,9 @@ Base package: `ai.aiminder.aiminderserver`
 - **AI Clients**:
   - `GoalAssistantClient`: Goal-focused conversations
   - `FeedbackAssistantClient`: AI feedback generation
+  - `OpenAIClient`: Base OpenAI API client
 - **Prompts**: Managed in `src/main/resources/prompts/` (goal_prompt.txt, feedback_prompt.txt, welcome_message.txt)
-- **Feedback Scheduler**: Automated feedback generation via `FeedbackScheduler`
+- **Feedback Scheduler**: Automated feedback generation via `FeedbackScheduler` (conditionally enabled via `aiminder.scheduler.feedback.enabled` property)
 - **Configuration**: Profile-based (openai, ollama) with environment variables
 
 ### Testing Strategy
@@ -112,7 +114,7 @@ Base package: `ai.aiminder.aiminderserver`
 - **Mocking**: MockK 1.13.12 and SpringMockK 4.0.2 for unit tests
 
 ### Configuration Profiles
-- `application.yaml`: Base configuration
+- `application.yaml`: Base configuration (includes scheduler enabled flag)
 - `application-local.yaml`: Local development
 - `application-dev.yaml`: Development environment
 - `application-openai.yaml`: OpenAI-specific settings
@@ -133,6 +135,7 @@ Base package: `ai.aiminder.aiminderserver`
 - Java 21 is required (configured in build.gradle.kts)
 - Uses Gradle Kotlin DSL for build configuration
 - jOOQ code generation runs automatically before Kotlin compilation
+- jOOQ generated files are excluded from ktlint checks
 
 ### Local Development Requirements
 - PostgreSQL 14+ running on localhost:5432
@@ -141,18 +144,23 @@ Base package: `ai.aiminder.aiminderserver`
 
 ### Domain-Specific Notes
 
-**Assistant Module**: Uses Spring AI framework with function calling capabilities. The AI assistant can execute goals and schedules management through predefined tools (`GoalTool`, `TodayTool`). Includes `FeedbackScheduler` for automated AI feedback generation and event-driven notification publishing. Prompts are managed in `src/main/resources/prompts/`.
+**Assistant Module**: Uses Spring AI framework with function calling capabilities. The AI assistant can execute goals and schedules management through predefined tools (`GoalTool`, `TodayTool`). Includes `FeedbackScheduler` for automated AI feedback generation (runs every minute when enabled) and event-driven notification publishing. Prompts are managed in `src/main/resources/prompts/`. Services include `ToolContextService` for managing tool context, `FeedbackService`, and `FeedbackEventService`.
 
-**Authentication**: Implements unified authentication support (Bearer token and Cookie-based) through `AuthenticationWebFilter`. OAuth2 integration supports Google and Kakao providers with custom success/failure handlers for token management.
+**Authentication**: Implements unified authentication support (Bearer token and Cookie-based) through `AuthenticationWebFilter`. OAuth2 integration supports Google and Kakao providers with custom success/failure handlers for token management. Includes `ReturnToCaptureWebFilter` for OAuth flow redirect handling.
 
-**Goal Management**: Supports SMART goal creation with AI-powered refinement. Goals have status tracking (READY, INPROGRESS, COMPLETED) and can have associated images. Goals are linked to schedules for progress tracking.
+**Goal Management**: Supports SMART goal creation with AI-powered refinement via milestones (`GoalMilestone`). Goals have status tracking (READY, INPROGRESS, COMPLETED) and can have associated images. Goals are linked to schedules for progress tracking.
 
-**Image Handling**: Supports file uploads with validation for image types (JPEG, PNG, GIF, WebP) and size limits (5MB). Upload directory is configurable via application properties.
+**Image Handling**: Supports file uploads with validation for image types (JPEG, PNG, GIF, WebP) and size limits (5MB). Upload directory is configurable via application properties (`aiminder.image.upload-dir`).
 
-**Schedule Management**: Provides schedule generation linked to goals. Schedules have status tracking (READY, COMPLETED) for progress monitoring.
+**Schedule Management**: Provides schedule generation linked to goals. Schedules have status tracking (READY, COMPLETED) for progress monitoring. Includes:
+- Monthly statistics API (`/schedules/monthly-statistics`): Returns `MonthlyScheduleStatisticsResponse` with `DailyScheduleStatistics` and `GoalScheduleStatistics`
+- Daily summary API (`/schedules/daily-summary`): Returns `DailySummaryResponse` with `DailyGoalWithSchedules` and `DailyScheduleResponse`
+- `ScheduleQueryRepository` for complex queries with jOOQ
 
-**Notification System**: Event-driven notification system with `NotificationEventListener`. Supports notification types (ASSISTANT_FEEDBACK). Publishes notifications via Spring application events (`CreateNotificationEvent`, `CreateFeedbackEvent`).
+**Notification System**: Event-driven notification system with `NotificationEventListener`. Supports notification types (ASSISTANT_FEEDBACK). Publishes notifications via Spring application events (`CreateNotificationEvent`, `CreateFeedbackEvent`). Includes JSON serializers for `Instant` and `UUID`.
 
 **Inquiry System**: Manages user inquiries and feedback with support for different types (REVIEW, BUG_REPORT, IMPROVEMENT_SUGGESTION, GENERAL). Includes status tracking (PENDING, IN_PROGRESS, RESOLVED) and optional contact email collection.
 
-**User Management**: User profile management with notification settings (AI feedback enablement, notification timing). Supports user withdrawal with reason tracking (SERVICE_DISSATISFACTION, USING_OTHER_SERVICE, PRIVACY_CONCERN, LOW_USAGE_FREQUENCY, OTHER). Soft delete via `deleted_at` column.
+**User Management**: User profile management with notification settings (AI feedback enablement, notification timing via `UserNotificationSettings`). Supports user withdrawal with reason tracking (SERVICE_DISSATISFACTION, USING_OTHER_SERVICE, PRIVACY_CONCERN, LOW_USAGE_FREQUENCY, OTHER) via `UserWithdrawal` entity. Soft delete via `deleted_at` column. `UserNotificationSettingsService` provides `getUserIdsForFeedbackAtTime()` for scheduler integration.
+
+**Conversation Management**: Manages conversation history linked to goals. Includes `ConversationQueryRepository` for complex queries.

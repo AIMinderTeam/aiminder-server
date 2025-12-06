@@ -103,47 +103,6 @@ interface NotificationControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공적으로 알림 목록 조회 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": "요청이 성공했습니다.",
-                  "errorCode": null,
-                  "data": [
-                    {
-                      "id": "123e4567-e89b-12d3-a456-426614174000",
-                      "type": "ASSISTANT_FEEDBACK",
-                      "title": "AI 비서 알림",
-                      "description": "\"운동 목표\" 목표에 대한 피드백을 확인하세요.",
-                      "metadata": {
-                        "receiverId": "789e0123-e89b-12d3-a456-426614174002",
-                        "goalTitle": "운동 목표",
-                        "conversationId": "456e7890-e89b-12d3-a456-426614174001",
-                        "type": "ASSISTANT_FEEDBACK"
-                      },
-                      "receiverId": "789e0123-e89b-12d3-a456-426614174002",
-                      "checked": false,
-                      "createdAt": "2024-10-14T10:30:00Z",
-                      "updatedAt": "2024-10-14T10:30:00Z",
-                      "deletedAt": null
-                    }
-                  ],
-                  "pageable": {
-                    "page": 0,
-                    "count": 1,
-                    "totalElements": 1,
-                    "totalPages": 1
-                  }
-                }
-              """,
-                implementation = ServiceResponse::class,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -213,40 +172,6 @@ interface NotificationControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공적으로 알림 확인 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": "요청이 성공했습니다.",
-                  "errorCode": null,
-                  "data": {
-                    "id": "123e4567-e89b-12d3-a456-426614174000",
-                    "type": "ASSISTANT_FEEDBACK",
-                    "title": "AI 비서 알림",
-                    "description": "\"운동 목표\" 목표에 대한 피드백을 확인하세요.",
-                    "metadata": {
-                      "receiverId": "789e0123-e89b-12d3-a456-426614174002",
-                      "goalTitle": "운동 목표",
-                      "conversationId": "456e7890-e89b-12d3-a456-426614174001",
-                      "type": "ASSISTANT_FEEDBACK"
-                    },
-                    "receiverId": "789e0123-e89b-12d3-a456-426614174002",
-                    "checked": true,
-                    "createdAt": "2024-10-14T10:30:00Z",
-                    "updatedAt": "2024-10-14T10:35:00Z",
-                    "deletedAt": null
-                  },
-                  "pageable": null
-                }
-              """,
-                implementation = ServiceResponse::class,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -339,59 +264,6 @@ interface NotificationControllerDocs {
       ApiResponse(
         responseCode = "200",
         description = "성공적으로 모든 알림 일괄 확인 완료",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema =
-              Schema(
-                example = """
-                {
-                  "statusCode": 200,
-                  "message": "요청이 성공했습니다.",
-                  "errorCode": null,
-                  "data": [
-                    {
-                      "id": "123e4567-e89b-12d3-a456-426614174000",
-                      "type": "ASSISTANT_FEEDBACK",
-                      "title": "AI 비서 알림",
-                      "description": "\"운동 목표\" 목표에 대한 피드백을 확인하세요.",
-                      "metadata": {
-                        "receiverId": "789e0123-e89b-12d3-a456-426614174002",
-                        "goalTitle": "운동 목표",
-                        "conversationId": "456e7890-e89b-12d3-a456-426614174001",
-                        "type": "ASSISTANT_FEEDBACK"
-                      },
-                      "receiverId": "789e0123-e89b-12d3-a456-426614174002",
-                      "checked": true,
-                      "createdAt": "2024-10-14T10:30:00Z",
-                      "updatedAt": "2024-10-14T10:35:00Z",
-                      "deletedAt": null
-                    },
-                    {
-                      "id": "234e5678-e89b-12d3-a456-426614174003",
-                      "type": "ASSISTANT_FEEDBACK",
-                      "title": "AI 비서 알림",
-                      "description": "\"독서 목표\" 목표에 대한 피드백을 확인하세요.",
-                      "metadata": {
-                        "receiverId": "789e0123-e89b-12d3-a456-426614174002",
-                        "goalTitle": "독서 목표",
-                        "conversationId": "567e8901-e89b-12d3-a456-426614174004",
-                        "type": "ASSISTANT_FEEDBACK"
-                      },
-                      "receiverId": "789e0123-e89b-12d3-a456-426614174002",
-                      "checked": true,
-                      "createdAt": "2024-10-14T10:25:00Z",
-                      "updatedAt": "2024-10-14T10:35:00Z",
-                      "deletedAt": null
-                    }
-                  ],
-                  "pageable": null
-                }
-              """,
-                implementation = ServiceResponse::class,
-              ),
-          ),
-        ],
       ),
       ApiResponse(
         responseCode = "401",
