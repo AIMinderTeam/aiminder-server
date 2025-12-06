@@ -6,6 +6,7 @@ import ai.aiminder.aiminderserver.image.entity.ImageEntity
 import ai.aiminder.aiminderserver.image.error.ImageError
 import ai.aiminder.aiminderserver.image.property.ImageProperties
 import ai.aiminder.aiminderserver.image.repository.ImageRepository
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.http.codec.multipart.FilePart
 import org.springframework.stereotype.Service
 import java.io.File
@@ -32,7 +33,7 @@ class ImageService(
     val filePath = "/uploads/images/$storedFileName"
 
     val targetPath = imageProperties.uploadDirPath.resolve(storedFileName)
-    filePart.transferTo(targetPath).block()
+    filePart.transferTo(targetPath).awaitSingleOrNull()
 
     val fileSize = File(targetPath.toString()).length()
     if (!imageProperties.isValidFileSize(fileSize)) {
