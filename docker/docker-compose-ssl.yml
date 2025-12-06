@@ -34,6 +34,7 @@ services:
       - ./cert/letsencrypt:/etc/letsencrypt:ro
       - ./cert/webroot:/var/www/certbot:ro
       - ./nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./uploads/images:/uploads/images
     restart: always
     ports:
       - "80:80"
